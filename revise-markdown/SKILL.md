@@ -1,6 +1,6 @@
 ---
 name: revise-markdown
-description: Revise a markdown document through a structured review-comment loop — find, analyze, and address inline comments, then repeat until the user explicitly approves. Use when the user wants to iterate on a doc based on embedded review feedback, or mentions “revise the doc”, “address the comments”, “review and revise”, “update the markdown based on comments”.
+description: Revise a markdown document through a structured review-comment loop — find, analyze, and address inline comments, then repeat until the user explicitly approves. Trigger only when the user explicitly requests it, e.g. "revise the doc", "address the comments", "review and revise", "update the markdown based on comments". Do not auto-trigger.
 ---
 
 # Revise Markdown
