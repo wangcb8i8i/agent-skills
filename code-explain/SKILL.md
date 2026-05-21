@@ -128,6 +128,9 @@ Use local visual anchors to clarify:
 - execution flow
 - branching
 - data mapping
+- state transitions
+- concurrent interleaving
+- pipeline parallelism
 - contrasts or misread-prone behavior
 
 Prefer multiple small visuals over one oversized diagram when the explanation spans different concerns.

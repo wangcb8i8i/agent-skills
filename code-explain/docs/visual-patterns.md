@@ -282,6 +282,128 @@ Browser       API           Cache
 
 ---
 
+## 7. State machine pattern
+
+### Use when
+- an object has a defined lifecycle with legal state transitions
+- multiple paths can lead to different terminal states
+- incorrect transition ordering is a common bug vector
+- the main question is "what states exist and what causes transitions between them?"
+
+### Goal
+Show the legal state space and transition triggers compactly.
+
+### Output shape
+
+```text
+     ┌── cancel ──▶ [cancelled]
+     │
+[init] ──▶ [pending] ──▶ [running] ──▶ [done]
+               │                │
+               └── error ───────▶ [failed]
+```
+
+### What to emphasize
+- the legal transitions between states
+- the trigger or condition on each edge when it is non-obvious
+- states that cannot transition into each other (the absent edges)
+- the transition most likely to be missed or misapplied
+
+### Example
+
+```text
+           ┌── timeout ──▶ [expired]
+           │
+[idle] ──▶ [active] ──▶ [completed]
+           │    │
+           │    └── abort ──▶ [aborted]
+           │
+           └── evict ──▶ [evicted]
+```
+
+### Common misuse
+- Do not use this when there is no meaningful lifecycle — a flag toggle is not a state machine.
+- Do not draw every field value change as a state.
+- Do not confuse with state/transform, which models data shape, not legal transitions.
+
+---
+
+## 8. Concurrency / interleaving pattern
+
+### Use when
+- multiple goroutines, threads, or async tasks overlap in time
+- a race condition, deadlock, or ordering ambiguity is central to understanding
+- the main question is "who can run when, and what interleavings are dangerous?"
+
+### Goal
+Show concurrent execution units and the points where they interact or conflict.
+
+### Output shape
+
+```text
+goroutine A:  lock(m) ── read(x) ── write(x) ── unlock(m) ──
+goroutine B:  ── wait(m) ─────────────────────── lock(m) ── read(x)
+```
+
+### What to emphasize
+- the shared resource or critical section
+- the ordering constraints (who waits on whom)
+- which interleavings are safe and which are not
+- the one interaction that is easiest to get wrong
+
+### Example
+
+```text
+producer:  write(ch) ────────────────── write(ch) ── close(ch) ──
+consumer:  ── read(ch) ── process ── read(ch) ── process ── read(ch) → done
+```
+
+### Common misuse
+- Do not use this for synchronous, single-threaded call flow.
+- Do not draw every goroutine in the program — only the ones whose interleaving matters.
+- Do not use this when structure or ownership is the real question.
+
+---
+
+## 9. Pipeline / DAG pattern
+
+### Use when
+- data flows through parallel stages that fan out and merge
+- independent branches converge at a join point
+- the main question is "what runs in parallel and where do results combine?"
+
+### Goal
+Show parallelism boundaries and merge points without over-specifying ordering.
+
+### Output shape
+
+```text
+         ┌── [stage A] ──┐
+[input] ──┤               ├── [merge] ── [output]
+         └── [stage B] ──┘
+```
+
+### What to emphasize
+- which stages are independent and could run in parallel
+- the merge point where results reunite
+- dependencies that force sequential execution
+- the stage that is the bottleneck or error boundary
+
+### Example
+
+```text
+              ┌── [fetch db] ──┐
+[user query] ──┤                ├── [rank] ── [response]
+              └── [fetch cache] ┘
+```
+
+### Common misuse
+- Do not use this when execution is actually sequential.
+- Do not turn a simple call chain into a DAG just because the code imports two modules.
+- Do not hide the merge logic — if the join is non-trivial, it often deserves its own prose note.
+
+---
+
 ## Pattern selection shortcut
 
 - "What runs in what order?" → call flow
@@ -294,6 +416,9 @@ Browser       API           Cache
 - "How does the data change?" → state / transform
 - "What are the important roles or differences?" → compact table
 - "What contains what?" → hierarchy / tree
+- "What states exist and how can they change?" → state machine
+- "Who can run when, and is there a race?" → concurrency / interleaving
+- "What runs in parallel and where do results merge?" → pipeline / DAG
 - "What is easy to misread?" → compact table, or the dominant structural / flow pattern with a short contrast callout
 
 If two questions matter equally, pick the dominant one first and add a second pattern only if it genuinely improves clarity.
