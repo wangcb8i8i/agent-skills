@@ -1,0 +1,41 @@
+{
+  "skill_name": "research-plan-driven",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "plan first: add a new notifications preferences section to the settings page, and only implement after I approve the plan.",
+      "expected_output": "The skill should clarify the request, avoid implementation, generate a task slug, and drive creation of research and plan artifacts before coding.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "research and plan this before coding: refactor our login redirect flow so social login and password login share the same return path and edge-case handling.",
+      "expected_output": "The skill should clarify requirements before repository research, produce docs-based planning artifacts, and keep implementation gated behind explicit approval.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "use research-plan-driven here. We need a CSV import flow with preview, validation errors, and a final confirm step, but don't write code until the docs are approved.",
+      "expected_output": "The skill should follow the full workflow, keep review loops inside research, planning, and todo, preserve the hard gate before implementation, and place the todo list inside the plan doc.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "use research-plan-driven. I already wrote and approved docs/auth-hardening.research.md. Continue from planning and do not restart research unless the doc is insufficient.",
+      "expected_output": "The skill should validate the existing research artifact, resume from planning if it is sufficient, and avoid restarting research automatically.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "continue this with research-plan-driven: docs/import-redesign.plan.md is already approved, but the todo list is not approved yet. Do not implement yet.",
+      "expected_output": "The skill should resume in the todo phase, keep implementation blocked, and require explicit approval of the embedded todo list before coding.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "use research-plan-driven. The plan and todo are already approved, so continue with implementation from the existing docs.",
+      "expected_output": "The skill should validate the existing approved artifacts and resume at implementation instead of restarting earlier phases.",
+      "files": []
+    }
+  ]
+}
