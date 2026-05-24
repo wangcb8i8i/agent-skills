@@ -138,10 +138,83 @@ Capture user intent through guided conversation — not just what users say they
       <skip if="no simpler alternative comes to mind">Nothing useful to offer — move on.</skip>
     </move>
     
+    <move n="4" name="Multi-Lens Check">
+      <goal>Don't stop at one perspective. Scan for other role viewpoints that would surface different concerns — 1 to N lenses, driven by the intent, not a template.</goal>
+      
+      <principle>After the first round of challenge (translate, tension, alternatives), pause and ask: "Who else has skin in this game?" The first lens the conversation naturally fell into might not be the only one that matters.</principle>
+      
+      <anti_pattern>
+        <bad>Mechanically running through all 8 lenses every time. Most intents only need 1-3.</bad>
+        <bad>Forcing a lens that has nothing to say. If the lens question is already answered by what the user said, skip it.</bad>
+        <bad>Treating this as a checklist to complete before moving on. The goal is surfacing blind spots, not filling a quota.</bad>
+      </anti_pattern>
+      
+      <step n="1" name="Judge Applicability">
+        <action>Given this specific intent, which roles or stakeholders would have a genuinely different take? Scan the reference catalog below — not as a checklist, but as a prompt to think.</action>
+        <rule>If only one lens applies (the one the conversation already used), acknowledge it and move on. Don't invent perspectives.</rule>
+        <rule>If 0 additional lenses apply, skip the move entirely.</rule>
+      </step>
+      
+      <lens_catalog purpose="reference, not checklist">
+        <lens name="End User">
+          <question>Will the person actually using this understand it? Is it discoverable? Does it match their mental model?</question>
+          <applies_when>There's a UI, a workflow, or a human-in-the-loop action.</applies_when>
+        </lens>
+        <lens name="Operator / On-Call">
+          <question>What breaks at 3am? How do you know it's broken? What's the recovery path?</question>
+          <applies_when>Anything that runs in production, has dependencies, or changes state.</applies_when>
+        </lens>
+        <lens name="Security / Compliance">
+          <question>Who can do what? What data moves where? What audit trail exists?</question>
+          <applies_when>The intent touches auth, data access, PII, external integrations, or permissions.</applies_when>
+        </lens>
+        <lens name="Maintainer / Future Team">
+          <question>Will someone inheriting this 6 months from now understand why it exists and how it works?</question>
+          <applies_when>The intent involves custom logic, configuration, or non-obvious design choices.</applies_when>
+        </lens>
+        <lens name="Business / Stakeholder">
+          <question>Does this move a metric that matters? What's the cost of being wrong? What's the opportunity cost?</question>
+          <applies_when>The intent has a business goal, a budget, or a timeline.</applies_when>
+        </lens>
+        <lens name="Data / Analytics">
+          <question>What does success look like in data? What events or metrics would prove this worked?</question>
+          <applies_when>The intent involves user behavior, business outcomes, or anything that should be measured.</applies_when>
+        </lens>
+        <lens name="Newcomer / Onboarding">
+          <question>Does this assume knowledge a new user or team member wouldn't have?</question>
+          <applies_when>The intent creates a new surface, API, workflow, or convention.</applies_when>
+        </lens>
+        <lens name="Scale / Edge Cases">
+          <question>What happens at 10x? 0 items? 10,000 items? Concurrent users? Retry storms?</question>
+          <applies_when>The intent involves data processing, queues, lists, or multi-user scenarios.</applies_when>
+        </lens>
+      </lens_catalog>
+      
+      <step n="2" name="Present">
+        <action>State which lenses you're checking, then ask the key question for each — all together, not one-by-one waiting for confirmation. Keep each lens to 1-2 sentences.</action>
+        <rule>Don't narrate the lens name unless it adds clarity. The user cares about the insight, not the taxonomy.</rule>
+        <format>
+          <example output>
+            Before we lock this down, a couple other angles:
+            
+            From an on-call perspective — if this export fails silently at 3am Sunday, does anyone notice before Monday's staffing meeting?
+            
+            And at scale — "all projects" is 10 or 10,000? The shape of the solution changes a lot at different orders of magnitude.
+          </example>
+        </format>
+      </step>
+      
+      <step n="3" name="Resolve">
+        <action>Let the user respond to the set. They may dismiss some lenses, dig into others, or adjust the intent.</action>
+        <action>Each lens is resolved when the user confirms, defers, or the concern proves irrelevant.</action>
+      </step>
+    </move>
+    
     <exit_criteria>
       <required>User confirmed the translation accurately captures the real need</required>
       <required>Any surfaced tension has been resolved or explicitly deferred by the user</required>
       <required>Any offered alternative has been accepted or explicitly rejected by the user</required>
+      <required>Applicable lenses have been scanned — at least one, at most as many as the intent genuinely calls for</required>
     </exit_criteria>
     
     <transition to="capture">
