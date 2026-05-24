@@ -1,5 +1,5 @@
 ---
-name: research
+name: research-report
 description: 系统化深度研究框架。覆盖问题定义→信息检索→筛选评估→多Lens分析→结论综合→决策级报告全流程。适用于投资研究、行业调研、信息洞察等场景。
 version: 1.0.0
 ---
@@ -34,7 +34,7 @@ version: 1.0.0
       <action>如果用户输入已经具体，确认即可，不强行追问</action>
       <output>1 句话核心研究问题</output>
     </step>
-
+    
     <step n="2" name="范围约束">
       <action>与用户确认三个边界，不明确的主动询问：
         - 时间范围（近 1 年/近 3 年/不限）
@@ -43,13 +43,13 @@ version: 1.0.0
       </action>
       <output>明确的 in-scope 和 out-of-scope</output>
     </step>
-
+    
     <step n="3" name="用途校准">
       <question>这份研究最终用来做什么？</question>
       <options>投资决策 / 战略规划 / 产品立项 / 知识储备 / 向上汇报 / 对外发表</options>
       <principle>用途决定后续各 Phase 的侧重——投资决策偏风险评估，战略规划偏竞争格局，知识储备偏广度</principle>
     </step>
-
+    
     <step n="4" name="深度设定">
       <question>需要多深？</question>
       <levels>
@@ -59,14 +59,14 @@ version: 1.0.0
       </levels>
       <default>Level 2</default>
     </step>
-
+    
     <exit_criteria>
       <required>1 句话核心问题已确认</required>
       <required>时间/地域/排除项已明确</required>
       <required>最终用途已知</required>
       <required>深度级别已设定</required>
     </exit_criteria>
-
+    
     <transition to="search">用户确认 Scope 输出无误后进入 SEARCH</transition>
   </phase>
 
@@ -85,13 +85,13 @@ version: 1.0.0
       </action>
       <output>关键词矩阵 + 信源计划</output>
     </step>
-
+    
     <step n="2" name="并行检索">
       <action>按关键词 × 信源类型并行搜索</action>
       <action>去重，保留最相关的 5-15 篇核心材料</action>
       <mandate>优先使用最新、最权威的信息源</mandate>
     </step>
-
+    
     <step n="3" name="Corpus 建档">
       <action>为每份核心材料生成 passport：
         - 标题 + 来源 + 日期
@@ -101,18 +101,18 @@ version: 1.0.0
       </action>
       <output>语料库总览（列表形式，不超过 1 屏）</output>
     </step>
-
+    
     <step n="4" name="缺口检查">
       <question>有没有应该覆盖但尚未覆盖的角度或信源类型？</question>
       <action>用户指出缺口 → 补充检索 → 更新 Corpus</action>
     </step>
-
+    
     <exit_criteria>
       <required>Corpus 包含 5-15 篇核心材料，每份有 passport</required>
       <required>至少覆盖 3 类信源</required>
       <required>用户确认无重大缺口</required>
     </exit_criteria>
-
+    
     <transition to="filter">Corpus 就绪后进入 FILTER</transition>
   </phase>
 
@@ -127,7 +127,7 @@ version: 1.0.0
       </action>
       <action>★ 材料进入备用区，不作为主分析输入</action>
     </step>
-
+    
     <step n="2" name="可信度四维评估">
       <dimensions>
         <dim name="来源权威性">谁发布的？该领域公认的信源吗？</dim>
@@ -137,23 +137,23 @@ version: 1.0.0
       </dimensions>
       <output>每份 ★★★/★★ 材料的四维评估摘要</output>
     </step>
-
+    
     <step n="3" name="矛盾标注">
       <action>如果不同来源对同一事实给出矛盾信息，显式标注</action>
       <action>不强行裁决，留到 ANALYZE 阶段处理</action>
     </step>
-
+    
     <step n="4" name="缺口识别">
       <action>对照核心问题，识别信息覆盖不足的维度</action>
       <action>缺口严重时，回到 SEARCH 阶段补充检索</action>
     </step>
-
+    
     <exit_criteria>
       <required>★★★ 和 ★★ 材料已完成相关性分级和可信度评估</required>
       <required>矛盾点已标注</required>
       <required>信息缺口已识别（如有）</required>
     </exit_criteria>
-
+    
     <transition to="analyze">筛选完成，确认后进入 ANALYZE</transition>
   </phase>
 
@@ -165,7 +165,7 @@ version: 1.0.0
       <mandate>每个 Lens 分析必须标注信息来自 Corpus 中哪些材料</mandate>
       <mandate>Lens 之间允许结论不同甚至矛盾——这是信号，不是问题</mandate>
     </principle>
-
+    
     <step n="1" name="Lens 选择">
       <action>根据研究问题的性质，从 Lens Catalog 中选择 3-5 个</action>
       <default_set>
@@ -181,19 +181,19 @@ version: 1.0.0
         <lenses>/DEEP → /MIX → /CHALLENGE → /FIRST-PRINCIPLES → /HYP</lenses>
       </default_set>
     </step>
-
+    
     <step n="2" name="Lens 逐个执行">
       <action>按选定顺序逐个执行 Lens</action>
-
+    
       <!-- Lens 定义见下方 Lens Catalog -->
     </step>
-
+    
     <exit_criteria>
       <required>选定的 3-5 个 Lens 全部完成</required>
       <required>每个 Lens 输出标注了信息来源</required>
       <required>Lens 间的矛盾点已记录</required>
     </exit_criteria>
-
+    
     <transition to="synthesize">分析完成，确认后进入 SYNTHESIZE</transition>
   </phase>
 
@@ -204,13 +204,13 @@ version: 1.0.0
       <action>将所有 Lens 的核心发现汇总成清单</action>
       <action>每条发现标注：来源材料 + 产生该发现的 Lens + 置信度（High/Medium/Low）</action>
     </step>
-
+    
     <step n="2" name="交叉验证">
       <action>同一发现被多个独立来源确认 → 置信度升级</action>
       <action>仅单一来源 → 标注「待验证」</action>
       <action>来源间矛盾 → 呈现双方，分析可能原因，给出倾向性判断</action>
     </step>
-
+    
     <step n="3" name="矛盾裁决">
       <action>对 FILTER 阶段标注的矛盾点进行处理：
         - 能裁决的 → 给出判断 + 依据
@@ -218,7 +218,7 @@ version: 1.0.0
       </action>
       <principle>不做伪调和。诚实比整洁更重要。</principle>
     </step>
-
+    
     <step n="4" name="结论排序">
       <action>按「置信度 × 影响力」矩阵排序所有发现</action>
       <matrix>
@@ -228,18 +228,18 @@ version: 1.0.0
         <quadrant>低置信 × 低影响 → 附录或舍弃</quadrant>
       </matrix>
     </step>
-
+    
     <step n="5" name="建议生成">
       <action>基于核心结论，生成 3-5 条具体可执行建议</action>
       <format>每条建议：行动是什么 + 预期效果 + 主要风险 + 所需资源/前置条件</format>
     </step>
-
+    
     <exit_criteria>
       <required>核心结论 3-5 条，每条有置信度标注</required>
       <required>矛盾点已处理（裁决或保留）</required>
       <required>建议 3-5 条，格式完整</required>
     </exit_criteria>
-
+    
     <transition to="report">综合完成，确认后进入 REPORT</transition>
   </phase>
 
@@ -256,7 +256,7 @@ version: 1.0.0
       </options>
       <default>Executive Brief</default>
     </step>
-
+    
     <step n="2" name="报告生成">
       <mandatory_sections>
         <section id="executive_summary">
@@ -286,7 +286,7 @@ version: 1.0.0
         </section>
       </mandatory_sections>
     </step>
-
+    
     <exit_criteria>
       <required>报告包含全部 6 个必要章节</required>
       <required>主张有来源，假设有标注</required>
