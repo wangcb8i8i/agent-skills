@@ -54,7 +54,19 @@ version: 2.0.0
       </action>
     </step>
 
-    <step n="3" name="深度设定">
+    <step n="3" name="已有知识注入" optional="true">
+      <action>用户可在此提供已掌握的信息或材料——跳过不提供不影响流程。</action>
+      <options>
+        - 已了解的关键信息或事实
+        - 已读过的研究、报道、分析
+        - 偏好的信息源（特定媒体/作者/数据库）
+        - 需要参考的原始材料（文档、数据、链接）
+      </options>
+      <principle>如用户提供了原始材料，SCAN Lens 自动激活，在所有 Lens 之前首先执行，在用户材料中定位相关段落。</principle>
+      <principle>如用户提供了已知信息，研究应聚焦于补充未知部分，不重复已知内容。</principle>
+    </step>
+
+    <step n="4" name="深度设定">
       <question>需要多深？</question>
       <levels>
         <level id="1">快速扫描（~30 min）—— 关键事实 + 1-2 个核心判断</level>
@@ -64,15 +76,29 @@ version: 2.0.0
       <default>Level 2</default>
     </step>
 
-    <step n="4" name="Scope 确认">
+    <step n="5" name="格式选择">
+      <principle>产出格式在 Scope 阶段决定，避免研究完成后再让用户做选择。</principle>
+      <question>需要什么格式？</question>
+      <options>
+        <option id="full">Full Report —— 完整报告，含分析过程（默认）</option>
+        <option id="brief">Executive Brief —— 1 页简报，核心结论 + 建议</option>
+        <option id="slides">Slide Deck —— 逐页要点，Mermaid 提纲</option>
+        <option id="mindmap">Mind Map —— Mermaid 思维导图</option>
+      </options>
+      <default>Full Report</default>
+    </step>
+
+    <step n="6" name="Scope 确认">
       <output>
         ## 研究任务确认
 
         **研究问题**: {一句话核心问题}
-        **研究类型**: {投资判断/技术趋势/产品决策/行业调研/生活经验}
+        **研究类型**: {投资判断/技术趋势/产品决策/行业调研/生活经验/知识储备}
         **锚定点**: {用户指定的约束条件}
         **范围**: 时间={} / 地域={} / 排除={}
         **深度**: Level {}
+        **格式**: {Full Report / Executive Brief / Slide Deck / Mind Map}
+        **已有材料**: {有，共 N 份 / 无}
 
         确认以上方向无误？确认后我将自动执行研究，完成后给你完整报告。
       </output>
@@ -116,11 +142,11 @@ version: 2.0.0
         <action>基于研究类型选择核心 Lens（Level 1: 2-3 个 / Level 2: 3-5 个 / Level 3: 5-7 个）：</action>
         <mapping>
           <type name="投资判断">/DEEP → /ANGLE → /HYP → /CHALLENGE → /ACTION</type>
-          <type name="行业调研">/DEEP → /ANGLE → /TIMELINE → /VOICES → /ACTION</type>
-          <type name="技术趋势">/DEEP → /TIMELINE → /HYP → /MIX → /CHALLENGE</type>
-          <type name="产品决策">/VOICES → /ANGLE → /CHALLENGE → /FIRST-PRINCIPLES → /ACTION</type>
-          <type name="生活经验">/VOICES → /ANGLE → /DEEP → /MIX → /ACTION</type>
-          <type name="知识储备">/DEEP → /ANGLE → /TIMELINE → /MIX → /CHALLENGE</type>
+          <type name="行业调研">/DEEP → /ANGLE → /TIMELINE → /VOICES → /HYP → /CHALLENGE → /ACTION</type>
+          <type name="技术趋势">/DEEP → /TIMELINE → /VOICES → /HYP → /MIX → /CHALLENGE</type>
+          <type name="产品决策">/VOICES → /DEEP → /ANGLE → /CHALLENGE → /FIRST-PRINCIPLES → /ACTION</type>
+          <type name="生活经验">/VOICES → /ANGLE → /DEEP → /CHALLENGE → /ACTION</type>
+          <type name="知识储备">/DEEP → /ANGLE → /TIMELINE → /VOICES → /MIX → /CHALLENGE</type>
         </mapping>
         <action>根据锚定点调整 Lens 组合——「对比」→ 强化 /ANGLE，「风险」→ 强化 /CHALLENGE，「怎么做」→ 强化 /ACTION，「为什么」→ 强化 /DEEP</action>
         <action>对于 Level 1，从完整序列中取前 N 个最核心的 Lens</action>
@@ -141,29 +167,62 @@ version: 2.0.0
       <action>生成可执行建议（Level 1: 1-3 条 / Level 2: 3-5 条 / Level 3: 5-8 条），每条含：行动 + 预期效果 + 主要风险 + 前置条件</action>
       <action>建议必须回应用户的锚定点——每条建议标注回应了哪个锚定约束</action>
     </subphase>
+
+    <!-- 5. 异常降级 -->
+    <subphase id="auto-degradation" title="异常降级">
+      <principle>遇到信息障碍时不卡住、不硬推、不伪造。按场景执行对应降级策略，所有异常状态带入报告。</principle>
+
+      <scenario id="no-results" name="搜索无结果或信息严重不足">
+        <trigger>某关键词搜索返回 <3 条有效结果，或整体材料池 < 最低门槛（L1: 2 篇 / L2: 3 篇 / L3: 5 篇）</trigger>
+        <degradation>
+          <step>放宽搜索约束：去掉时间/地域限制 → 扩展同义词 → 上探一级话题（如「XX 赛道竞争格局」→「XX 行业概况」）</step>
+          <step>切换信源类型：学术无结果 → 搜行业媒体、社区讨论；英文无结果 → 搜中文，反之亦然</step>
+          <step>若仍不足，启动「类比外推」：找相邻领域的类似模式作为参考（标注为「类比推断，非直接证据」）</step>
+          <step>最终仍不足 → 报告标注「信息缺口：{具体缺什么}」，跳过该维度的结论，不强行给出判断</step>
+        </degradation>
+      </scenario>
+
+      <scenario id="contradiction" name="来源信息矛盾">
+        <trigger>同一事实维度上 ≥2 个来源给出了冲突的信息或判断</trigger>
+        <degradation>
+          <step>定位矛盾点：具体是数据冲突、方向判断冲突、还是归因冲突？</step>
+          <step>来源可信度加权对比：权威性高、时效性新、有原始数据的来源优先</step>
+          <step>检查时间差：矛盾是否来自不同时间点的快照（如 2023 的数据 vs 2025 的数据），如果是，以最新为准并标注变化趋势</step>
+          <step>无法裁决 → 保留双方立场，标注「来源分歧」，降级该结论的置信度</step>
+        </degradation>
+      </scenario>
+
+      <scenario id="low-quality" name="来源质量偏低">
+        <trigger>★★★ 材料中 >50% 可信度评分 < 3/5，或主要来源为自媒体、匿名社区帖、无数据支撑的观点文</trigger>
+        <degradation>
+          <step>降级标注：所有来自低质量源的结论标注「低置信度：来源为{类型}，未经独立验证」</step>
+          <step>三角定位：用 2+ 个独立低质量源交叉印证同一事实，提升为「中等置信度：多源交叉一致」</step>
+          <step>补充搜索：针对性搜索高质量源（行业报告、学术论文、一手数据）验证关键主张</step>
+          <step>报告中诚实呈现：「本话题可获取的高质量信息有限，以下结论基于{来源类型}，建议以{具体方式}进一步验证」</step>
+        </degradation>
+      </scenario>
+
+      <scenario id="language-gap" name="语言壁垒">
+        <trigger>关键市场的信息主要存在于模型无法直接检索的语言中（如仅中文/仅英文/仅小语种）</trigger>
+        <degradation>
+          <step>切换搜索语言重试</step>
+          <step>仍无法获取 → 标注「语言壁垒：{语言}信息未充分覆盖」，不影响已有语言的结论质量</step>
+        </degradation>
+      </scenario>
+    </subphase>
   </phase>
 
   <!-- ==================== PHASE 3: REPORT ==================== -->
   <phase id="report" title="REPORT — 输出结论">
 
-    <goal>产出可直接用于决策的研究报告。</goal>
+    <goal>产出可直接用于决策的研究报告。格式已在 Scope 阶段确定。</goal>
 
-    <step n="1" name="输出格式">
-      <principle>先选格式再生产，避免生成用户不需要的内容。</principle>
-      <options>
-        <option id="brief">Executive Brief —— 1 页简报，核心结论 + 建议</option>
-        <option id="full">Full Report —— 完整报告，含分析过程（默认）</option>
-        <option id="slides">Slide Deck —— 逐页要点，Mermaid 提纲</option>
-        <option id="mindmap">Mind Map —— Mermaid 思维导图</option>
-      </options>
-    </step>
-
-    <step n="2" name="自适应报告生成">
+    <step n="1" name="自适应报告生成">
       <principle>报告结构根据研究类型和深度级别自适应，不是固定模板。</principle>
 
       <common-sections>
         <section id="executive_summary">
-          <name>Executive Summary</name>
+          <name>执行摘要</name>
           <content>核心发现（1-2 句）+ 最强推荐（1 句）+ 关键风险（1 句）</content>
         </section>
         <section id="key_findings">
@@ -174,9 +233,17 @@ version: 2.0.0
           <name>分析过程</name>
           <content>按使用的 Lens 组织，每条结论可追溯至来源</content>
         </section>
-        <section id="recommendations">
-          <name>行动建议</name>
-          <content>3-5 条，格式：行动 / 预期效果 / 风险 / 前置条件</content>
+        <section id="action_section" conditional="true">
+          <name>行动章节（根据研究类型选择）</name>
+          <principle>不是所有研究都需要行动建议。根据类型选择合适的收尾板块。</principle>
+          <mapping>
+            <type name="投资判断">行动建议 — 3-5 条，格式：行动 / 预期效果 / 风险 / 前置条件</type>
+            <type name="产品决策">行动建议 — 3-5 条，格式：行动 / 预期效果 / 风险 / 前置条件</type>
+            <type name="生活经验">行动建议 — 3-5 条，格式：行动 / 预期效果 / 风险 / 前置条件</type>
+            <type name="行业调研">战略含义 — 对行业格局意味着什么，对不同类型的参与者有何影响</type>
+            <type name="技术趋势">关键信号 — 需要持续关注的先行指标 + 入场时机的判断框架</type>
+            <type name="知识储备">推荐学习路径 — 从哪里开始、进阶路线、核心资源索引</type>
+          </mapping>
         </section>
         <section id="uncertainties">
           <name>不确定性与反论</name>
@@ -194,22 +261,24 @@ version: 2.0.0
         <type name="行业调研">强化「产业链图谱」和「竞争格局」；增加「政策/监管环境」</type>
         <type name="产品决策">强化「竞品对比」和「用户需求映射」；增加「实施路线图建议」</type>
         <type name="生活经验">强化「实操建议」和「成本/收益分析」；精简理论分析</type>
-        <type name="知识储备">强化「概念体系」和「知识全景」；增加「推荐学习路径」</type>
+        <type name="知识储备">强化「概念体系」和「知识全景」</type>
       </type-adaptations>
 
       <depth-adaptations>
-        <level id="1">仅 Executive Summary + 核心发现 + 建议，不展开分析过程</level>
+        <level id="1">仅执行摘要 + 核心发现 + 行动章节，不展开分析过程</level>
         <level id="2">完整报告，含分析过程引用</level>
         <level id="3">完整报告 + 附录（详细 Lens 输出 + 来源全文摘要 + 假设推演场景）</level>
       </depth-adaptations>
     </step>
 
-    <step n="3" name="结论确认">
-      <action>输出报告后，询问用户：
-        - 结论是否有用？
-        - 需要调整格式或补充某个方向？
-        - 需要保存到文件？
-      </action>
+    <step n="2" name="追问入口">
+      <principle>报告输出后默认自动保存。用户可对任意发现聚焦深挖，无需重新发起完整研究。</principle>
+      <action>报告末尾附提示：「报告已保存。如需深挖某个发现，回复"追问 + 问题"即可。」</action>
+      <mechanism>
+        <step>基于已有研究上下文，生成 2-3 组定向搜索关键词</step>
+        <step>仅执行 /DEEP + 一个上下文匹配的 Lens（对比→/ANGLE，风险→/CHALLENGE，怎么做→/ACTION）</step>
+        <step>增量输出至已有报告末尾，不覆盖原文</step>
+      </mechanism>
     </step>
   </phase>
 </flow>
@@ -250,12 +319,26 @@ version: 2.0.0
   <lens id="challenge" name="/CHALLENGE" title="挑战与反面证据">
     <goal>主动寻找反面证据和逻辑漏洞。对抗确认偏误。</goal>
     <method>
-      <step>当前主流观点或自身初步判断是什么？</step>
-      <step>有什么证据与之矛盾？有什么案例不支持它？</step>
-      <step>我们可能在哪出错了？数据、逻辑、还是假设？</step>
-      <step>利益相关方有哪些偏见可能影响信息？</step>
+      <step n="1" name="定位核心主张">
+        <action>从已有分析中提取 3-5 个最强的结论性主张（「X 是 Y」「A 导致 B」「C 赛道最有前景」）</action>
+        <action>每个主张标注其依赖的关键前提——如果前提不成立，结论就不成立</action>
+      </step>
+      <step n="2" name="反向搜索">
+        <action>针对每个主张，用否定句式构造搜索词：「X 失败案例」「X 的局限性」「为什么 X 不行」「X 的批评」「X 过时」</action>
+        <action>专门搜索持反对立场的信息源（做空报告、批评文章、竞对分析、学术 rebuttal）</action>
+        <action>找 1-2 个该主张被证伪的真实案例（如「看好 XX 赛道的投资后来为什么亏了」「某技术被替代的时间线」）</action>
+      </step>
+      <step n="3" name="压力测试">
+        <action>数据层：数据来源是否可复现？样本是否代表总体？统计口径是否一致？是否存在幸存者偏差？</action>
+        <action>逻辑层：相关关系是否被当作因果关系？是否存在遗漏变量？结论是否过度外推？</action>
+        <action>假设层：结论依赖的假设如果反转（如「监管政策不变」→「监管突然收紧」），结论还成立吗？</action>
+      </step>
+      <step n="4" name="立场审计">
+        <action>逐一标注每个主要来源的立场和潜在利益：卖方报告→做多倾向，被投企业 PR→美化倾向，学术论文→发表偏误（positive results 更易发表）</action>
+        <action>检查：如果我方结论被这些偏见系统性影响，最可能的偏误方向是什么？（过度乐观/过度悲观/忽略尾部风险）</action>
+      </step>
     </method>
-    <output>反面证据清单 + 潜在偏差列表</output>
+    <output>主张瓦解清单（每条含：主张 / 反面证据 / 逻辑漏洞 / 偏误方向 / 幸存置信度）</output>
   </lens>
 
   <lens id="action" name="/ACTION" title="行动转化">
@@ -316,7 +399,7 @@ version: 2.0.0
       <step>汇总 + 标注出处</step>
     </method>
     <output>精确引用 + 段落摘要</output>
-    <note>轻量 Lens，适合在 DEEP 之前做快速定位，或验证某个具体细节</note>
+    <note>条件 Lens：仅在用户于 Scope 阶段提供了原始材料时激活。在所有 Lens 之前首先执行，在用户提供的材料中快速定位相关段落。无用户材料时不出现在 Lens 序列中。</note>
   </lens>
 </lens_catalog>
 
