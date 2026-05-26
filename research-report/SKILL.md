@@ -218,65 +218,63 @@ version: 2.0.0
     <goal>产出可直接用于决策的研究报告。格式已在 Scope 阶段确定。</goal>
 
     <step n="1" name="自适应报告生成">
-      <principle>报告结构根据研究类型和深度级别自适应，不是固定模板。</principle>
+      <principle>报告结构根据研究类型和深度级别自适应，不是固定模板。所有内部方法、分析框架、工具代号一律不出现在报告中。</principle>
 
       <common-sections>
         <section id="executive_summary">
-          <name>执行摘要</name>
-          <content>核心发现（1-2 句）+ 最强推荐（1 句）+ 关键风险（1 句）</content>
+          <name>摘要</name>
+          <content>核心结论（2-3 句）+ 关键建议/判断（1 句）+ 主要风险提示（1 句）</content>
         </section>
-        <section id="key_findings">
-          <name>核心发现</name>
-          <content>3-5 条，按「置信度 × 影响力」排序</content>
-        </section>
-        <section id="analysis">
-          <name>分析过程</name>
-          <content>按使用的 Lens 组织，每条结论可追溯至来源</content>
+        <section id="topic_sections">
+          <name>正文（核心主题章节）</name>
+          <principle>按研究主题的自然逻辑组织章节，每一节的标题和内容是对读者最有价值的维度，而不是分析方法名称。</principle>
+          <principle>通用递进：现状与事实 → 对比与差异 → 原因与驱动 → 趋势与推演 → 风险与反面证据。但这不是固定模板——根据每个研究的具体内容决定最自然的叙事顺序。</principle>
+          <principle>每节熔接来自不同分析角度的发现，只呈现结论性内容，不标注"这是从什么分析方法来的"。</principle>
         </section>
         <section id="action_section" conditional="true">
           <name>行动章节（根据研究类型选择）</name>
-          <principle>不是所有研究都需要行动建议。根据类型选择合适的收尾板块。</principle>
+          <principle>不是所有研究都需要行动建议。根据类型选择合适的收尾板块。章节标题直接用下表对应的名字，不加额外说明。</principle>
           <mapping>
             <type name="投资判断">行动建议 — 3-5 条，格式：行动 / 预期效果 / 风险 / 前置条件</type>
             <type name="产品决策">行动建议 — 3-5 条，格式：行动 / 预期效果 / 风险 / 前置条件</type>
             <type name="生活经验">行动建议 — 3-5 条，格式：行动 / 预期效果 / 风险 / 前置条件</type>
             <type name="行业调研">战略含义 — 对行业格局意味着什么，对不同类型的参与者有何影响</type>
-            <type name="技术趋势">关键信号 — 需要持续关注的先行指标 + 入场时机的判断框架</type>
-            <type name="知识储备">推荐学习路径 — 从哪里开始、进阶路线、核心资源索引</type>
+            <type name="技术趋势">趋势判断与信号 — 需要持续关注的先行指标 + 入场时机的判断框架</type>
+            <type name="知识储备">知识体系梳理 — 从哪里开始、进阶路线、核心资源索引</type>
           </mapping>
         </section>
         <section id="uncertainties">
-          <name>不确定性与反论</name>
-          <content>关键不确定性 + 可能改变结论的条件 + 反面观点</content>
+          <name>不确定性</name>
+          <content>关键不确定性 + 什么条件下结论可能改变</content>
         </section>
         <section id="sources">
-          <name>来源</name>
-          <content>主要来源列表 + 整体置信度评估</content>
+          <name>参考来源</name>
+          <content>来源列表</content>
         </section>
       </common-sections>
 
       <type-adaptations>
-        <type name="投资判断">强化「风险矩阵」和「情景分析」部分；增加「如果判断错误，可能漏掉什么」</type>
-        <type name="技术趋势">强化「时间线」和「成熟度评估」；增加「采用曲线位置判断」</type>
-        <type name="行业调研">强化「产业链图谱」和「竞争格局」；增加「政策/监管环境」</type>
-        <type name="产品决策">强化「竞品对比」和「用户需求映射」；增加「实施路线图建议」</type>
-        <type name="生活经验">强化「实操建议」和「成本/收益分析」；精简理论分析</type>
-        <type name="知识储备">强化「概念体系」和「知识全景」</type>
+        <type name="投资判断">正文中强化多情景对比和风险矩阵，行动建议必须包含退出条件</type>
+        <type name="技术趋势">正文中强化时间因素和成熟度判断，行动章节替换为「趋势判断与信号」</type>
+        <type name="行业调研">正文中强化产业链关系和竞争格局，行动章节替换为「战略含义」</type>
+        <type name="产品决策">正文中强化竞品对比和用户需求，行动章节必须包含实施路线图建议</type>
+        <type name="生活经验">正文精简理论分析，行动章节强化实操清单和成本/收益</type>
+        <type name="知识储备">正文以知识体系和全景概览形式呈现，行动章节替换为「知识体系梳理」</type>
       </type-adaptations>
 
       <depth-adaptations>
-        <level id="1">仅执行摘要 + 核心发现 + 行动章节，不展开分析过程</level>
-        <level id="2">完整报告，含分析过程引用</level>
-        <level id="3">完整报告 + 附录（详细 Lens 输出 + 来源全文摘要 + 假设推演场景）</level>
+        <level id="1">仅摘要 + 核心主题（精简版，无展开）+ 行动章节 + 不确定性</level>
+        <level id="2">完整报告：摘要 + 2-4 个主题章节 + 行动章节 + 不确定性 + 参考来源</level>
+        <level id="3">深度报告：摘要 + 4-6 个主题章节 + 行动章节 + 不确定性 + 参考来源，每个主题节内展开充分</level>
       </depth-adaptations>
     </step>
 
     <step n="2" name="追问入口">
       <principle>报告输出后默认自动保存。用户可对任意发现聚焦深挖，无需重新发起完整研究。</principle>
-      <action>报告末尾附提示：「报告已保存。如需深挖某个发现，回复"追问 + 问题"即可。」</action>
+      <action>报告末尾附提示：「如需深挖某个发现，可以继续追问。」</action>
       <mechanism>
         <step>基于已有研究上下文，生成 2-3 组定向搜索关键词</step>
-        <step>仅执行 /DEEP + 一个上下文匹配的 Lens（对比→/ANGLE，风险→/CHALLENGE，怎么做→/ACTION）</step>
+        <step>仅对追问点做窄化深挖，不展开全部分析维度</step>
         <step>增量输出至已有报告末尾，不覆盖原文</step>
       </mechanism>
     </step>
@@ -418,10 +416,10 @@ version: 2.0.0
   </gate>
 </quality_gates>
 
-<output_artifacts>
+ <output_artifacts>
   <artifact>
     <path>docs/research/{topic-slug}-{date}.md</path>
-    <description>研究报告，格式根据研究类型和深度级别自适应</description>
+    <description>研究报告。受众多为决策者或需要了解该主题的人——只呈现分析结论，不暴露研究方法、分析框架、内部流程。</description>
   </artifact>
 </output_artifacts>
 
