@@ -293,7 +293,6 @@ version: 2.1.0
     
     <step n="3" name="追问入口">
       <principle>报告输出后默认自动保存。用户可对任意发现聚焦深挖，无需重新发起完整研究。</principle>
-      <action>报告末尾附提示：「如需深挖某个发现，可以继续追问。」</action>
       <mechanism>
         <step>基于已有研究上下文，生成 2-3 组定向搜索关键词</step>
         <step>仅对追问点做窄化深挖，不展开全部分析维度</step>
