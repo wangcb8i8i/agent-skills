@@ -1,11 +1,11 @@
 ---
 name: research-report
 description: 自动化的深度研究引擎。给方向，拿结论——Scope 确认后全自动执行，只在起点和终点需要你。
-version: 2.0.0
+version: 2.1.0
 ---
 
 <objective>
-把「一个问题」变成「一份可拍板的结论」，全程无需用户介入中间过程。不是协作式研究助手——是委托式研究引擎：你定方向，我做研究，你拿结果。
+把「一个问题」变成「一份可拍板的结论」——不只是描述事实，而是穿透到因果层、支撑具体决策。全程无需用户介入中间过程。不是协作式研究助手——是委托式研究引擎：你定方向，我做研究，你拿结果。
 </objective>
 
 <triggers>
@@ -16,9 +16,11 @@ version: 2.0.0
 <llm critical="true">
   <mandate>SCOPE 阶段确认后，自动进入研究执行，不再询问用户确认</mandate>
   <mandate>研究执行期间，每完成一个内部阶段给出 1 句话进度更新（非中断式）</mandate>
-  <mandate>所有事实性主张必须标注来源，无法确认的明确标注「假设」</mandate>
+  <mandate>所有事实性主张必须标注来源。无法确认的明确标注「假设」或「待验证」。</mandate>
   <mandate>不伪造信息。不确定就是不确定。</mandate>
   <mandate>分析保持中立。有反对证据就呈现反对证据。</mandate>
+  <mandate>因果链追问贯穿始终：每个关键发现追问 Why 直到触及结构动因或底层约束。</mandate>
+  <mandate>用分析原则引导判断，而非步骤清单约束——理解为什么做，不只是做什么。</mandate>
   <mandate>输出语言与用户输入语言一致（中文输入→中文输出）</mandate>
 </llm>
 
@@ -27,19 +29,20 @@ version: 2.0.0
   <phase id="scope" title="SCOPE — 定方向">
 
     <goal>把用户的研究兴趣转化为有明确边界的研究任务。这是唯一需要用户深度参与的阶段。</goal>
-
+    
     <step n="1" name="问题澄清">
+      <principle>用户的输入就是起点，不强行追问。根据输入的具体程度做适应性引导，核心是搞清「想知道什么」和「从什么视角」。</principle>
       <action>如果用户输入是短语（如"AI 应用落地场景"），引导明确：
         - 想问的具体是什么？（市场格局？投资机会？技术成熟度？）
-        - 从哪个视角？（创业者/投资人/企业采购？）
+        - 从哪个视角？（创业者/投资人/企业采购/研究者？）
       </action>
       <action>如果用户输入已经具体，确认即可，不强行追问</action>
-      <action>识别研究类型（投资判断/技术趋势/产品决策/行业调研/生活经验），后续流程据此自适应</action>
+      <action>识别研究类型（投资判断/技术趋势/产品决策/行业调研/生活经验/知识储备），后续流程据此自适应</action>
     </step>
-
+    
     <step n="2" name="锚定点确认">
-      <principle>锚定点是用户约束研究方向的唯一机制——中间不再有机会调整。</principle>
-      <action>确认用户的锚定点——即：有什么具体要求、关注角度、排除项？</action>
+      <principle>锚定点是用户约束研究方向的唯一机制——中间不再有机会调整。锚定点应该具体到能过滤信息，而不是泛泛的方向。</principle>
+      <action>确认用户的锚定点——有什么具体要求、关注角度、排除项？</action>
       <examples>
         - "重点关注中美对比"
         - "只考虑 2025 年以后的数据"
@@ -47,14 +50,15 @@ version: 2.0.0
         - "从开发者体验角度切入"
         - "帮我对标这几个竞品：X, Y, Z"
       </examples>
-      <action>锚定点不足时，引导补充以下边界：
+      <action>锚定点不足时，引导补充边界：
         - 时间范围（近 1 年/近 3 年/不限）
         - 地域范围（全球/中国/特定市场）
         - 排除项（哪些子话题不需要涉及）
       </action>
     </step>
-
+    
     <step n="3" name="已有知识注入" optional="true">
+      <principle>用户已有的信息是研究的跳板——不要重复已知，聚焦补充未知。</principle>
       <action>用户可在此提供已掌握的信息或材料——跳过不提供不影响流程。</action>
       <options>
         - 已了解的关键信息或事实
@@ -62,44 +66,33 @@ version: 2.0.0
         - 偏好的信息源（特定媒体/作者/数据库）
         - 需要参考的原始材料（文档、数据、链接）
       </options>
-      <principle>如用户提供了原始材料，SCAN Lens 自动激活，在所有 Lens 之前首先执行，在用户材料中定位相关段落。</principle>
-      <principle>如用户提供了已知信息，研究应聚焦于补充未知部分，不重复已知内容。</principle>
+      <principle>如用户提供了原始材料，在常规研究之前首先扫描这些材料，定位相关段落作为背景锚点。</principle>
     </step>
-
-    <step n="4" name="深度设定">
-      <question>需要多深？</question>
-      <levels>
-        <level id="1">快速扫描（~30 min）—— 关键事实 + 1-2 个核心判断</level>
-        <level id="2">标准简报（~2h）—— 完整 Lens 分析 + 结论 + 来源</level>
-        <level id="3">深度报告（~半天）—— 全部 Lens + 交叉验证 + 多假设推演</level>
-      </levels>
-      <default>Level 2</default>
-    </step>
-
-    <step n="5" name="格式选择">
-      <principle>产出格式在 Scope 阶段决定，避免研究完成后再让用户做选择。</principle>
+    
+    <step n="4" name="格式选择">
+      <principle>产出格式在 Scope 阶段决定，统一决策节奏。</principle>
       <question>需要什么格式？</question>
       <options>
-        <option id="full">Full Report —— 完整报告，含分析过程（默认）</option>
-        <option id="brief">Executive Brief —— 1 页简报，核心结论 + 建议</option>
-        <option id="slides">Slide Deck —— 逐页要点，Mermaid 提纲</option>
+        <option id="full">Full Report —— 完整报告（默认）</option>
+        <option id="brief">Executive Brief —— 1 页简报（核心结论 + 建议）</option>
+        <option id="slides">Slide Deck —— 逐页要点（Mermaid 提纲）</option>
         <option id="mindmap">Mind Map —— Mermaid 思维导图</option>
       </options>
       <default>Full Report</default>
+      <principle>格式只影响呈现方式，不影响研究深度——无论选哪种，研究阶段都按全深度执行。</principle>
     </step>
-
-    <step n="6" name="Scope 确认">
+    
+    <step n="5" name="Scope 确认">
       <output>
         ## 研究任务确认
-
+    
         **研究问题**: {一句话核心问题}
         **研究类型**: {投资判断/技术趋势/产品决策/行业调研/生活经验/知识储备}
         **锚定点**: {用户指定的约束条件}
         **范围**: 时间={} / 地域={} / 排除={}
-        **深度**: Level {}
         **格式**: {Full Report / Executive Brief / Slide Deck / Mind Map}
         **已有材料**: {有，共 N 份 / 无}
-
+    
         确认以上方向无误？确认后我将自动执行研究，完成后给你完整报告。
       </output>
     </step>
@@ -111,69 +104,75 @@ version: 2.0.0
 
     <principle>
       <mandate>中间不询问用户意见。遇到缺口、矛盾、不确定，自主决策并记录，在报告中呈现。</mandate>
-      <mandate>每完成一个内部步骤，用 1 句话非中断式更新进度（如「正在分析信息…」）。</mandate>
+      <mandate>每完成一个内部步骤，用 1 句话非中断式更新进度（如「正在搜索…」「正在分析信息…」）。</mandate>
       <mandate>如果搜索结果为 0 或信息严重不足，继续往下做——在报告中标注信息缺口，而不是卡住问用户。</mandate>
       <mandate>锚定点是硬约束——搜索、筛选、分析、建议的全过程都受锚定点限制，不得偏离。</mandate>
-      <mandate>根据深度级别调整执行量：Level 1 快速收敛，Level 2 正常展开，Level 3 穷尽覆盖。</mandate>
+      <mandate>因果链追问不是单独的步骤，而是贯穿每个分析环节的思维习惯——每看到一个事实，问「为什么」直到触及结构动因或底层约束。</mandate>
+      <mandate>研究不追求速度，追求每层结论的可靠性。搜索覆盖不足就补搜，分析不够深就继续挖。</mandate>
     </principle>
-
+    
     <!-- 1. 搜索 -->
     <subphase id="auto-search" title="搜索">
-      <action>根据核心问题和锚定点，生成多组搜索关键词覆盖不同角度（Level 1: 2-3 组 / Level 2: 3-5 组 / Level 3: 5+ 组）</action>
-      <action>锚定点直接映射为搜索约束——时间锚定→过滤年份，地域锚定→限定市场，排除项→剔除关键词</action>
+      <principle>搜索的目的是覆盖核心问题的所有关键角度，而不是凑够数量。锚定点直接映射为搜索约束。</principle>
+      <action>根据核心问题和锚定点，生成多组搜索关键词，确保每个锚定维度至少被一组关键词覆盖</action>
       <action>确保信源多元化：行业报告 + 一手信息 + 新闻报道 + 社区讨论 + 学术/技术文献，至少覆盖 3 类</action>
-      <action>去重后保留核心材料（Level 1: 3-5 篇 / Level 2: 5-15 篇 / Level 3: 15+ 篇），每份生成 passport（标题/来源/日期/标签/摘要/可信度初评）</action>
+      <action>去重后保留核心材料（至少 5 篇以上优质材料），每份生成 passport（标题/来源/日期/标签/摘要/可信度初评）</action>
       <action>主动检查信息缺口——对照锚定点的每个维度，如果某个关键角度没有覆盖到，补搜</action>
     </subphase>
-
+    
     <!-- 2. 筛选 -->
     <subphase id="auto-filter" title="筛选">
+      <principle>信息质量比数量重要。筛选的核心是回答「这个信息值得信任吗？」和「和我的核心问题有关吗？」</principle>
       <action>对每份材料做相关性分级：★★★ 直接相关 / ★★ 间接相关 / ★ 弱相关</action>
       <action>锚定点作为相关性判断的加权条件——满足锚定点约束的材料提升优先级</action>
       <action>对 ★★★ 和 ★★ 材料做四维可信度评估：来源权威性 / 数据可验证性 / 时效性 / 潜在偏见</action>
       <action>标注来源间的矛盾点，留到分析阶段处理</action>
     </subphase>
-
+    
     <!-- 3. 分析 -->
     <subphase id="auto-analyze" title="分析">
-      <principle>根据研究类型自动选择 Lens 组合，锚定点调整 Lens 优先级和侧重。</principle>
+      <principle>研究类型决定了分析框架的自然结构——不是套模板，而是从问题本质推导出最适用的拆解方式。下面的 Lens catalog 是分析视角的参考工具箱：如果现有 Lens 能覆盖核心问题的各面，就用它们；如果议题需要独特的拆解方式，自由创建新的 Lens。关键在于覆盖问题的所有关键维度，不在于用了几个 Lens。</principle>
 
-      <step name="Lens 自适应选择">
-        <action>基于研究类型选择核心 Lens（Level 1: 2-3 个 / Level 2: 3-5 个 / Level 3: 5-7 个）：</action>
-        <mapping>
-          <type name="投资判断">/DEEP → /ANGLE → /HYP → /CHALLENGE → /ACTION</type>
-          <type name="行业调研">/DEEP → /ANGLE → /TIMELINE → /VOICES → /HYP → /CHALLENGE → /ACTION</type>
-          <type name="技术趋势">/DEEP → /TIMELINE → /VOICES → /HYP → /MIX → /CHALLENGE</type>
-          <type name="产品决策">/VOICES → /DEEP → /ANGLE → /CHALLENGE → /FIRST-PRINCIPLES → /ACTION</type>
-          <type name="生活经验">/VOICES → /ANGLE → /DEEP → /CHALLENGE → /ACTION</type>
-          <type name="知识储备">/DEEP → /ANGLE → /TIMELINE → /VOICES → /MIX → /CHALLENGE</type>
-        </mapping>
-        <action>根据锚定点调整 Lens 组合——「对比」→ 强化 /ANGLE，「风险」→ 强化 /CHALLENGE，「怎么做」→ 强化 /ACTION，「为什么」→ 强化 /DEEP</action>
-        <action>对于 Level 1，从完整序列中取前 N 个最核心的 Lens</action>
+      <step name="建立分析框架">
+        <action>先想清楚：这个问题的本质是什么？需要从哪几个角度才能把它说透？</action>
+        <action>参考 Lens catalog（见下方），但不受限于它——现有 Lens 是常见分析模式的总结，不是必须遵循的清单</action>
+        <action>根据研究类型确定分析重心：
+          <mapping>
+            <type name="投资判断">多情景对比 + 风险/收益矩阵 + 不对称机会识别</type>
+            <type name="行业调研">产业链关系 + 竞争格局 + 结构性变化驱动力</type>
+            <type name="技术趋势">成熟度评估 + 演化阶段 + 替代/颠覆可能性</type>
+            <type name="产品决策">用户真实需求 + 竞品差异 + 实施可行性</type>
+            <type name="生活经验">成本/收益 + 实操条件 + 主要风险</type>
+            <type name="知识储备">全景地图 + 核心脉络 + 进阶路径</type>
+          </mapping>
+        </action>
+        <action>锚定点调整分析侧重——「对比」→ 强化多维度对比如 ANGLE，「风险」→ 强化挑战与反面证据，「怎么做」→ 强化行动转化，「为什么」→ 强化因果链深挖</action>
       </step>
-
-      <step name="Lens 逐个执行">
-        <action>按选定顺序逐个执行 Lens，每个 Lens 的输出标注信息来源</action>
-        <action>每个 Lens 执行时，以锚定点为分析边界——只关注锚定点范围内的发现</action>
+    
+      <step name="逐角度分析">
+        <principle>每个分析角度独立执行，输出标注信息来源。每个角度执行时，以锚定点为分析边界。</principle>
+        <principle>因果链是贯穿所有角度的红线——无论从哪个角度切入，遇到关键事实都追问 Why。不是说一次「因为…」就停，而是递归追问直到触及无法继续分解的底层动因或结构约束。</principle>
+        <principle>区分近因（proximate cause）和根因（root cause）。某公司裁员是因为收入下降（近因），收入下降是因为核心市场份额被侵蚀（中游），市场被侵蚀是因为技术代际切换没有跟上（根因）。报告呈现要传递这个因果深度，而不只是第一层解释。</principle>
       </step>
     </subphase>
-
+    
     <!-- 4. 综合 -->
     <subphase id="auto-synthesize" title="综合">
-      <action>汇总所有 Lens 核心发现，每条标注：来源 + Lens + 置信度</action>
+      <principle>综合不是罗列发现，而是提炼出最有决策价值的结论。排序标准：「对决策的影响」×「结论的置信度」。</principle>
+      <action>汇总所有分析角度的核心发现，每条标注来源和置信度</action>
       <action>交叉验证：多来源确认 → 升级置信度；单来源 → 标注待验证；矛盾 → 分析原因</action>
       <action>对矛盾点给出裁决或保留双方立场</action>
-      <action>按「置信度 × 影响力」矩阵排序所有发现，锚定点指向的维度给予更高影响力权重</action>
-      <action>生成可执行建议（Level 1: 1-3 条 / Level 2: 3-5 条 / Level 3: 5-8 条），每条含：行动 + 预期效果 + 主要风险 + 前置条件</action>
-      <action>建议必须回应用户的锚定点——每条建议标注回应了哪个锚定约束</action>
+      <action>按「置信度 × 对决策的影响力」排序所有发现，锚定点指向的维度给予更高权重</action>
+      <action>生成可执行建议（3-8 条），每条包含：行动 + 预期效果 + 主要风险 + 前置条件</action>
+      <action>每条建议标注回应了哪个锚定约束</action>
     </subphase>
-
+    
     <!-- 5. 异常降级 -->
     <subphase id="auto-degradation" title="异常降级">
-      <principle>遇到信息障碍时不卡住、不硬推、不伪造。按场景执行对应降级策略，所有异常状态带入报告。</principle>
-
+      <principle>遇到信息障碍时不卡住、不硬推、不伪造。诚实呈现信息状态比假装确定更有价值。</principle>
+    
       <scenario id="no-results" name="搜索无结果或信息严重不足">
-        <trigger>某关键词搜索返回 <3 条有效结果，或整体材料池 < 最低门槛（L1: 2 篇 / L2: 3 篇 / L3: 5 篇）</trigger>
+        <trigger>某关键词搜索返回 <3 条有效结果，或整体材料池 < 5 篇且质量不足</trigger>
         <degradation>
           <step>放宽搜索约束：去掉时间/地域限制 → 扩展同义词 → 上探一级话题（如「XX 赛道竞争格局」→「XX 行业概况」）</step>
           <step>切换信源类型：学术无结果 → 搜行业媒体、社区讨论；英文无结果 → 搜中文，反之亦然</step>
@@ -181,7 +180,7 @@ version: 2.0.0
           <step>最终仍不足 → 报告标注「信息缺口：{具体缺什么}」，跳过该维度的结论，不强行给出判断</step>
         </degradation>
       </scenario>
-
+    
       <scenario id="contradiction" name="来源信息矛盾">
         <trigger>同一事实维度上 ≥2 个来源给出了冲突的信息或判断</trigger>
         <degradation>
@@ -191,9 +190,9 @@ version: 2.0.0
           <step>无法裁决 → 保留双方立场，标注「来源分歧」，降级该结论的置信度</step>
         </degradation>
       </scenario>
-
+    
       <scenario id="low-quality" name="来源质量偏低">
-        <trigger>★★★ 材料中 >50% 可信度评分 < 3/5，或主要来源为自媒体、匿名社区帖、无数据支撑的观点文</trigger>
+        <trigger>主要来源为自媒体、匿名社区帖、无数据支撑的观点文</trigger>
         <degradation>
           <step>降级标注：所有来自低质量源的结论标注「低置信度：来源为{类型}，未经独立验证」</step>
           <step>三角定位：用 2+ 个独立低质量源交叉印证同一事实，提升为「中等置信度：多源交叉一致」</step>
@@ -201,7 +200,7 @@ version: 2.0.0
           <step>报告中诚实呈现：「本话题可获取的高质量信息有限，以下结论基于{来源类型}，建议以{具体方式}进一步验证」</step>
         </degradation>
       </scenario>
-
+    
       <scenario id="language-gap" name="语言壁垒">
         <trigger>关键市场的信息主要存在于模型无法直接检索的语言中（如仅中文/仅英文/仅小语种）</trigger>
         <degradation>
@@ -215,61 +214,84 @@ version: 2.0.0
   <!-- ==================== PHASE 3: REPORT ==================== -->
   <phase id="report" title="REPORT — 输出结论">
 
-    <goal>产出可直接用于决策的研究报告。格式已在 Scope 阶段确定。</goal>
+    <goal>产出可直接用于决策的研究报告。格式已在 Scope 阶段确定。报告结构不是固定模板——由研究类型、用户角色、问题粒度共同决定叙事方式。</goal>
+    
+    <step n="1" name="确定叙事结构">
+      <principle>报告结构由核心问题的本质决定，不是套用模板。以下原则指导结构设计，不是章节清单。</principle>
 
-    <step n="1" name="自适应报告生成">
-      <principle>报告结构根据研究类型和深度级别自适应，不是固定模板。所有内部方法、分析框架、工具代号一律不出现在报告中。</principle>
+      <principle name="类型驱动主线">
+        研究类型决定了报告的「主干逻辑」：
+        - 投资判断 → 多情景对比 → 风险矩阵 → 不对称机会 → 行动建议
+        - 技术趋势 → 现状与阶段 → 成熟度评估 → 关键信号 → 趋势判断
+        - 行业调研 → 产业链条 → 竞争格局 → 驱动/抑制因素 → 战略含义
+        - 产品决策 → 用户需求 → 竞品分析 → 选项对比 → 行动路线
+        - 生活经验 → 背景全景 → 核心选择 → 实操条件 → 成本收益
+        - 知识储备 → 领域地图 → 核心概念 → 脉络关系 → 进阶路径
+      </principle>
 
-      <common-sections>
-        <section id="executive_summary">
-          <name>摘要</name>
-          <content>核心结论（2-3 句）+ 关键建议/判断（1 句）+ 主要风险提示（1 句）</content>
-        </section>
-        <section id="topic_sections">
-          <name>正文（核心主题章节）</name>
-          <principle>按研究主题的自然逻辑组织章节，每一节的标题和内容是对读者最有价值的维度，而不是分析方法名称。</principle>
-          <principle>通用递进：现状与事实 → 对比与差异 → 原因与驱动 → 趋势与推演 → 风险与反面证据。但这不是固定模板——根据每个研究的具体内容决定最自然的叙事顺序。</principle>
-          <principle>每节熔接来自不同分析角度的发现，只呈现结论性内容，不标注"这是从什么分析方法来的"。</principle>
-        </section>
-        <section id="action_section" conditional="true">
-          <name>行动章节（根据研究类型选择）</name>
-          <principle>不是所有研究都需要行动建议。根据类型选择合适的收尾板块。章节标题直接用下表对应的名字，不加额外说明。</principle>
-          <mapping>
-            <type name="投资判断">行动建议 — 3-5 条，格式：行动 / 预期效果 / 风险 / 前置条件</type>
-            <type name="产品决策">行动建议 — 3-5 条，格式：行动 / 预期效果 / 风险 / 前置条件</type>
-            <type name="生活经验">行动建议 — 3-5 条，格式：行动 / 预期效果 / 风险 / 前置条件</type>
-            <type name="行业调研">战略含义 — 对行业格局意味着什么，对不同类型的参与者有何影响</type>
-            <type name="技术趋势">趋势判断与信号 — 需要持续关注的先行指标 + 入场时机的判断框架</type>
-            <type name="知识储备">知识体系梳理 — 从哪里开始、进阶路线、核心资源索引</type>
-          </mapping>
-        </section>
-        <section id="uncertainties">
-          <name>不确定性</name>
-          <content>关键不确定性 + 什么条件下结论可能改变</content>
-        </section>
-        <section id="sources">
-          <name>参考来源</name>
-          <content>来源列表</content>
-        </section>
-      </common-sections>
+      <principle name="角色决定视角侧重">
+        用户角色影响哪些内容应该前置、哪些应该详述：
+        - 创业者/产品人 → 行动路线、可行性、资源条件前置
+        - 投资人 → 风险矩阵、回报率、竞争壁垒前置
+        - 研究者 → 方法论、数据完整性、信息缺口前置
+        - 技术决策者 → 技术对比、迁移路径、兼容性前置
+      </principle>
 
-      <type-adaptations>
-        <type name="投资判断">正文中强化多情景对比和风险矩阵，行动建议必须包含退出条件</type>
-        <type name="技术趋势">正文中强化时间因素和成熟度判断，行动章节替换为「趋势判断与信号」</type>
-        <type name="行业调研">正文中强化产业链关系和竞争格局，行动章节替换为「战略含义」</type>
-        <type name="产品决策">正文中强化竞品对比和用户需求，行动章节必须包含实施路线图建议</type>
-        <type name="生活经验">正文精简理论分析，行动章节强化实操清单和成本/收益</type>
-        <type name="知识储备">正文以知识体系和全景概览形式呈现，行动章节替换为「知识体系梳理」</type>
-      </type-adaptations>
+      <principle name="问题粒度决定展开度">
+        问题的宽窄决定了报告的深度和广度配比：
+        - 宽泛问题（如「SaaS 行业趋势」）→ 全景概览 + 2-3 个深挖点
+        - 中等问题（如「中国 CRM 市场竞争格局」）→ 维度展开充分
+        - 聚焦问题（如「HubSpot 和 Salesforce 在小企业市场的差异」）→ 单点深挖，不留宽泛章节
+      </principle>
 
-      <depth-adaptations>
-        <level id="1">仅摘要 + 核心主题（精简版，无展开）+ 行动章节 + 不确定性</level>
-        <level id="2">完整报告：摘要 + 2-4 个主题章节 + 行动章节 + 不确定性 + 参考来源</level>
-        <level id="3">深度报告：摘要 + 4-6 个主题章节 + 行动章节 + 不确定性 + 参考来源，每个主题节内展开充分</level>
-      </depth-adaptations>
+      <principle name="叙事递进通用模式">
+        无论哪种结构，内容递进应遵循读者认知的自然顺序：背景/现状 → 核心发现 → 深层分析 → 含义/行动。但不作为固定模板——根据研究的具体内容决定最自然的叙事顺序。
+      </principle>
+
+      <principle name="分析方法不暴露">
+        所有内部方法、分析框架、工具代号（如 /DEEP、/ANGLE）一律不出现报告中。读者只看到结论性内容，不需要知道分析过程的方法论。</principle>
     </step>
 
-    <step n="2" name="追问入口">
+    <step n="2" name="撰写报告章节">
+      <principle>以下章节是报告的常用组件，但不是必须全部使用——根据叙事结构选择最合适的组合。</principle>
+
+      <section id="executive_summary" recommended="always">
+        <name>摘要</name>
+        <content>核心结论（2-3 句）+ 关键建议/判断（1 句）+ 主要不确定性提示（1 句）</content>
+      </section>
+
+      <section id="body" recommended="always">
+        <name>正文</name>
+        <principle>正文的章节结构由 Step 1 确定的叙事结构决定。不使用固定模板。</principle>
+        <principle>每个主题节的标题以读者最关心的维度命名（如「竞争格局」「技术成熟度评估」「情景分析」），而非分析方法名称。</principle>
+        <principle>每个关键结论同时呈现因果链——不只说「X 在增长」，还要说「因为 Y，所以 X 在增长；而 Y 又受 Z 驱动」。</principle>
+        <principle>遇到反面证据或争议点，主动呈现，不回避。</principle>
+      </section>
+
+      <section id="action_section" conditional="true">
+        <principle>不是所有研究都需要行动建议。根据类型选择合适的收尾板块。章节标题直接用下表对应的名字。</principle>
+        <mapping>
+          <type name="投资判断">行动建议 — 3-5 条，包含退出条件</type>
+          <type name="产品决策">行动建议 — 3-5 条，包含实施路线图</type>
+          <type name="生活经验">行动建议 — 3-5 条，附成本/收益</type>
+          <type name="行业调研">战略含义 — 对行业格局意味着什么，对不同类型的参与者有何影响</type>
+          <type name="技术趋势">趋势判断与信号 — 关键先行指标 + 入场时机的判断框架</type>
+          <type name="知识储备">知识体系梳理 — 从哪里开始、进阶路线、核心资源索引</type>
+        </mapping>
+      </section>
+
+      <section id="uncertainties" recommended="always">
+        <name>不确定性</name>
+        <content>关键不确定性 + 什么条件下结论可能改变</content>
+      </section>
+
+      <section id="sources" recommended="always">
+        <name>参考来源</name>
+        <content>来源列表，按贡献度或主题组织</content>
+      </section>
+    </step>
+    
+    <step n="3" name="追问入口">
       <principle>报告输出后默认自动保存。用户可对任意发现聚焦深挖，无需重新发起完整研究。</principle>
       <action>报告末尾附提示：「如需深挖某个发现，可以继续追问。」</action>
       <mechanism>
@@ -282,16 +304,18 @@ version: 2.0.0
 </flow>
 
 <lens_catalog>
-  <description>分析视角工具箱。每个 Lens 是一种特定的问题拆解方式。系统根据研究类型自动选择 3-5 个。</description>
+  <description>分析视角工具箱。每个 Lens 是一种特定的问题拆解方式。这份目录是参考而非约束——它是常见分析模式的总结，但议题需要特定拆解方式时，自由创建新的 Lens。关键是覆盖核心问题的各个关键维度，不在于用了几个 Lens。</description>
 
-  <lens id="deep" name="/DEEP" title="深度事实挖掘">
-    <goal>穿透表象，理解本质。对一个主题进行分层深挖。</goal>
+  <lens id="deep" name="/DEEP" title="深度因果挖掘">
+    <goal>穿透表象，理解本质。对一个主题进行分层深挖，每一层追问 Why 直到触及结构动因或底层约束。</goal>
     <method>
       <step>第一层：What —— 事实是什么？（数据、事件、时间线）</step>
       <step>第二层：How —— 怎么运作的？（机制、流程、因果关系）</step>
       <step>第三层：Why —— 为什么会这样？（驱动力、结构因素、历史脉络）</step>
     </method>
-    <output>主题的完整画像：事实层 + 机制层 + 动因层</output>
+    <principle>关键技巧是「递归追问」——对每个关键发现，追问 2-3 层 Why。不是一次「因为…」就停，而是直到回答触及无法继续分解的底层动因。例如：市场下滑（事实）→ 因为头部客户流失（近因）→ 因为产品代际差距（中游）→ 因为研发投入连续 3 年低于行业均值（根因）。</principle>
+    <principle>区分近因（proximate cause）和根因（root cause）。报告呈现必须至少传递两层深度，不能只停留在第一层解释。</principle>
+    <output>主题的完整画像：事实层 + 机制层 + 动因层，每层之间标注因果连接</output>
   </lens>
 
   <lens id="angle" name="/ANGLE" title="多角度对比">
@@ -299,7 +323,7 @@ version: 2.0.0
     <method>
       <step>选取 2-4 个对比维度（竞品之间 / 不同地区 / 不同时期 / 行业 vs 学术视角）</step>
       <step>逐维度列出相同点和不同点</step>
-      <step>差异背后的原因分析</step>
+      <step>差异背后的原因分析——为什么有差异？这说明了什么？</step>
     </method>
     <output>对比矩阵 + 关键差异解读</output>
   </lens>
@@ -318,22 +342,21 @@ version: 2.0.0
     <goal>主动寻找反面证据和逻辑漏洞。对抗确认偏误。</goal>
     <method>
       <step n="1" name="定位核心主张">
-        <action>从已有分析中提取 3-5 个最强的结论性主张（「X 是 Y」「A 导致 B」「C 赛道最有前景」）</action>
+        <action>从已有分析中提取 3-5 个最强的结论性主张</action>
         <action>每个主张标注其依赖的关键前提——如果前提不成立，结论就不成立</action>
       </step>
       <step n="2" name="反向搜索">
-        <action>针对每个主张，用否定句式构造搜索词：「X 失败案例」「X 的局限性」「为什么 X 不行」「X 的批评」「X 过时」</action>
-        <action>专门搜索持反对立场的信息源（做空报告、批评文章、竞对分析、学术 rebuttal）</action>
-        <action>找 1-2 个该主张被证伪的真实案例（如「看好 XX 赛道的投资后来为什么亏了」「某技术被替代的时间线」）</action>
+        <action>针对每个主张，构造否定句式搜索：「X 失败案例」「X 的局限性」「为什么 X 不行」「X 的批评」</action>
+        <action>专门搜索持反对立场的信息源（做空报告、批评文章、竞对分析）</action>
       </step>
       <step n="3" name="压力测试">
-        <action>数据层：数据来源是否可复现？样本是否代表总体？统计口径是否一致？是否存在幸存者偏差？</action>
+        <action>数据层：数据来源是否可复现？样本是否代表总体？是否存在幸存者偏差？</action>
         <action>逻辑层：相关关系是否被当作因果关系？是否存在遗漏变量？结论是否过度外推？</action>
-        <action>假设层：结论依赖的假设如果反转（如「监管政策不变」→「监管突然收紧」），结论还成立吗？</action>
+        <action>假设层：结论依赖的假设如果反转，结论还成立吗？</action>
       </step>
       <step n="4" name="立场审计">
-        <action>逐一标注每个主要来源的立场和潜在利益：卖方报告→做多倾向，被投企业 PR→美化倾向，学术论文→发表偏误（positive results 更易发表）</action>
-        <action>检查：如果我方结论被这些偏见系统性影响，最可能的偏误方向是什么？（过度乐观/过度悲观/忽略尾部风险）</action>
+        <action>逐一标注每个主要来源的立场和潜在利益</action>
+        <action>检查：如果我方结论被这些偏见系统性影响，最可能的偏误方向是什么？</action>
       </step>
     </method>
     <output>主张瓦解清单（每条含：主张 / 反面证据 / 逻辑漏洞 / 偏误方向 / 幸存置信度）</output>
@@ -403,52 +426,57 @@ version: 2.0.0
 
 <quality_gates>
   <gate phase="scope">
-    <check>核心问题可操作（不是兴趣短语，而是可回答的问题）</check>
-    <check>锚定点明确（知道查什么，也知道不查什么）</check>
-    <check>研究类型已识别，Lens 组合可确定</check>
+    <check>核心问题可操作——不是兴趣短语，而是可回答的问题</check>
+    <check>锚定点明确——知道查什么，也知道不查什么</check>
+    <check>研究类型已识别，分析框架可确定</check>
   </gate>
 
   <gate phase="report">
     <check>所有事实性主张有来源标注</check>
     <check>结论有置信度标注</check>
-    <check>建议可执行（不是「要关注 XX」而是「做 XX，因为 YY，风险是 ZZ」）</check>
+    <check>因果链有传递深度——不只是第一层解释</check>
+    <check>建议可执行——不是「要关注 XX」而是「做 XX，因为 YY，风险是 ZZ」</check>
     <check>信息缺口已诚实标注</check>
+    <check>报告结构由问题本质驱动，而非固定模板</check>
   </gate>
 </quality_gates>
 
- <output_artifacts>
+<output_artifacts>
   <artifact>
     <path>docs/research/{topic-slug}-{date}.md</path>
     <description>研究报告。受众多为决策者或需要了解该主题的人——只呈现分析结论，不暴露研究方法、分析框架、内部流程。</description>
   </artifact>
 </output_artifacts>
 
-<operating_rules>
-  <rule id="1" name="委托模式">
+<operating_principles>
+  <principle id="1" name="委托模式">
     Scope 确认后即进入自动模式。用户如果想中途介入，可以打断，但系统默认不等待用户确认。
-  </rule>
-  <rule id="2" name="来源必追溯">
+  </principle>
+  <principle id="2" name="来源必追溯">
     每个关键主张（非常识）标注出处。无法确认的标「假设」或「待验证」。
-  </rule>
-  <rule id="3" name="不确定就说">
+  </principle>
+  <principle id="3" name="不确定就说">
     不确定的数据、矛盾的来源、推断的局限——诚实呈现。比假装确定更有价值。
-  </rule>
-  <rule id="4" name="自适应深度">
-    Level 1 → 关键事实 + 1-2 判断，不展开全部 Lens
-    Level 2 → 完整流程，3-5 Lens
-    Level 3 → 全 Lens + 深度交叉验证 + 附录
-  </rule>
-  <rule id="5" name="输出语言">
+  </principle>
+  <principle id="4" name="因果链必追问">
+    每个关键发现至少追问两层 Why。区分近因和根因，在报告中呈现因果深度，而非停留在表面解释。
+  </principle>
+  <principle id="5" name="结构由问题驱动">
+    不套用固定模板。报告结构由研究类型、用户角色和问题粒度共同决定。
+  </principle>
+  <principle id="6" name="输出语言">
     用户用中文提问 → 中文输出。用户用英文提问 → 英文输出。
-  </rule>
-  <rule id="6" name="缺省不补搜">
+  </principle>
+  <principle id="7" name="缺省不补搜">
     除非信息严重不足以致无法形成任何结论，否则不自动发起第二轮搜索。缺口在报告中标注，而不是无限迭代。
-  </rule>
-</operating_rules>
+  </principle>
+</operating_principles>
 
 <success_criteria>
   <criterion>Scope 确认后，用户不再需要参与中间过程</criterion>
   <criterion>结论有置信度标注和来源追溯</criterion>
-  <criterion>建议具体可执行</criterion>
-  <criterion>研究类型自适应生效——不同话题的报告结构不同</criterion>
+  <criterion>因果链清晰传递——读者能理解「为什么」，不只知道「是什么」</criterion>
+  <criterion>建议具体可执行，且回应了锚定约束</criterion>
+  <criterion>不同类型研究的报告结构差异明显——不是同一模板换标题</criterion>
+  <criterion>信息缺口已诚实标注，不假装确定</criterion>
 </success_criteria>
