@@ -30,7 +30,8 @@ Capture user intent through guided conversation — not just what users say they
   <mandate>Capture the "what" and "why" — leave the "how" for decomposition</mandate>
   <mandate>Let user describe freely — don't interrupt</mandate>
   <mandate>Intent is discovered, not stated. Keep digging until you reach the root motivation.</mandate>
-  <mandate>NEVER modify, create, or delete any file except the output artifact docs/{intent-slug}.intention.md. This is absolute — no exceptions, no "just a quick fix", no "while I'm here".</mandate>
+  <mandate>NEVER ask multiple questions in a single turn during depth drilling. One question per turn — the user's answer determines the next direction.</mandate>
+  <mandate>NEVER modify, create, or delete any file except the output artifact {workspace}/docs/{intent-slug}.intention.md. This is absolute — no exceptions, no "just a quick fix", no "while I'm here".</mandate>
 </llm>
 
 
@@ -56,6 +57,8 @@ Capture user intent through guided conversation — not just what users say they
         <trigger>After every substantive user answer</trigger>
         <method>Ask "why" — drive toward the underlying motivation.</method>
         <depth>Not a fixed count. Stop when the user reaches a root need or repeats.</depth>
+        <anti_pattern>Asking two or more questions at once (e.g. "why do you need that and what format?"). This collapses the drill into a survey, losing the chain.</anti_pattern>
+        <anti_pattern>Pre-answering your own question or listing options alongside it. Let the user's answer stand alone.</anti_pattern>
         <example>
           User: "I want an export button"
           Agent: "That makes sense. Help me understand — once the data is exported, what do you do with it?"
@@ -233,7 +236,8 @@ Capture user intent through guided conversation — not just what users say they
 
 	<move n="1" name="Generate Brief">
 	  <action>Derive intent-slug from title (kebab-case, auto-summarized)</action>
-	  <action>Write brief to docs/{intent-slug}.intention.md covering:</action>
+	  <action>Write brief to {workspace}/docs/{intent-slug}.intention.md</action>
+      <note>{workspace} is the current project root — the directory the user opened Claude in, not the skill's own directory.</note>
 	  <output_element required="true">Goal — one paragraph on what this achieves</output_element>
 	  <output_element required="true">Users — who benefits, who uses it</output_element>
 	  <output_element required="true">Problem — the pain or gap being addressed</output_element>
@@ -247,7 +251,7 @@ Capture user intent through guided conversation — not just what users say they
 	  <output>
 	    **Intent captured**: "{intent-title}"
 	
-	    Saved to: docs/{intent-slug}.intention.md
+	    Saved to: {workspace}/docs/{intent-slug}.intention.md
 	
 	  </output>
 	</move>
@@ -258,7 +262,7 @@ Capture user intent through guided conversation — not just what users say they
 
 <output_artifacts>
   <artifact>
-    <path>docs/{intent-slug}.intention.md</path>
+    <path>{workspace}/docs/{intent-slug}.intention.md</path>
     <description>Structured intent brief. Required elements: Goal, Users, Problem, Success criteria. Optional: Constraints, Notes. Format is free — organize for clarity, not compliance.</description>
   </artifact>
 </output_artifacts>
@@ -269,6 +273,6 @@ Capture user intent through guided conversation — not just what users say they
   <criterion>Root motivation reached — not just surface request captured</criterion>
   <criterion>Understanding tested via translation, tension, and alternatives before capture</criterion>
   <criterion>User confirmed alignment without reservation</criterion>
-  <criterion>Intent brief saved to docs/{intent-slug}.intention.md</criterion>
+  <criterion>Intent brief saved to {workspace}/docs/{intent-slug}.intention.md</criterion>
 </success_criteria>
 
