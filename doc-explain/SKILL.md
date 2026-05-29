@@ -3,234 +3,337 @@ name: doc-explain
 description: Explains documents—proposals, specs, decision records, guides, reports. Prefer terminal-native, visual-first explanations with multiple local visual anchors when helpful. This skill explains; it does not implement, review, or co-author. Do not auto-trigger — use only when the user explicitly asks to understand a document.
 ---
 
-# Doc Explain
+# 文档解读
 
-Turn a document into a mental model the user can repeat back.
+将文档转化为用户能够复述的心智模型。
 
-## Purpose
+## 目的
 
-Help the user understand:
-- what the document claims or proposes
-- how the argument is constructed
-- what evidence, assumptions, and gaps sit behind each conclusion
-- how sections relate to each other and to other documents
-- what is easy to misread, missing, or ambiguous
+帮助用户理解：
+- 文档主张或提出了什么
+- 论证是如何构建的
+- 每个结论背后有什么证据、假设和空白
+- 章节之间以及与其他文档之间如何关联
+- 哪些内容容易被误读、缺失或存在歧义
 
-## Workflow
+## 工作流
 
-This skill has two modes, chosen by scope:
-- **Standard**: short to medium documents — single-turn, one response and done.
-- **Map + navigate**: large documents — multi-turn across 3+ responses.
+本技能按 4 阶段线性流水线执行。规模差异只在阶段 3 内部产生分支，不影响整体心智模型。
 
-The decision path: **classify → detect scale → read & verify → execute the chosen mode**.
+决策路径：**理解问题 → 规划结构 → 执行解释 → 自检与收束**。
 
-### 1. Classify the document and question
+### 1. 理解问题
 
-Before explaining, identify two things:
+明确三件事，然后带着问题去读文档。
 
-#### Document type
+#### 文档类型
 
-- **proposal** — advocates for a change or decision
-- **spec** — defines what should be built or how it should behave
-- **decision-record** — captures a concluded decision, rationale, and alternatives
-- **guide** — instructs the reader how to do something
-- **reference** — catalogs facts, APIs, or configurations
-- **report** — narrates findings, events, or analysis
-- **strategy / vision** — sets direction, principles, or goals
+- **提案** — 主张某项变更或决策
+- **规格** — 定义应构建什么或应如何运作
+- **决策记录** — 记录已做出的决策、理由和备选方案
+- **指南** — 指导读者如何完成某事
+- **参考** — 编录事实、API 或配置
+- **报告** — 叙述发现、事件或分析
+- **战略 / 愿景** — 设定方向、原则或目标
 
-#### Question category
+#### 问题类别
 
-- **premise** — what this document claims, proposes, or concludes
-- **reasoning chain** — how the argument builds from premises to conclusions
-- **skeleton** — how the document is organized and what each section is responsible for
-- **context** — what background, problem, or constraint motivated this document
-- **relationship** — how this document relates to others (references, extends, contradicts)
-- **decision** — what was decided, by whom, on what basis, with what tradeoffs
-- **ambiguity / gap** — what is unsaid, assumed, missing, or easy to misread
-- **information flow** — how data, evidence, or conclusions move through the document
+- **前提** — 文档主张、提议或得出什么结论
+- **推理链** — 论证如何从前提构建到结论
+- **骨架** — 文档如何组织，各章节负责什么
+- **背景** — 什么背景、问题或约束促成了本文档
+- **关联** — 本文档与其他文档的关系（引用、扩展、矛盾）
+- **决策** — 决定了什么，由谁决定，基于什么，有哪些取舍
+- **歧义 / 空白** — 什么没明说、被假设、缺失或容易误读
+- **信息流** — 数据、证据或结论如何在文档中流动
 
-If the request is ambiguous, ask one clarifying question before explaining.
-Do not default to summarizing the whole document.
-Choose the narrowest scope that fully answers the question.
+#### 回答深度
 
-### 2. Detect scale
+相同的问题类别，用户需要的深度可以完全不同。解读之前，从请求中判断用户的水平信号和深度需求：
 
-After classifying, assess whether the document is **small** or **large**.
+**水平信号**（用户是新人还是专家）：
 
-A document is **large** when any of these apply:
-- 10+ pages or major sections
-- multiple nested arguments or sub-decisions that each deserve independent treatment
-- cross-references to 3+ other documents that materially affect understanding
-- complex argument structure (premises → sub-conclusions → main conclusion)
-- the user explicitly describes it as large, dense, or hard to follow
+- 用户使用了领域术语或引用了文档内的章节/概念 → 已有上下文，可以省略基础铺垫
+- 用户的问题框架暴露了对领域的陌生感（如"这个文档在说什么"而非"第 3 节的前提成立吗"）→ 需要更多背景和基础解释
+- 用户明确给出了约束（"一句话告诉我"、"给我详细分析"）→ 直接服从，不再推断
 
-When uncertain, default to large. A map is always skimmable; a shallow explanation of a deep document is useless.
+**深度层级**：
 
-→ small: go to [Standard mode](#4-standard-mode-small-scope).
-→ large: go to [Map + Navigate mode](#5-map--navigate-mode-large-scope).
+- **一句话** — 用户只需要结论，不需要论证过程。常见信号："结论是什么"、"它决定什么"、"一句话概括"。输出：直接给出论点或决策，不展开论证链。
+- **要点** — 用户需要关键信息，但不需要完整逻辑链。常见信号："要点"、"关键发现"、"主要变化"。输出：结构化列表，每个要点一句话。
+- **完整** — 用户需要理解论证如何成立。常见信号："为什么"、"怎么得出的"、"论证过程"。输出：前提 → 推理 → 结论的完整链路，配合可视化。
+- **审视** — 用户需要检验论证的可靠性。常见信号："有什么问题"、"假设成立吗"、"空白在哪"。输出：在完整解读的基础上，标注证据强弱、假设可挑战性、空白和歧义。
 
-### 3. Read & verify
+**默认规则**：
 
-Applies to both modes.
+- 信号明确时，直接匹配对应深度。不要升级（用户要一句话，不给要点）也不要降级（用户要审视，不给摘要）。
+- 信号模糊时，默认选**完整**——它含论证链，最接近"解读"的本意。用户如果觉得多，可以主动要求"简短点"——降级比升级容易感知。
+- 如果模糊到连问题类别都无法判断，先问一个澄清问题再解读。
 
-#### Read enough
+不要默认概括整篇文档。选择能够充分回答问题的最窄范围。
 
-Before answering, inspect enough of the document to identify:
-- the central claim or thesis
-- the key supporting sections
-- the conclusion or call to action
-- the boundaries between fact, inference, and opinion
-- cross-references that materially affect understanding
+#### 阅读与验证
 
-Read referenced documents when the meaning of this document depends on them.
-Read only as broadly as needed for the user's question.
+明确了以上三点后，带着问题阅读文档。
 
-#### Verification boundary
+**充分阅读**
 
-Only describe document content as fact when verified by direct inspection. State clearly when:
-- content was verified directly in the document
-- a referenced document was only sampled (e.g., title, abstract, or opening)
-- a gap or missing piece is inferred rather than confirmed
-- surrounding context (org decisions, prior discussions) was not inspected
+回答问题之前，检查文档中足够多的内容以识别：
+- 核心主张或论点
+- 关键支撑章节
+- 结论或行动号召
+- 事实、推论和观点之间的边界
+- 对理解有实质性影响的交叉引用
 
-Do not imply full-document certainty from a partial read.
-If the inspected scope is partial, say what was verified and what still needs checking.
+当本文档的含义依赖于被引用的文档时，阅读那些被引用的文档。只按用户问题所需的范围阅读。
 
-### 4. Standard mode (small scope)
+**验证边界**
 
-Single-turn explanation. Start by directly answering the user's actual question in one sentence.
+只有经直接检查确认的内容，才能作为文档事实来描述。以下情况需明确说明：
+- 内容已在文档中直接验证
+- 被引用文档仅被抽样检查（如仅看了标题、摘要或开头）
+- 空白或缺失是推断出来的，而非确认的
+- 周围上下文（组织决策、先前讨论）未被检查
 
-#### Output
+不要从部分阅读中暗示已掌握全文。如果检查范围是局部的，说明已验证了什么以及还需要检查什么。
 
-Add only the sections needed to support that answer, such as:
-- What it claims
-- How it is organized
-- How the argument builds
-- What evidence supports it
-- What it assumes or omits
-- How it relates to other documents
-- Key decisions and their rationale
-- Where to start reading
-- Things that are easy to misread
+### 2. 规划解释结构
 
-Do not expand to every section by default.
-Prefer the smallest complete explanation that the user can build on.
-Use sections only when they help the reader orient, navigate, or verify the explanation.
+在投入内容之前，确定规模和可视化方案，并向用户确认输出骨架。
 
-#### Visual guidance
+#### 判断规模
 
-Prefer compact terminal-native visuals when they reduce cognitive load.
-If plain prose is clearer, use plain prose.
-For concrete visual patterns, see `docs/visual-patterns.md`.
-Choose a pattern only after the explanation goal is clear.
+文档属于**大型**当满足以下任一条件：
+- 10 页以上或有多个主要章节
+- 包含多个嵌套论证或子决策，每个都值得独立处理
+- 交叉引用 3 篇以上对理解有实质性影响的其他文档
+- 论证结构复杂（前提 → 子结论 → 主结论）
+- 用户明确描述其为大型、密集或难以理解
 
-Use local visual anchors to clarify:
-- argument structure
-- section organization and responsibility
-- decision records and tradeoffs
-- cross-document relationships
-- claims vs. evidence vs. gaps
-- timelines of events, versions, or decisions
-- comparisons between alternatives
+不确定时，默认按大型处理。地图总是可以跳读的（指用户阅读时可以快速浏览跳过，不是解释者可以跳过地图阶段——子阶段 1 的文档地图是强制输出），但对深度文档的浅层解读毫无用处。
 
-Prefer multiple small visuals over one oversized diagram when the explanation spans different concerns.
-Do not add visuals that merely decorate or repeat nearby prose.
-Choose the simplest visual that makes the point clear.
+→ 小型：阶段 3 走[单轮输出](#单轮输出小型文档)。
+→ 大型：阶段 3 走[多轮输出](#多轮输出大型文档)。
 
-### 5. Map + Navigate mode (large scope)
+#### 可视化方案
 
-When scale detection flags a document as large, do not attempt a single-pass explanation. Instead, guide the user through three phases: map the argument territory, navigate selected sections in depth, then synthesize back into a coherent whole. The user controls pacing and section selection throughout.
+对阶段 3 将要输出的内容，预判哪些信息点需要图形。决策流（逐信息点判断）：
 
-**CRITICAL — Multi-turn interaction**: This mode spans 3+ responses. You MUST NOT complete multiple phases in one response. Each phase boundary is a hard stop — output the phase content, emit the user-facing prompt, then wait. A typical interaction: turn 1 = Phase 1 (map) → user reply → turn 2 = Phase 2 (dive into section A) → user reply → turn 3 = Phase 2 (dive into section B) → user says "合拢" → turn 4 = Phase 3 (synthesize). Never collapse these boundaries.
+```
+待传达的信息
+  │
+  ├─ 包含 ≥2 个元素之间的结构关系？
+  │    （对比 / 层级 / 时序 / 因果 / 包含 / 选择）
+  │   否 → 纯文字
+  │   是 → 继续
+  │
+  ├─ 这些关系能用一句话说清？
+  │    能 → 纯文字（一句话比一张图省空间且更精确）
+  │    不能 → 继续
+  │
+  └─ 画图后读者能一眼看到文字需要逐句推理才能获得的信息？
+      不能 → 纯文字（图只是装饰）
+      能 → 画图
+```
 
-#### Phase 1: Map (reconnaissance)
+一个信息点对应一个决策。不要因为"前面画了图"或"这部分看起来太素"而画图——每个图形必须独立通过上述三道闸门。
 
-Goal: give the user a global mental model of the document without diving into any single section.
+**最低图形门槛**（适用于所有模式）：如果阶段 3 的输出涉及以下任一内容，至少包含一张对应的可视化——
 
-Read broadly but shallowly — scan the table of contents, abstract, introduction, section headings, and conclusion. Identify the central thesis, key arguments, and how sections relate.
+- **跨章节关系** — 各章节如何分工、依赖或串联为论证链
+- **多选决策** — ≥2 个选项在 ≥2 个维度上的取舍
+- **时序** — 事件、版本或决策阶段的时间顺序
 
-Output:
-- **文档地图**: a structure or hierarchy diagram showing sections, their roles in the argument, and how they relate. Use the existing structure or hierarchy/tree visual patterns.
-- **关键章节**: a compact table listing each key section or argument, what it contributes in one sentence, and its importance (core / important / supporting).
-- **建议阅读顺序**: the recommended order to explore sections. Default to core thesis → supporting arguments → context/appendices unless the user has a specific question.
+#### 确认输出骨架
 
-End Phase 1 by asking the user which section to dive into first.
+向用户确认解释结构后再投入内容。确认内容因规模而异：
+
+**小型文档**：给出简要的结构预告。"我从 A、B、C 三个角度解读。可以吗？"
+
+**大型文档**：给出多轮路线图。"这是大型文档，建议分三轮：先画地图 → 选章节深入 → 最后合拢。可以吗？"
+
+用户确认后进入阶段 3。如果用户提出调整（加一个角度、换一个顺序），在阶段 2 内修正后再进入阶段 3。不要在阶段 3 中途回头改结构。
+
+### 3. 执行解释
+
+规模在此决定出口形态。两种出口共享同一套输出约定和可视化规则，不各自定义独立规范。
+
+#### 输出约定（两种出口通用）
+
+只添加支撑回答所需的章节，例如：
+- 它主张什么
+- 它如何组织
+- 论证如何构建
+- 有什么证据支撑
+- 它假设或省略了什么
+- 它与其他文档的关系
+- 关键决策及其理由
+- 从哪里开始阅读
+- 容易误读的地方
+
+不要默认展开到所有章节。优先提供用户能够在其基础上继续的最精简的完整解读。仅在有助于读者定位、导航或验证解读时才使用章节划分。
+
+**适合画图的常见信号**（决策流中"不能一句话说清"且"一眼能看到"的高频场景）：
+
+- 论证结构（前提 → 子结论 → 主结论，或反驳 → 让步 → 修正）
+- 章节组织与职责（各章节在论证链中的角色和依赖关系）
+- 决策记录与取舍（选项 × 维度 的权衡矩阵）
+- 跨文档关系（引用 / 扩展 / 矛盾 / 替代）
+- 主张 vs. 证据 vs. 空白（标注每项主张背后的证据强度和已知空白）
+- 事件、版本或决策的时间线
+- 备选方案之间的比较
+
+跨关注点时：多个小型图 > 一张大图。具体模式参见 `docs/visual-patterns.md`。选择模式在执行时，不是规划时——阶段 2 确定"哪里值得画"，阶段 3 确定"怎么画"。
+
+#### 单轮输出（小型文档）
+
+一句话直接回答用户的实际问题，按约定的深度和骨架展开。一次回复完成。
+
+#### 多轮输出（大型文档）
+
+引导用户经历三个子阶段。**关键**：每个子阶段是独立的回复轮次，禁止在一轮中合并多个子阶段。
+
+##### 子阶段 1：地图（侦察）
+
+目标：给用户一个文档的全局心智模型，不深入任何单个章节。
+
+广泛但浅层地阅读 — 扫描目录、摘要、引言、章节标题和结论。识别核心论点、关键论证以及章节之间的关联。
+
+输出：
+- **文档地图**：一个结构或层级图，展示各章节、它们在论证中的角色以及它们之间的关系。
+- **关键章节**：一个紧凑的表格，列出每个关键章节或论证、它贡献什么（一句话概括）以及重要程度（核心 / 重要 / 支撑）。
+- **建议阅读顺序**：推荐的章节探索顺序。默认为核心论点 → 支撑论证 → 背景/附录，除非用户有特定问题。
+
+子阶段 1 结束时，询问用户首先深入哪个章节。
 
 ```
 这份文档有 N 个关键章节。你想先深入哪个？（输入编号或名称，也可以跳过直接合拢）
 ```
 
-CRITICAL: After outputting the document map, section catalog, and this prompt, STOP. Do not deep-dive any section. Do not proceed to Phase 2. Wait for the user to select a section before continuing.
+停止。不要深入任何章节。等待用户选择。
 
-#### Phase 2: Navigate (deep-dive)
+##### 子阶段 2：导航（深入）
 
-Goal: trace one section or argument chain deeply, matching the quality of the standard small-document explanation.
+目标：深度追踪一个章节或论证链。
 
-When the user selects a section:
-- Read that section and any referenced material that materially affects its meaning.
-- Explain what it claims, how it supports the larger thesis, what evidence it relies on, and what it assumes or omits.
-- Use the same visual patterns, verification boundary, and output contract as the standard explain mode.
-- Stay within the scope of one section or argument. Do not detour into sibling sections.
+当用户选择某个章节时：
+- 阅读该章节及任何对其含义有实质性影响的引用材料。
+- 解读它主张什么、如何支撑更大的论点、依赖什么证据、假设或省略了什么。
+- 使用本阶段的输出约定和可视化规则。
+- 保持在一个章节或论证链的范围内。不要偏离到相邻章节。
 
-After each section, output a brief summary and ask the next move:
+每个章节之后，输出简要总结并询问下一步：
 
 ```
-**已探索**: [section-name]
+**已探索**: [章节名称]
 
 下一个深入哪个？还是"合拢"？
 ```
 
-CRITICAL: After each deep-dive response, STOP. Do not dive into another section until the user responds with a selection or "合拢".
+停止。不要深入另一个章节，直到用户回复一个选择或"合拢"。
 
-Accept these user responses:
-- a section number/name → dive into that section
-- "合拢" or "synthesize" → move to Phase 3
-- "停" or "pause" → stop here, save progress for next session
+接受以下用户回复：
+- 章节编号/名称 → 深入该章节
+- "合拢"或"synthesize" → 进入子阶段 3
+- "停"或"pause" → 在此暂停，保存进度供下次会话继续
 
-#### Phase 3: Synthesize (assemble)
+##### 子阶段 3：合拢（整合）
 
-Goal: weave the explored sections back into a single coherent understanding the user can retell.
+目标：将已探索的章节编织回一个用户可以复述的连贯理解。
 
-When the user asks to synthesize:
-- Recap the document map, visually marking which sections were explored.
-- Show how the explored sections connect — how supporting arguments feed the central thesis, where evidence chains converge.
-- Present the document's core argument end-to-end, covering all explored sections in their proper relationships.
-- List any unexplored sections the user may want to revisit later.
+当用户要求合拢时：
+- 回顾文档地图，可视化标记已探索的章节。
+- 展示已探索章节之间如何连接 — 支撑论证如何汇入核心论点，证据链在何处汇聚。
+- **端到端推理链**：用一段连续叙述串联已探索章节的核心论点、证据和结论关系，形成从前提 → 子论证 → 主结论的完整推理链。具体写法："这份文档的核心论点是 X。支撑它的有 N 条子论证：章节 A 证明了……章节 B 提供了……这两条证据在章节 C 汇聚为……最终结论是……"。用户应能直接复述这段话给第三方。
+- 列出用户可能以后想回顾的未探索章节。
 
-The user should walk away able to explain the document's thesis, argument structure, and key evidence to someone else. That is the success criterion.
+用户离开时应该能够向他人解释文档的论点、论证结构和关键证据。这是成功的标准。
 
-#### Cross-session
+##### 跨会话
 
-The user may pause and resume across conversations. To support this:
-- When the user pauses, summarize what was covered and what remains.
-- When the user returns and says "继续解读" or references the same document, pick up from the last phase and section.
-- Track progress in conversation state — no file persistence needed.
+用户可能跨对话暂停和恢复。为此：
+- 当用户暂停时，总结已覆盖的内容和剩余内容。
+- 当用户返回并说"继续解读"或引用同一文档时，从上一子阶段和章节继续。
+- 在对话状态中追踪进度 — 不需要文件持久化。
 
-## Artifact output
+### 4. 自检与收束
 
-By default, this skill does not produce files. Explanations live in the conversation.
+所有输出在呈现给用户之前经过此闸门。执行时机因模式而异：
+- **单轮模式**：阶段 3 输出完成后触发一次。
+- **多轮模式**：子阶段 1（地图）和子阶段 2（导航）不触发；子阶段 3（合拢）完成后触发一次。
 
-When the user explicitly asks to persist the explanation ("save as read-notes", "write that to docs/", "create a reading note"):
+多轮模式中，子阶段 1 和 2 的输出是中间产物（地图 + 单章解读），质量由后续回合自然纠偏；合拢是最终交付物，必须通过自检。
 
-- Write to the path the user specifies, or suggest `docs/read-notes/<doc-name>.md` if none given
-- Use richer visual formats when the target is a markdown file (mermaid diagrams, full-width tables) since the output renders in a viewer, not a terminal
-- Include a header block with source document path, date, and scope of reading
-- Do not re-explain in the conversation after writing; confirm the file path and let the user open it
+#### 自检清单
 
-This is an opt-in extension, not the default behavior.
+对每条将要输出的关键断言，过一遍：
 
-## Hard boundaries
+1. **归属校对**：这个结论来自哪个章节？重新扫一眼原文。最常见的错误是把 B 章节的观点归于 A 章节，或把"备选方案"当成"最终决策"。
+2. **方向校对**：原文的立场是支持还是反对？有条件还是无条件？特别注意否定词（"不"、"除非"、"仅在……时"）和限定词（"可能"、"建议"、"必须"）——忽略一个词就能反转结论。
+3. **范围校对**：你的解读覆盖了文档的多少？如果你只读了第 2-3 节，不要在输出中暗示你描述的是全文观点。超出阅读范围的内容，标注为"未检查"而非沉默跳过。
+4. **确定性校对**：你的断言中，哪些是文档明确写出的，哪些是你推断的？推断可以保留，但必须标注（如"文档未明说，但从第 3 节的前提可以推出……"）。
 
-Do not:
-- modify, create, or delete any file (except [Artifact output](#artifact-output) when explicitly requested)
-- paraphrase the document section by section
-- explain more surface area than the user's question requires
-- present inference as document fact
-- imply full-document certainty from a partial inspection
-- mix explanation with critique, review, or co-authoring unless the user asks
-- add visuals that do not clarify argument, structure, decision, relationship, or gap
-- supplement what the document "should have said" — a gap is noted, not filled
-- for large documents, skip the map and jump straight to deep-dive
-- for large documents, dive into every section in one response — let the user choose the pace
-- for large documents, complete multiple map+navigate phases in a single response — each phase is a separate turn
-- add sections to the catalog that don't materially affect understanding
+#### 失败处理
+
+- 如果自检发现错误：修正后重新自检。修复成本为零——还没输出给用户。
+- 如果某个断言无法确认又无法放弃（对回答至关重要、但原文确实模糊）：保留它，但以低确定性表述输出（"原文在此处比较模糊，我的理解是 X，但也可能是 Y"）。
+- 如果多处无法确认：缩小解读范围，只输出能确认的部分。宁可给一个范围小但准确的回答，也不要给一个范围大但可疑的回答。
+
+#### 收束输出
+
+自检通过后，附加收束信息：
+
+- **一句话结论**：用一句话重述核心解读结果——即使用户要求"完整"深度，也在此给出最浓缩的版本，方便用户快速确认理解是否正确。
+- **未覆盖声明**：明确说明本次解读未覆盖文档的哪些部分（未涉及的章节、未检查的引用文档、未验证的上下文）。
+- **可深挖方向**：如果存在对理解有实质性影响但本次未展开的内容，列出 1-3 个方向供用户后续追问。
+
+收束信息是解读的"封条"——不引入新内容，只做边界标注和路标。
+
+自检的推理过程不输出给用户。用户只看到校验后的结果和收束信息。
+
+## 产物输出
+
+默认情况下，本技能不产生文件。解读存在于对话中。
+
+当用户明确要求持久化解讀时（"保存为阅读笔记"、"写到 docs/"、"创建阅读笔记"）：
+
+- 写入用户指定的路径，如未指定则建议 `docs/read-notes/<doc-name>.md`
+- 当目标是 markdown 文件时使用更丰富的可视化格式（mermaid 图表、全宽表格），因为输出在查看器中渲染而非终端
+- 包含头部块，注明源文档路径、日期和阅读范围
+- 写入后不要在对话中重新解读；确认文件路径并让用户自行打开
+
+#### 多轮模式产物策略
+
+当多轮解读（地图 → 导航 → 合拢）后用户要求保存时，输出结构化文档，不是原始对话拼接。文档结构：
+
+1. **文档地图**（来自子阶段 1）— 用 mermaid 或层级图呈现全文档结构，标注哪些章节已深度探索
+2. **已探索章节摘要**（来自子阶段 2）— 每个已探索章节的核心论点、证据和空白，各一至两段
+3. **合拢结论**（来自子阶段 3）— 端到端推理链 + 未探索章节列表
+
+三个部分之间用 `---` 分隔。头部块标注阅读范围为"多轮 - 地图 + 导航"及已探索章节的清单。
+
+不包含：
+- 多轮交互中的用户选择记录（"深入第 3 章"、"合拢"）
+- 每轮结束后的导航提示
+- 原始对话的逐轮记录
+
+读者拿到文件后应能独立理解全部内容，不需要知道解读过程经历了几轮对话。
+
+这是可选的扩展，不是默认行为。
+
+## 硬边界
+
+不得：
+- 修改、创建或删除任何文件（除了[产物输出](#产物输出)中用户明确要求的情况）
+- 逐章复述文档
+- 解读超出用户问题所需的表面积
+- 将推论呈现为文档事实
+- 从部分检查中暗示已掌握全文
+- 将解读与批评、评审或共同创作混在一起，除非用户要求
+- 添加不能阐明论证、结构、决策、关系或空白的可视化
+- 补充文档"本应说"的内容 — 空白只标注，不填补
+- 对大型文档跳过地图直接深入
+- 对大型文档在一轮回复中深入所有章节 — 让用户选择节奏
+- 对大型文档在一轮回复中完成多个地图+导航阶段 — 每个阶段是独立的一轮
+- 向目录中添加对理解无实质影响的章节
+- 将[自检与收束](#4-自检与收束)的推理过程输出给用户 — 自检是内部闸门，用户只看到校验后的结果

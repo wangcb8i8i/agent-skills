@@ -1,216 +1,237 @@
 ---
 name: code-explain
-description: Explains code, execution flow, module responsibilities, and implementation details. Prefer terminal-native, visual-first explanations with multiple local visual anchors when helpful. This skill explains; it does not implement. Do not auto-trigger — use only when the user explicitly asks to understand code.
+description: 解释代码、执行流程、模块职责和实现细节。文字与图形并行为双信息通道，非微小解释至少包含结构图与流程路径各一。本技能只负责解释，不负责实现。不要自动触发——仅在用户明确要求理解代码时使用。
 ---
 
-# Code Explain
+# 代码解读
 
-Turn code into a mental model the user can repeat back.
+将代码转化为用户可以复述的心智模型。
 
-## Purpose
+## 工作流
 
-Help the user understand:
-- what the code is for
-- how the code works
-- how input becomes output
-- which branches, dependencies, and state changes matter
-- what is easy to misread
-
-## Workflow
-
-This skill has two modes, chosen by scope:
-- **Standard**: small to medium features — single-turn, one response and done.
-- **Map + navigate**: large features — multi-turn across 3+ responses.
-
-The decision path: **classify → detect scale → read & verify → execute the chosen mode**.
-
-### 1. Classify the question
-
-Before explaining, identify what the user is primarily asking for:
-- **responsibility** — what this code, file, or module is for
-- **execution flow** — how control moves through it
-- **data flow** — how input becomes output
-- **structure** — how files or components relate
-- **rationale** — why it is written this way
-- **nuance** — what is easy to misread or surprising
-
-If the request is ambiguous, ask one clarifying question before explaining.
-Do not default to explaining the whole file, module, or subsystem.
-Choose the narrowest scope that fully answers the question.
-
-### 2. Detect scale
-
-After classifying, assess whether the target is **small** or **large**.
-
-A feature is **large** when any of these apply:
-- 5+ files or modules are involved
-- the call chain is 3+ levels deep
-- 3+ significant branching paths exist
-- complex state management or multi-stage data flow is central
-- the user explicitly describes it as large, complex, or hard to follow
-
-When uncertain, default to large. A map is always skimmable; a shallow explanation of a deep feature is useless.
-
-→ small: go to [Standard mode](#4-standard-mode-small-scope).
-→ large: go to [Map + Navigate mode](#5-map--navigate-mode-large-scope).
-
-### 3. Read & verify
-
-Applies to both modes.
-
-#### Read enough
-
-Before answering, inspect enough code to identify:
-- the real entry point
-- the key handoffs
-- the meaningful branches
-- the observable effect or exit
-
-Follow important calls until the requested behavior is clear enough to explain.
-Do not explain from an isolated snippet when the meaning depends on surrounding flow.
-Read only as broadly as needed for the user's question.
-
-#### Verification boundary
-
-Only describe behavior as fact when verified in the inspected code. State clearly when:
-- behavior was verified directly
-- a dependency was only sampled
-- a conclusion is inferred rather than confirmed
-- surrounding runtime context was not inspected
-
-Do not imply end-to-end certainty from a local snippet.
-If the inspected scope is partial, say what was verified and what still needs checking.
-
-### 4. Standard mode (small scope)
-
-Single-turn explanation. Start by directly answering the user's actual question in one sentence.
-Answer the user's actual question, not the largest explainable surface area.
-
-#### Output
-
-Add only the sections needed to support that answer, such as:
-- What it is
-- How it is organized
-- How it works
-- How data moves
-- How pieces connect
-- How it relates to surrounding code
-- What it owns and what it delegates
-- Where to start reading
-- Why it is written this way
-- Things to notice
-
-Do not expand to every section by default.
-Prefer the smallest complete explanation that the user can build on.
-Use sections only when they help the reader orient, navigate, or verify the explanation.
-Use explicit section headings only when they improve readability.
-Short answers do not need a full sectioned format.
-
-Use `file_path:line_number` anchors when they materially improve navigation, especially for:
-- cross-file explanations
-- complex control flow
-- key evidence points
-
-#### Visual guidance
-
-Prefer compact terminal-native visuals when they reduce cognitive load.
-If plain prose is clearer, use plain prose.
-For concrete visual patterns, see `docs/visual-patterns.md`.
-Choose a pattern only after the explanation goal is clear.
-
-Use local visual anchors to clarify:
-- structure
-- execution flow
-- branching
-- data mapping
-- state transitions
-- concurrent interleaving
-- pipeline parallelism
-- contrasts or misread-prone behavior
-
-Prefer multiple small visuals over one oversized diagram when the explanation spans different concerns.
-Do not add visuals that merely decorate or repeat nearby prose.
-Choose the simplest visual that makes the point clear.
-
-### 5. Map + Navigate mode (large scope)
-
-When scale detection flags a feature as large, do not attempt a single-pass explanation. Instead, guide the user through three phases: map the territory, navigate selected branches in depth, then synthesize back into a coherent whole. The user controls pacing and branch selection throughout.
-
-**CRITICAL — Multi-turn interaction**: This mode spans 3+ responses. You MUST NOT complete multiple phases in one response. Each phase boundary is a hard stop — output the phase content, emit the user-facing prompt, then wait. A typical interaction: turn 1 = Phase 1 (map) → user reply → turn 2 = Phase 2 (dive into branch A) → user reply → turn 3 = Phase 2 (dive into branch B) → user says "合拢" → turn 4 = Phase 3 (synthesize). Never collapse these boundaries.
-
-#### Phase 1: Map (reconnaissance)
-
-Goal: give the user a global mental model without diving into any single branch.
-
-Read broadly but shallowly — identify entry points, key modules, major branches, and handoff boundaries. Do not trace calls deeply yet.
-
-Output:
-- **全局地图**: a structure or hierarchy diagram showing modules, files, or components and their relationships. Use the existing structure or hierarchy/tree visual patterns.
-- **分支目录**: a compact table listing each key branch, what it does in one sentence, and its importance (core / important / edge).
-- **建议阅读顺序**: the recommended order to explore branches. Default to core → important → edge unless the user has a specific concern.
-
-End Phase 1 by asking the user which branch to dive into first.
+四阶段流水线，每次解释都经过：
 
 ```
-这里有 N 条值得深入的分支。你想先钻哪条？（输入编号或名称，也可以跳过直接合拢）
+理解问题 → 思考解释结构 → 内容呈现 → 自检和总结
+                              ↑
+                    大型解释在此阶段内执行
+                    地图+导航的多轮交互（轮1→轮2→轮3）
 ```
 
-CRITICAL: After outputting the map, branch catalog, and this prompt, STOP. Do not deep-dive any branch. Do not proceed to Phase 2. Wait for the user to select a branch before continuing.
+### 阶段 1：理解问题
 
-#### Phase 2: Navigate (deep-dive)
+在解释之前，先搞清楚用户真正要什么。
 
-Goal: trace one branch recursively from entry to leaves, matching the quality of the standard small-feature explanation.
+#### 1.1 必要澄清
 
-When the user selects a branch:
-- Trace the call chain for that branch deeply, following important calls to their conclusions.
-- Use the same visual patterns, verification boundary, and output contract as the standard explain mode.
-- Stay within the scope of one branch. Do not detour into sibling branches.
+如果请求含糊不清，先问一个澄清问题。不要默认解释整个文件、模块或子系统。
 
-After each branch, output a brief summary and ask the next move:
+#### 1.2 定位问题本质
+
+识别用户的核心关注点：
+- **职责**——这段代码、文件或模块是干什么的
+- **执行流程**——控制流如何贯穿代码
+- **数据流**——输入如何变成输出
+- **结构**——文件或组件之间的关系
+- **设计理由**——为什么要这么写
+- **细微之处**——哪些地方容易误读或出人意料
+
+#### 1.3 感知用户水平
+
+用户对代码的熟悉程度决定了解释的起点。当水平未知时，首轮只输出**最小可理解单元**——默认取关键链路层（主要步骤、转手点、值得注意的地方），够用但不过载。
+
+然后根据用户反应决定方向：
+- 用户追问基础概念、表现出困惑 → 往上补核心结论，往下展开细节
+- 用户直奔深挖点、用专业术语提问 → 收拢，后续按专家粒度
+- 用户声明水平 → 直接切到对应层，不试探
+
+比一次性分层多一轮判断，但避免了新手被三层信息淹没、专家感觉被敷衍的问题。
+
+#### 1.4 判断规模
+
+评估目标的范围大小：
+
+**属大型**当满足以下任一条件：
+- 涉及 5 个或更多文件/模块
+- 调用链深度达到 3 层或更多
+- 存在 3 条或更多重要分支路径
+- 核心逻辑涉及复杂的状态管理或多阶段数据流
+- 用户明确将其描述为"大""复杂"或"难以理清"
+
+拿不准时，默认按大型处理。
+
+#### 1.5 读代码
+
+检查足够的代码以识别：
+- 真正的入口点
+- 关键转手点
+- 有意义的分支
+- 可观察的效果或出口
+
+跟踪重要的调用，直到请求的行为足够清晰。当含义依赖周边流程时，不要仅凭孤立代码片段解释。
+
+---
+
+### 阶段 2：思考解释结构
+
+读完代码后，不急着输出。先构思解释的骨架。
+
+#### 2.1 选择叙事结构
+
+根据规模和问题类型，选择匹配的结构：
+
+| 场景 | 推荐结构 |
+|---|---|
+| 小型·单文件/单函数 | **直答式**：一句话结论 → 关键要点 → 必要时展开 |
+| 小型·跨文件流程 | **追踪式**：入口 → 每一步转手 → 出口，沿调用链展开 |
+| 大型 | **地图+导航式**：全局地图 → 分支目录 → 逐条深入 → 合拢（多轮完成） |
+
+**地图+导航式的三轮结构**（嵌套在四阶段之阶段 3 内执行）：
+- **轮 1·地图**：全局结构图 + 分支目录（每条分支一句话 + 重要性标记：核心/重要/边缘）+ 建议阅读顺序。结束后等用户选分支。
+- **轮 2·导航**：逐条深入，每条追踪到叶节点。每条结束后问"下一条还是合拢？"
+- **轮 3·合拢**：回顾全局地图 + 已探索分支的关联 + 端到端流程。如有未探索分支则列出，全部分支已探索则省略此项。
+
+多轮铁律：每轮边界是硬停——输出后必须等待用户回复，不能在一轮中合并多轮。阶段 4 仅在轮 3（合拢）完成后执行一次——轮 1、轮 2 均为中间输出，不触发阶段 4。
+
+#### 2.2 确定讲解排版
+
+- **优先级排序**：核心逻辑在前，边缘分支在后（除非用户关注点不同）
+- **重点标记**：容易误读、反直觉、或影响面大的点明确标出
+- **哪些不说**：与问题无关的代码面、无关的分支、无关的边界情况——即使读到了也不讲
+- **回答粒度**：按阶段 1.3 的策略——未知水平时首轮只给关键链路，用户反应后决定收拢还是展开；声明水平则直接切到对应层
+
+#### 2.3 规划可视化锚点
+
+在选择可视化形式之前，先确定：
+- 哪些概念用文字说不清，需要图形辅助？
+- 每个图解决哪一层的认知负担（结构/流程/分支/数据流/状态转换）？
+- 图的粒度：多个小图 vs 一张大图？
+
+选择可视化形式的决策流（非规则，仅推理路径）：
+
+1. **这个概念的认知负担主要来自哪里？**
+   - 结构太复杂？→ 考虑层级图
+   - 步骤太多记不住？→ 考虑流程箭头
+   - 条件容易漏看？→ 考虑分支列表
+   （不是固定对应，而是思考起点）
+
+2. **如果我用纯文字，读者需要来回翻看才能建立关联吗？**
+   - 需要 → 这就是图形切入的信号
+   - 不需要 → 可能图就是多余的
+
+3. **这个图去掉后，理解会打折扣吗？**
+   - 会 → 画
+   - 不会 → 不画
+   - 不确定 → 画个简版，正文中不留图引用
+
+#### 2.4 确认结构意图
+
+在投入完整解释之前，让用户看到你的结构意图。用户有机会纠偏，而不是被动接收。
+
+**直答式**——不单独开一轮确认，但在首句结论后嵌入一个低摩擦确认锚点：`——方向对吗？` 用户不回则继续展开，回了则按反馈调整。不给确认锚点的唯一例外是内容少到一句话就能说清的函数——此时直接答完即可。
+
+**追踪式**——给出路径梗概：
 
 ```
-**已探索**: [branch-name]
-
-下一条钻哪个？还是"合拢"？
+这条调用链是：入口 handler → 校验 → service 层 → 写库 + 发消息。
+我沿着这个路径逐段展开？有没有想跳过的环节？
 ```
 
-CRITICAL: After each deep-dive response, STOP. Do not dive into another branch until the user responds with a selection or "合拢".
+**地图+导航式**——轮 1（地图）本身即为确认点，用户选分支即表态，无需额外步骤。
 
-Accept these user responses:
-- a branch number/name → dive into that branch
-- "合拢" or "synthesize" → move to Phase 3
-- "停" or "pause" → stop here, save progress for next session
+确认后进入四阶段之阶段 3（内容呈现）。直答式在首句结论中隐含确认，无需等用户回复；追踪式等用户回应后展开；地图+导航式在轮 1 中确认。用户要求调整则回到阶段 2 修正结构。对大型解释，阶段 3 即为地图+导航的多轮交互过程；小型解释则是单轮输出。
 
-#### Phase 3: Synthesize (assemble)
+---
 
-Goal: weave the explored branches back into a single coherent narrative the user can retell.
+### 阶段 3：内容呈现
 
-When the user asks to synthesize:
-- Recap the global map, visually marking which branches were explored.
-- Show how the explored branches connect — their handoff points, shared state, ordering constraints.
-- Present the end-to-end flow: the complete path from input to output, covering all explored branches in their proper relationships.
-- List any unexplored branches the user may want to revisit later.
+将阶段 2 的结构落实为具体内容。文字是骨架，图形是第二信息通道——两者平行，承载不同信息密度，不在一条轴上取舍。
 
-The user should walk away able to explain the full chain to someone else. That is the success criterion.
+**最低图形门槛**：对非微小解释（追踪式或大型），至少包含：
+- 一张**结构图**（模块/文件关系、层级或组件拓扑）
+- 一条**流程路径**（调用链、时序或数据流）
 
-#### Cross-session
+微小解释（单文件/单函数·直答式）不受此限——但即使是一句话结论，如果结构关系用文字绕了三句话还说不清，补一张图。
 
-The user may pause and resume across conversations. To support this:
-- When the user pauses, summarize what was covered and what remains.
-- When the user returns and says "继续解读" or references the same feature, pick up from the last phase and branch.
-- Track progress in conversation state — no file persistence needed.
+#### 3.1 文字输出
 
-## Hard boundaries
+- 每一段服务于叙事结构中的某个目的，不为凑字数
+- 用 `文件路径:行号` 锚点帮助导航，尤其适用于跨文件解释、复杂控制流、关键证据点
+- 仅陈述在代码中实际验证过的行为。以下情况明确标出：直接验证的 / 仅抽样的 / 推断的 / 未检查运行时上下文的
 
-Do not:
-- modify, create, or delete any file
-- paraphrase the code line by line
-- explain more surface area than the user's question requires
-- present inference as confirmed behavior
-- imply full-path certainty from a partial inspection
-- mix explanation with implementation advice unless the user asks
-- add visuals that do not clarify structure, flow, mapping, branching, or contrast
-- for large features, skip the map and jump straight to deep-dive
-- for large features, dive into every branch in one response — let the user choose the pace
-- for large features, complete multiple map+navigate phases in a single response — each phase is a separate turn
-- add branches to the catalog that don't materially affect understanding
+#### 3.2 图形编排
+
+文字擅长线性推理，图形擅长空间/关系信息。图形不是文字的降级替代，是不同类型的信息通道。
+
+- 优先使用终端原生可视化（ASCII/符号矩阵）
+- 默认每张图只承载一个信息层；当多层密不可分时（如调用链每步伴随数据变换），融合优于拆分，但需确保每层在图中可独立辨认
+- 多关注点时，用多个小图而非一张大杂烩——除非融合比拆分更清晰
+- 具体可视化模式参考 `docs/visual-patterns.md`
+
+图形承载的信息类型：
+- **结构**——层级/组件关系/文件拓扑
+- **流程**——调用链/时序/分支决策
+- **数据**——输入→变换→输出的映射
+- **状态**——状态机/生命周期转换
+- **时空**——并发交错/流水线并行
+- **对比**——易误读行为/歧义对照
+
+---
+
+### 阶段 4：自检和总结
+
+仅在整次解释完成时执行。小型解释（直答式/追踪式）在阶段 3 单轮输出后触发；大型解释（地图+导航式）在轮 3（合拢）完成后触发。中间轮次不触发。
+
+分为两步：内部自检（不输出）→ 对外总结（输出）。
+
+#### 4.1 内部自检（不输出）
+
+解释写完后对照问题回看。这是输出前的质量闸门，过程不对外输出，但结果决定后续动作：
+
+**发现小漏**（某条分支未展开、某个边界情况未提但用户可能想知道）→ 标记为待纳入总结的"可深挖方向"，继续。
+
+**发现大漏或误读**（核心逻辑理解有误、关键步骤跳过、解释与代码不符）→ 回到阶段 2 或 3 修正，修完再输出。不能放一份有问题的解释出去。
+
+**通过** → 进入 4.2。
+
+检查清单：
+- 用户能否用一句话复述这段代码的核心逻辑？
+- 关键转手点和分支是否说清楚了？
+- 有没有只描述了"是什么"而没解释"为什么"的地方？
+- 用户问题范围内的内容是否全部覆盖？
+- 是否有只读未提的代码路径可能影响理解？
+
+#### 4.2 对外总结（输出给用户）
+
+自检通过后，向用户输出收尾内容。以帮助用户巩固心智模型、知道下一步往哪看为目标，无需面面俱到：
+
+- **一句话结论**：这段代码的核心逻辑，用户可以带走复述
+- **待深挖方向**：用户提问中暗示但未正面回答的关注点，或引向更深处但未追踪的调用（如有）
+- **未覆盖声明**：明确声明未覆盖的部分，避免用户误以为解释是完整的（如"X 的异常路径未检查""Y 的初始化逻辑不在本次范围内"）
+
+## 产物输出
+
+本技能默认不写文件，解释留在对话中。仅在用户明确要求持久化时（"保存这份解读"、"写个阅读笔记"等）执行：
+
+- 写入用户指定路径；未指定则建议 `docs/read-notes/<文件名>.md`
+- 写 markdown 时使用文件环境下的可视化格式（mermaid 图、全宽表格），而非终端 ASCII——因为读者在看渲染后的结果
+- 文件头部注明源文件、日期和解读范围
+- 写入后确认路径即可，不在对话中重讲一遍
+
+这是可选出口，不影响阶段 1-4 的流程。
+
+## 硬边界
+
+不要：
+- 修改、创建或删除任何文件（产物输出中用户明确要求持久化时除外）
+- 逐行复述代码
+- 解释超出用户问题所需范围的代码面
+- 将推断当作已确认的行为
+- 局部检查后暗示全路径确定性
+- 将解释与实现建议混在一起，除非用户要求
+- 添加不能阐明结构、流程、映射、分支或对比的图表
+- 对大型功能，跳过地图直接深入
+- 对大型功能，在一轮中深入所有分支——让用户选择节奏
+- 在分支目录中添加不影响实质理解的分支
+- 在一轮中合并多个地图+导航阶段
+- 输出自检过程——自检是内部动作，只输出 4.2 的总结内容
