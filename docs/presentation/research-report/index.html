@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Report — 自动化深度研究引擎</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sand: #f0ede6;
+  --ink: #1e1e1e;
+  --ink-light: #555;
+  --accent-1: #b85c54;
+  --accent-2: #5c7a4a;
+  --accent-3: #4a6a7a;
+  --accent-4: #c49a3c;
+  --rule: #d4cec2;
+  --bg: #f8f6f0;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 20px; -webkit-font-smoothing: antialiased; }
+body { font-family: 'EB Garamond', 'Noto Sans SC', Georgia, serif; background: var(--bg); color: var(--ink); line-height: 1.65; padding-top: 40px; }
+
+/* HERO ENTRANCE */
+.hero-label, .hero h1, .hero .subtitle, .hero-meta {
+  opacity: 0; transform: translateY(18px);
+  animation: heroIn 0.7s var(--ease-out-quart) forwards;
+}
+.hero-label { animation-delay: 0.1s; }
+.hero h1 { animation-delay: 0.25s; }
+.hero .subtitle { animation-delay: 0.45s; }
+.hero-meta { animation-delay: 0.6s; }
+@keyframes heroIn { to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* SCROLL REVEAL */
+.reveal {
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 0.6s var(--ease-out-quart), transform 0.6s var(--ease-out-quart);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-stagger > .reveal:nth-child(1) { transition-delay: 0s; }
+.reveal-stagger > .reveal:nth-child(2) { transition-delay: 0.08s; }
+.reveal-stagger > .reveal:nth-child(3) { transition-delay: 0.16s; }
+.reveal-stagger > .reveal:nth-child(4) { transition-delay: 0.24s; }
+
+/* H2 RULE DRAW */
+h2 {
+  background-image: linear-gradient(var(--ink), var(--ink));
+  background-size: 0% 2px; background-position: bottom left; background-repeat: no-repeat;
+  padding-bottom: 0.5rem; transition: background-size 0.5s var(--ease-out-quart);
+}
+h2.visible { background-size: 100% 2px; }
+
+/* REDUCED MOTION */
+@media (prefers-reduced-motion: reduce) {
+  .hero-label, .hero h1, .hero .subtitle, .hero-meta { animation: none; opacity: 1; transform: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  h2 { background-size: 100% 2px; transition: none; }
+  .slide { transition: none; }
+}
+
+/* MODE BAR */
+.mode-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: var(--ink); color: white;
+  display: flex; align-items: center; justify-content: center; gap: 1rem;
+  padding: 0.5rem 1rem; font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.6rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  transition: transform 0.35s var(--ease-out-quart), opacity 0.35s var(--ease-out-quart);
+}
+.mode-bar.hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+.mode-bar button { background: none; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.3em 1em; font-family: inherit; font-size: inherit; letter-spacing: inherit; text-transform: uppercase; cursor: pointer; border-radius: 2px; transition: all 0.2s; }
+.mode-bar button.active { background: white; color: var(--ink); border-color: white; }
+.mode-bar button:hover { border-color: white; }
+
+.audio-controls { display: flex; align-items: center; gap: 0.6rem; margin-left: 1.5rem; padding-left: 1.5rem; border-left: 1px solid rgba(255,255,255,0.2); }
+.audio-controls button { background: none; border: 1px solid rgba(255,255,255,0.3); color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 2px; font-size: 14px; transition: all 0.2s; }
+.audio-controls button:hover { border-color: white; }
+.audio-controls button.playing { background: var(--accent-1); border-color: var(--accent-1); }
+.audio-progress { width: 100px; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+.audio-progress-fill { height: 100%; background: var(--accent-1); width: 0%; transition: width 0.3s; }
+.audio-time { font-variant-numeric: tabular-nums; min-width: 3em; }
+
+/* ARTICLE MODE */
+.hero { min-height: 65vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 4rem 2rem 3rem; background: var(--sand); border-bottom: 3px solid var(--ink); position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; }
+.hero-inner { max-width: 1100px; margin: 0 auto; width: 100%; position: relative; z-index: 1; }
+.hero-label { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent-3); margin-bottom: 1.5rem; }
+.hero h1 { font-size: 3.8rem; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; max-width: 12em; margin-bottom: 1.2rem; }
+.hero .subtitle { font-size: 1.35rem; color: var(--ink-light); max-width: 32em; line-height: 1.4; }
+.hero-meta { margin-top: 2rem; font-family: 'DM Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); display: flex; gap: 2rem; flex-wrap: wrap; }
+.container { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem; }
+
+.exec-summary { background: var(--sand); border: 2px solid var(--ink); padding: 2.5rem; margin-bottom: 4rem; position: relative; }
+.exec-summary::before { content: 'Executive Summary'; position: absolute; top: -0.6em; left: 1.5rem; background: var(--sand); padding: 0 0.6rem; font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-3); }
+.exec-summary p { font-size: 1.15rem; line-height: 1.6; margin-bottom: 1rem; }
+.exec-summary p:last-child { margin-bottom: 0; }
+
+.section { margin-bottom: 4rem; }
+.section-number { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-1); margin-bottom: 0.5rem; }
+h2 { font-size: 2.4rem; font-weight: 700; line-height: 1.15; letter-spacing: -0.015em; margin-bottom: 1.5rem; }
+h3 { font-size: 1.4rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.8rem; }
+p { font-size: 1rem; line-height: 1.6; margin-bottom: 1rem; max-width: 38em; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin: 2rem 0; }
+.two-col p { max-width: none; }
+
+.stat-card { background: var(--sand); padding: 1.8rem; border-left: 4px solid var(--accent-1); }
+.stat-card .number { font-family: 'DM Sans', sans-serif; font-size: 2.6rem; font-weight: 700; line-height: 1; color: var(--accent-1); letter-spacing: -0.03em; }
+.stat-card .label { font-size: 0.85rem; line-height: 1.35; margin-top: 0.5rem; color: var(--ink-light); }
+.stat-card .source { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent-3); margin-top: 0.6rem; }
+.stat-card:nth-child(2) { border-left-color: var(--accent-2); }
+.stat-card:nth-child(2) .number { color: var(--accent-2); }
+.stat-card:nth-child(3) { border-left-color: var(--accent-3); }
+.stat-card:nth-child(3) .number { color: var(--accent-3); }
+.stat-card:nth-child(4) { border-left-color: var(--accent-4); }
+.stat-card:nth-child(4) .number { color: var(--accent-4); }
+
+.figure { margin: 2.5rem 0; }
+.figure img { width: 100%; max-width: 600px; display: block; border: 1px solid var(--rule); }
+.figure.full img { max-width: 100%; }
+.figure.float-right { float: right; margin: 0 0 1.5rem 2.5rem; max-width: 340px; }
+.figure.float-right img { max-width: 100%; }
+.figure-caption { font-family: 'DM Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.05em; color: var(--ink-light); margin-top: 0.4rem; text-transform: uppercase; }
+
+.data-table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.85rem; }
+.data-table th { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; text-align: left; padding: 0.8rem 1rem; border-bottom: 2px solid var(--ink); color: var(--ink-light); }
+.data-table td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--rule); vertical-align: top; line-height: 1.4; }
+.data-table tr:last-child td { border-bottom: 2px solid var(--ink); }
+
+.rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0; }
+.rec-card { padding: 1.8rem; border: 1px solid var(--rule); background: white; }
+.rec-card .rec-number { font-family: 'DM Sans', sans-serif; font-size: 2rem; font-weight: 700; color: var(--rule); line-height: 1; margin-bottom: 0.5rem; }
+.rec-card h4 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.6rem; }
+.rec-card p { font-size: 0.85rem; color: var(--ink-light); margin-bottom: 0; max-width: none; }
+
+.prose-list { margin: 1.5rem 0; }
+.prose-list dt { font-weight: 600; font-size: 1rem; margin-top: 1rem; }
+.prose-list dt:first-child { margin-top: 0; }
+.prose-list dd { font-size: 0.9rem; color: var(--ink-light); margin-left: 0; margin-top: 0.2rem; }
+
+.badge { display: inline-block; font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.5rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.2em 0.6em; border-radius: 2px; }
+.badge-accent { background: var(--accent-2); color: white; }
+
+.divider { border: none; border-top: 1px solid var(--rule); margin: 3rem 0; }
+
+.footer { border-top: 2px solid var(--ink); padding: 2rem 0; margin-top: 4rem; }
+.footer-inner { max-width: 1100px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; flex-wrap: wrap; }
+.footer-col h4 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.8rem; }
+.footer-col a { display: block; font-size: 0.75rem; color: var(--accent-3); text-decoration: none; line-height: 1.8; }
+.footer-col a:hover { text-decoration: underline; }
+
+/* SLIDE MODE */
+body.slide-mode .article-content { display: none; }
+body.slide-mode .slide-deck { display: flex; }
+body:not(.slide-mode) .slide-deck { display: none; }
+
+.slide-deck { position: fixed; inset: 0; top: 40px; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); overflow: hidden; }
+
+.slide {
+  position: absolute; inset: 0; top: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 3rem 5rem;
+  opacity: 0; display: none; transform: translateY(12px);
+  pointer-events: none;
+}
+.slide.active {
+  opacity: 1; display: flex; transform: translateY(0); pointer-events: auto;
+  animation: slideIn 0.4s var(--ease-out-quart);
+}
+.slide-inner { max-width: 1000px; width: 100%; }
+.slide .slide-label { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-3); margin-bottom: 1rem; }
+.slide h2 { font-size: 2.6rem; line-height: 1.15; background: none; padding: 0; margin-bottom: 1.2rem; letter-spacing: 0; }
+.slide p { font-size: 1.15rem; line-height: 1.6; max-width: 34em; }
+.slide img { max-height: 380px; border: 1px solid var(--rule); }
+
+.slide .slide-stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; margin: 1.5rem 0; }
+.slide .slide-stat .number { font-family: 'DM Sans', sans-serif; font-size: 3.5rem; font-weight: 700; line-height: 1; }
+.slide .slide-stat .label { font-size: 0.8rem; color: var(--ink-light); margin-top: 0.3rem; line-height: 1.3; }
+
+.slide .slide-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; margin-top: 1.5rem; }
+.slide .slide-finding h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.2rem; }
+.slide .slide-finding p { font-size: 0.85rem; color: var(--ink-light); margin-bottom: 0; max-width: none; }
+
+.slide .slide-grid-3x2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2rem; margin-top: 1.2rem; }
+.slide .slide-card { padding: 1.2rem; border: 1px solid var(--rule); background: white; }
+.slide .slide-card .card-num { font-family: 'DM Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: var(--rule); line-height: 1; }
+.slide .slide-card h4 { font-size: 0.9rem; font-weight: 600; margin: 0.3rem 0; }
+.slide .slide-card p { font-size: 0.72rem; color: var(--ink-light); margin: 0; max-width: none; line-height: 1.4; }
+
+.slide .sources-table { font-size: 0.78rem; width: 100%; }
+.slide .sources-table td { padding: 0.4rem 0.8rem; border-bottom: 1px solid var(--rule); }
+.slide .sources-table a { color: var(--accent-3); }
+
+/* Slide nav */
+.slide-nav {
+  position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 100;
+  display: none; align-items: center; gap: 1.5rem;
+  font-family: 'DM Sans', sans-serif;
+  transition: transform 0.35s var(--ease-out-quart), opacity 0.35s var(--ease-out-quart);
+}
+body.slide-mode .slide-nav { display: flex; }
+.slide-nav.hidden { transform: translateX(-50%) translateY(120%); opacity: 0; pointer-events: none; }
+.slide-nav button { background: none; border: none; color: var(--ink); cursor: pointer; font-size: 2rem; line-height: 1; padding: 0.3em 0.5em; border-radius: 3px; transition: background 0.2s, color 0.2s; }
+.slide-nav button:hover { background: var(--sand); }
+.slide-dots { display: flex; gap: 7px; }
+.slide-dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--rule); transition: all 0.3s var(--ease-out-quart); cursor: pointer; }
+.slide-dots span:hover { background: var(--ink-light); }
+.slide-dots span.active { background: var(--accent-1); transform: scale(1.4); }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  html { font-size: 17px; }
+  .hero h1 { font-size: 2.4rem; }
+  .two-col, .rec-grid { grid-template-columns: 1fr; }
+  .figure.float-right { float: none; max-width: 100%; margin: 2rem 0; }
+  .hero-meta { flex-direction: column; gap: 0.5rem; }
+  .footer-inner { flex-direction: column; }
+  .stat-card .number { font-size: 2.4rem; }
+  .slide { padding: 2rem 1.5rem; }
+  .slide .slide-stat-row { grid-template-columns: 1fr 1fr; }
+  .slide .slide-grid-3x2 { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- MODE BAR -->
+<div class="mode-bar hidden">
+  <button id="btn-article" class="active" onclick="setMode('article')">Article</button>
+  <button id="btn-slides" onclick="setMode('slides')">Slides</button>
+  <div class="audio-controls">
+    <button id="btn-play" onclick="toggleAudio()" title="Play narration">&#9654;</button>
+    <div class="audio-progress"><div class="audio-progress-fill" id="progress-fill"></div></div>
+    <span class="audio-time" id="audio-time">0:00</span>
+  </div>
+</div>
+
+<!-- ===== ARTICLE CONTENT ===== -->
+<div class="article-content">
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">Research Report</div>
+    <h1>自动化深度研究引擎</h1>
+    <p class="subtitle">把「一个问题」变成「一份可拍板的结论」——不只是描述事实，而是穿透到因果层、支撑具体决策。</p>
+    <div class="hero-meta">
+      <span>版本 2.1.0</span>
+      <span>委托式研究模式</span>
+      <span>因果链驱动分析</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="exec-summary reveal">
+  <p><strong>Research Report</strong> 是一个自动化的深度研究引擎。它的核心哲学是<strong>委托模式</strong>：你定方向，我做研究，你拿结果。Scope 确认后全程自动执行，仅在起点和终点需要用户参与。它不追求信息堆砌，而是用因果链追问穿透到结构动因，产出可直接用于决策的高质量报告。</p>
+  <p>与传统 AI 研究协作不同——后者需要用户全程介入、反复确认、不断引导——Research Report 把研究从「需要全程陪伴的协作」变成了「可以全权托付的委托」。中间过程完全自主，遇到障碍自主降级处理，最终交付的是一份有来源追溯、有置信度标注、有因果深度的结论。</p>
+</div>
+
+<div class="section reveal">
+  <div class="section-number">第一章</div>
+  <h2>为什么需要改变</h2>
+  <p>传统 AI 研究协作模式存在一个根本性问题：用户需要全程介入。每一次中间确认都打断思路；每一轮补充引导都丢失前文语境；每多一次交互，决策周期就延长一天。</p>
+  <p>更深层的问题是：用户真正想要的不是有人陪着一起查资料，而是<em>可以直接拿去拍板的结论</em>。但现有模式受限于「协作式」设计——每步都需要人确认，看似安全，实则低效。</p>
+  <div class="two-col" style="margin-top:1.5rem;">
+    <div>
+      <h3 style="margin-top:0;">传统模式</h3>
+      <p>协作式——用户全程参与每一步。搜索要确认方向，分析要确认框架，发现要确认重要性。结果是报告保质期长，但交付周期更长。</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0;">委托模式</h3>
+      <p>委托式——用户只在起点定方向和终点拿结果。中间完全自主决策，包括遇到信息缺口时自主降级处理。交付质量和速度因此解耦。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section reveal">
+  <div class="section-number">第二章</div>
+  <h2>SCOPE 阶段：唯一需要你的地方</h2>
+  <p>Scope 是唯一需要用户深度参与的阶段，包含五个步骤：</p>
+  <dl class="prose-list">
+    <dt>问题澄清</dt>
+    <dd>把用户的兴趣短语转化为可回答的精确问题。用户的输入就是起点，不做强行追问——根据输入的具体程度做适应性引导。</dd>
+    <dt>锚定点确认</dt>
+    <dd>锚定点是约束研究方向的唯一机制。包括时间范围、地域范围、排除项。锚定点应该具体到能过滤信息，而非泛泛的方向。</dd>
+    <dt>已有知识注入（可选）</dt>
+    <dd>用户可在此提供已掌握的信息或材料，避免重复已知。如提供了原始材料，则首先扫描这些材料定位相关段落。</dd>
+    <dt>格式选择</dt>
+    <dd>Full Report（完整报告）、Executive Brief（一页简报）、Slide Deck（逐页要点）、Mind Map（思维导图）。格式只影响呈现方式，不影响研究深度。</dd>
+    <dt>Scope 确认</dt>
+    <dd>输出研究任务确认书，明确研究问题、类型、锚定点、范围、格式。确认后进入全自动模式。</dd>
+  </dl>
+</div>
+
+<div class="section reveal">
+  <div class="section-number">第三章</div>
+  <h2>AUTO-RESEARCH：自动执行</h2>
+  <p>用户确认 Scope 后，研究进入全自动执行阶段，无需任何中间确认。</p>
+  <p style="font-style:italic;color:var(--ink-light);">中间不询问用户意见。遇到缺口、矛盾、不确定——自主决策并记录，在报告中呈现。</p>
+  <div class="two-col">
+    <div>
+      <h3 style="margin-top:0;">搜索</h3>
+      <p>生成多组搜索关键词，确保每个锚定维度至少被一组覆盖。信源多元化：行业报告 + 一手信息 + 新闻报道 + 社区讨论 + 学术文献。至少 5 篇以上优质材料。</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0;">筛选</h3>
+      <p>每份材料做相关性分级（★★★/★★/★）和四维可信度评估：来源权威性、数据可验证性、时效性、潜在偏见。锚定点作为加权条件。</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0;">分析</h3>
+      <p>分析框架由研究类型决定，不是套用模板。因果链追问贯穿始终——每个关键发现追问 Why 直到触及结构动因或底层约束。</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0;">综合</h3>
+      <p>汇总所有角度发现，标注来源和置信度。交叉验证，矛盾裁决。按「置信度 × 对决策的影响力」排序。生成可执行建议。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section reveal">
+  <div class="section-number">第四章</div>
+  <h2>分析视角工具箱</h2>
+  <p>Lens Catalog 是一组分析视角的参考工具箱。关键是不在于用了几个 Lens，而在于是否覆盖了核心问题的所有关键维度。当议题需要独特的拆解方式时，可以自由创建新的 Lens。</p>
+  <div class="rec-grid" style="margin-top:1.5rem;">
+    <div class="rec-card">
+      <div class="rec-number">/DEEP</div>
+      <h4>深度因果挖掘</h4>
+      <p>穿透表象，理解本质。三层追问：What（事实）→ How（机制）→ Why（动因）。递归追问直到触及底层约束。</p>
+    </div>
+    <div class="rec-card">
+      <div class="rec-number">/ANGLE</div>
+      <h4>多角度对比</h4>
+      <p>通过对比暴露差异——竞品之间、不同地区、不同时期。差异背后的原因分析驱动关键洞察。</p>
+    </div>
+    <div class="rec-card">
+      <div class="rec-number">/HYP</div>
+      <h4>假设推演</h4>
+      <p>不满足于描述现状，推演可能的未来。每个假设标注触发条件、概率评估和影响程度。</p>
+    </div>
+    <div class="rec-card">
+      <div class="rec-number">/CHALLENGE</div>
+      <h4>挑战与反面证据</h4>
+      <p>主动寻找反面证据，对抗确认偏误。对每个强主张做否定式搜索和压力测试。</p>
+    </div>
+    <div class="rec-card">
+      <div class="rec-number">/ACTION</div>
+      <h4>行动转化</h4>
+      <p>把分析变成决策。每项行动标注约束条件（资源/时间/能力）和成功标准。</p>
+    </div>
+    <div class="rec-card">
+      <div class="rec-number">/VOICES</div>
+      <h4>利益相关方映射</h4>
+      <p>理解不同参与者的立场、动机和信息差。各方之间的利益一致与冲突关系。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section reveal">
+  <div class="section-number">第五章</div>
+  <h2>因果链追问</h2>
+  <p>这是 Research Report 最核心的分析原则。每个关键发现都不只是记录事实，而是追问 Why——递归追问，直到回答触及无法继续分解的底层动因或结构约束。</p>
+  <div class="stat-card">
+    <div class="label">因果链示例：市场下滑</div>
+    <p style="margin:0.5rem 0 0;font-size:0.9rem;color:var(--ink-light);">市场下滑（事实）→ 因为头部客户流失（近因）→ 因为产品代际差距（中游）→ 因为研发投入连续 3 年低于行业均值（根因）</p>
+    <div class="source">层层追问，不止于第一层解释</div>
+  </div>
+  <p style="margin-top:1.5rem;">关键技巧是区分近因和根因。报告呈现必须至少传递两层深度。不是做一次「因为…」就停，而是递归追问。同时主动寻找反面证据，避免单一视角的确认偏误。</p>
+</div>
+
+<div class="section reveal">
+  <div class="section-number">第六章</div>
+  <h2>报告输出：由问题驱动</h2>
+  <p>报告结构不是固定模板——由研究类型、用户角色和问题粒度共同决定叙事方式。不同研究类型的报告应该有明显的结构差异。</p>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>研究类型</th>
+        <th>报告主线</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>投资判断</td><td>多情景对比 → 风险矩阵 → 不对称机会 → 行动建议</td></tr>
+      <tr><td>技术趋势</td><td>现状与阶段 → 成熟度评估 → 关键信号 → 趋势判断</td></tr>
+      <tr><td>行业调研</td><td>产业链条 → 竞争格局 → 驱动/抑制因素 → 战略含义</td></tr>
+      <tr><td>产品决策</td><td>用户需求 → 竞品分析 → 选项对比 → 行动路线</td></tr>
+      <tr><td>知识储备</td><td>领域地图 → 核心概念 → 脉络关系 → 进阶路径</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section reveal">
+  <div class="section-number">第七章</div>
+  <h2>异常降级：当信息不足时</h2>
+  <p>遇到信息障碍时不卡住、不硬推、不伪造。诚实呈现信息状态比假装确定更有价值。这是 Research Report 在处理真实世界不确定性时的核心纪律。</p>
+  <div class="two-col">
+    <div>
+      <h3 style="margin-top:0;">搜索无结果</h3>
+      <p>放宽搜索约束 → 切换信源类型 → 类比外推（标注「非直接证据」）→ 最终标注「信息缺口」，跳过该维度。不强求给出判断。</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0;">来源矛盾</h3>
+      <p>定位矛盾点 → 来源可信度加权对比 → 检查时间差 → 无法裁决则保留双方立场，降级置信度。不强行统一。</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0;">来源质量偏低</h3>
+      <p>所有低质量源结论标注「低置信度」→ 三角定位：用多源交叉印证 → 报告诚实呈现信息局限性。不假装确定。</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0;">语言壁垒</h3>
+      <p>切换搜索语言重试 → 仍无法获取则标注「语言壁垒」。不影响已有语言的结论质量。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section reveal">
+  <div class="section-number">第八章</div>
+  <h2>质量门禁与运作原则</h2>
+  <p>Research Report 通过五道质量门禁确保产出质量，并由七项运作原则指导日常执行。</p>
+  <div class="two-col" style="margin-bottom:2rem;">
+    <div>
+      <h3 style="margin-top:0;">五道质量门禁</h3>
+      <p>✔ 所有事实性主张有来源标注<br>
+      ✔ 结论有置信度标注<br>
+      ✔ 因果链有传递深度<br>
+      ✔ 建议可执行——不只是「要关注 XX」<br>
+      ✔ 信息缺口已诚实标注</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0;">七项运作原则</h3>
+      <p>委托模式 · 来源必追溯 · 不确定就说<br>
+      因果链必追问 · 结构由问题驱动<br>
+      输出语言匹配 · 缺省不补搜</p>
+    </div>
+  </div>
+</div>
+
+<div class="divider reveal"></div>
+
+<div class="section reveal">
+  <h2 style="font-size:2rem;">适用场景</h2>
+  <div class="two-col">
+    <div>
+      <div class="stat-card">
+        <div class="label">投资判断</div>
+        <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--ink-light);">市场竞争格局、投资标的评估、行业前景判断——需要多情景对比和风险矩阵时</p>
+      </div>
+    </div>
+    <div>
+      <div class="stat-card">
+        <div class="label">技术趋势</div>
+        <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--ink-light);">新技术成熟度评估、演化阶段判断、替代可能性分析——需要穿透技术 hype 时</p>
+      </div>
+    </div>
+    <div>
+      <div class="stat-card">
+        <div class="label">产品决策</div>
+        <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--ink-light);">竞品差异分析、用户需求验证、路线图优先级——需要在信息不完备时做决策时</p>
+      </div>
+    </div>
+    <div>
+      <div class="stat-card">
+        <div class="label">行业调研</div>
+        <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--ink-light);">产业结构、竞争格局、驱动力分析——需要快速建立行业认知时</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section reveal">
+  <div class="section-number">参考来源</div>
+  <h2 style="font-size:2rem;">Source</h2>
+  <table class="data-table">
+    <tbody>
+      <tr><td>Research Report Skill Definition</td><td>SKILL.md v2.1.0</td><td>本演示文稿的完整依据文档</td></tr>
+    </tbody>
+  </table>
+  <p style="font-family:'DM Sans',sans-serif;font-size:0.65rem;color:var(--ink-light);margin-top:2rem;text-transform:uppercase;letter-spacing:0.1em;">Agent Skills — Interactive Presentations</p>
+</div>
+
+</div>
+
+<div class="footer">
+  <div class="footer-inner">
+    <div class="footer-col">
+      <h4>Agent Skills</h4>
+      <p style="font-size:0.75rem;color:var(--ink-light);margin-bottom:0;max-width:none;">Research Report — 自动化深度研究引擎</p>
+    </div>
+    <div class="footer-col">
+      <h4>相关技能</h4>
+      <a href="../index.html">全部技能介绍</a>
+    </div>
+    <div class="footer-col">
+      <h4>版本</h4>
+      <p style="font-size:0.75rem;color:var(--ink-light);margin-bottom:0;max-width:none;">v2.1.0</p>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ===== SLIDE DECK ===== -->
+<div class="slide-deck">
+
+<!-- Slide 0: Title -->
+<div class="slide active" data-slide="0" data-audio="slide-title" data-read-time="6">
+  <div class="slide-inner" style="text-align:center;">
+    <div class="slide-label" style="text-align:center;">Research Report</div>
+    <h2 style="font-size:3.8rem;text-align:center;font-weight:700;">自动化深度研究引擎</h2>
+    <p style="font-style:italic;color:var(--ink-light);font-size:1.3rem;margin-top:1rem;max-width:24em;margin-left:auto;margin-right:auto;">给方向，拿结论——Scope 确认后全自动执行</p>
+    <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-light);margin-top:2rem;text-align:center;">版本 2.1.0 &bull; 委托式研究 &bull; 因果链驱动</p>
+  </div>
+</div>
+
+<!-- Slide 1: Executive Summary -->
+<div class="slide" data-slide="1" data-audio="slide-exec" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">Executive Summary</div>
+    <p style="font-size:1.6rem;line-height:1.45;max-width:28em;">把「一个问题」变成<strong style="color:var(--accent-1)">一份可拍板的结论</strong></p>
+    <p style="font-size:1.2rem;margin-top:1.5rem;max-width:32em;color:var(--ink-light);">不只是描述事实——穿透到因果层、支撑具体决策。全程无需用户介入中间过程。不是协作式研究助手——是委托式研究引擎。</p>
+    <p style="font-size:1.1rem;margin-top:1.2rem;max-width:32em;">每份报告都有来源追溯、置信度标注、因果深度——不假装确定。</p>
+  </div>
+</div>
+
+<!-- Slide 2: The Problem -->
+<div class="slide" data-slide="2" data-audio="slide-problem" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">Why Change</div>
+    <h2>传统协作模式的困境</h2>
+    <div class="slide-two-col">
+      <div>
+        <h3 style="font-size:1.1rem;margin-top:0;color:var(--accent-1);">协作式（传统）</h3>
+        <div class="slide-finding"><h4>用户全程介入</h4><p>每步都需要确认——搜索方向、分析框架、发现重要性。思路不断被打断。</p></div>
+        <div class="slide-finding"><h4>上下文不断丢失</h4><p>每次交互都可能丢失前文语境，导致重复工作和理解偏差。</p></div>
+        <div class="slide-finding"><h4>决策周期长</h4><p>从提问到结论的路径被中间确认节点拉长。一个简单的调研也可能拖几天。</p></div>
+      </div>
+      <div>
+        <h3 style="font-size:1.1rem;margin-top:0;color:var(--accent-2);">委托式（Research Report）</h3>
+        <div class="slide-finding"><h4>只在起点和终点出现</h4><p>用户在 Scope 阶段定方向，研究交付时看结论。中间完全自主。</p></div>
+        <div class="slide-finding"><h4>自主决策与降级</h4><p>遇到信息缺口、来源矛盾、质量偏低——自主处理，在报告中诚实标注。</p></div>
+        <div class="slide-finding"><h4>一次交付，完整结论</h4><p>交付的是一份有来源追溯、有置信度标注、有行动建议的完整报告。</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 3: Scope Phase -->
+<div class="slide" data-slide="3" data-audio="slide-scope" data-read-time="16">
+  <div class="slide-inner">
+    <div class="slide-label">Phase 1</div>
+    <h2 style="font-size:2.2rem;">SCOPE — 唯一需要你的地方</h2>
+    <p style="margin-bottom:1.2rem;">五个步骤，把用户的研究兴趣转化为有明确边界的研究任务。</p>
+    <div class="slide-grid-3x2" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="slide-card" style="padding:1rem;">
+        <div class="card-num">01</div>
+        <h4>问题澄清</h4>
+        <p>把短语变成可回答的精确问题。不做强行追问——适应性引导。</p>
+      </div>
+      <div class="slide-card" style="padding:1rem;">
+        <div class="card-num">02</div>
+        <h4>锚定点确认</h4>
+        <p>约束研究方向的唯一机制。时间范围、地域范围、排除项。</p>
+      </div>
+      <div class="slide-card" style="padding:1rem;">
+        <div class="card-num">03</div>
+        <h4>知识注入</h4>
+        <p>已有信息是跳板——避免重复已知。可选，不提供不影响。</p>
+      </div>
+      <div class="slide-card" style="padding:1rem;">
+        <div class="card-num">04</div>
+        <h4>格式选择</h4>
+        <p>Full Report / Executive Brief / Slide Deck / Mind Map</p>
+      </div>
+      <div class="slide-card" style="padding:1rem;">
+        <div class="card-num">05</div>
+        <h4>Scope 确认</h4>
+        <p>输出研究任务确认书——确认后进入全自动模式，不再询问。</p>
+      </div>
+    </div>
+    <p style="font-size:0.9rem;color:var(--ink-light);margin-top:1.5rem;max-width:none;text-align:center;">确认后自动执行研究，完成后给你完整报告。</p>
+  </div>
+</div>
+
+<!-- Slide 4: Auto-Research -->
+<div class="slide" data-slide="4" data-audio="slide-autoresearch" data-read-time="16">
+  <div class="slide-inner">
+    <div class="slide-label">Phase 2</div>
+    <h2 style="font-size:2.2rem;">AUTO-RESEARCH — 四个阶段</h2>
+    <p>全自动执行，无需用户介入。锚定点作为硬约束贯穿全过程。</p>
+    <div class="slide-two-col" style="margin-top:0.8rem;">
+      <div>
+        <div class="slide-card" style="padding:1rem;margin-bottom:1rem;">
+          <div class="card-num">搜索</div>
+          <h4>多元信源覆盖</h4>
+          <p>多组搜索关键词，确保每个锚定维度被覆盖。至少 5 篇优质材料，覆盖 3+ 类信源。主动检查信息缺口。</p>
+        </div>
+        <div class="slide-card" style="padding:1rem;">
+          <div class="card-num">分析</div>
+          <h4>研究类型驱动框架</h4>
+          <p>从问题本质推导拆解方式。因果链追问贯穿所有角度——区分近因和根因。</p>
+        </div>
+      </div>
+      <div>
+        <div class="slide-card" style="padding:1rem;margin-bottom:1rem;">
+          <div class="card-num">筛选</div>
+          <h4>质量优于数量</h4>
+          <p>相关性分级 + 四维可信度评估（权威性/可验证性/时效性/偏见）。标注来源矛盾并留到分析阶段处理。</p>
+        </div>
+        <div class="slide-card" style="padding:1rem;">
+          <div class="card-num">综合</div>
+          <h4>按决策价值排序</h4>
+          <p>交叉验证、矛盾裁决。按「置信度 × 决策影响力」排序。生成 3-8 条可执行建议，每条标注回应了哪个锚定约束。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 5: Lens Catalog -->
+<div class="slide" data-slide="5" data-audio="slide-lens" data-read-time="16">
+  <div class="slide-inner">
+    <div class="slide-label">Tools</div>
+    <h2 style="font-size:2.2rem;">分析视角工具箱</h2>
+    <p style="margin-bottom:1rem;">Lens Catalog — 一套分析视角的参考工具箱。关键在于覆盖核心问题的所有维度，不在于用了几个。</p>
+    <div class="slide-grid-3x2">
+      <div class="slide-card">
+        <div class="card-num">/DEEP</div>
+        <h4>因果挖掘</h4>
+        <p>三层追问：What → How → Why。递归直到触及底层约束。</p>
+      </div>
+      <div class="slide-card">
+        <div class="card-num">/ANGLE</div>
+        <h4>多角度对比</h4>
+        <p>竞品之间、不同地区、不同时期。差异背后的原因驱动洞察。</p>
+      </div>
+      <div class="slide-card">
+        <div class="card-num">/HYP</div>
+        <h4>假设推演</h4>
+        <p>推演可能的未来。触发条件 + 概率评估 + 早期信号指标。</p>
+      </div>
+      <div class="slide-card">
+        <div class="card-num">/CHALLENGE</div>
+        <h4>反面证据</h4>
+        <p>否定式搜索、压力测试、立场审计。对抗确认偏误。</p>
+      </div>
+      <div class="slide-card">
+        <div class="card-num">/ACTION</div>
+        <h4>行动转化</h4>
+        <p>约束条件 + 成功标准。发现不转化为行动等于没有发现。</p>
+      </div>
+      <div class="slide-card">
+        <div class="card-num">/VOICES</div>
+        <h4>利益相关方</h4>
+        <p>立场、动机、信息差。各方之间的张力点。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 6: Causal Chain -->
+<div class="slide" data-slide="6" data-audio="slide-causal" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">Core Methodology</div>
+    <h2 style="font-size:2.4rem;">因果链追问</h2>
+    <p style="font-size:1.2rem;">每个关键发现追问 Why——直到触及无法继续分解的底层动因。</p>
+    <div style="background:var(--sand);padding:1.5rem;margin:1.5rem 0;border-left:4px solid var(--accent-1);">
+      <p style="font-size:1rem;margin:0;font-family:'DM Sans',sans-serif;color:var(--ink-light);">市场下滑（事实）</p>
+      <p style="font-size:1rem;margin:0.3rem 0 0 1.5rem;font-family:'DM Sans',sans-serif;color:var(--ink-light);">➔ 头部客户流失（近因）</p>
+      <p style="font-size:1rem;margin:0.3rem 0 0 3rem;font-family:'DM Sans',sans-serif;color:var(--ink-light);">➔ 产品代际差距（中游）</p>
+      <p style="font-size:1rem;margin:0.3rem 0 0 4.5rem;font-family:'DM Sans',sans-serif;font-weight:700;color:var(--ink);">➔ 研发投入连续 3 年低于行业均值（根因）</p>
+    </div>
+    <div class="slide-two-col" style="margin-top:0.5rem;">
+      <div class="slide-finding">
+        <h4>区分近因与根因</h4>
+        <p>报告呈现必须至少传递两层深度，不只在第一层解释停留。</p>
+      </div>
+      <div class="slide-finding">
+        <h4>递归追问思维</h4>
+        <p>不是做一次「因为…」就停——递归直到回答触及底层动因。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 7: Report -->
+<div class="slide" data-slide="7" data-audio="slide-report" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">Phase 3</div>
+    <h2 style="font-size:2.2rem;">报告输出：结构由问题驱动</h2>
+    <p>不是固定模板——报告结构由研究类型、用户角色和问题粒度共同决定。</p>
+    <div class="slide-two-col" style="margin-top:1rem;gap:1.5rem;">
+      <div>
+        <div class="slide-card" style="padding:1rem;margin-bottom:0.8rem;">
+          <div class="card-num">类型驱动主线</div>
+          <p>投资→情景对比/风险矩阵；技术→成熟度/关键信号；行业→产业链/竞争格局</p>
+        </div>
+        <div class="slide-card" style="padding:1rem;">
+          <div class="card-num">角色决定视角</div>
+          <p>投资人→风险/回报；产品人→行动路线/可行性；研究者→方法论/信息完整性</p>
+        </div>
+      </div>
+      <div>
+        <div class="slide-card" style="padding:1rem;margin-bottom:0.8rem;">
+          <div class="card-num">粒度决定展开度</div>
+          <p>宽泛问题→全景+2-3深挖点；聚焦问题→单点深挖不留宽泛章节</p>
+        </div>
+        <div class="slide-card" style="padding:1rem;">
+          <div class="card-num">标准组件（但不强制）</div>
+          <p>摘要（必有）+ 正文 + 行动建议/战略含义 + 不确定性 + 来源</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 8: Degradation -->
+<div class="slide" data-slide="8" data-audio="slide-degradation" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">Resilience</div>
+    <h2 style="font-size:2.2rem;">异常降级：当信息不足时</h2>
+    <p>遇到信息障碍时不卡住、不硬推、不伪造。诚实呈现比假装确定更有价值。</p>
+    <div class="slide-two-col" style="gap:1.2rem;margin-top:0.8rem;">
+      <div>
+        <div class="slide-finding">
+          <h4>搜索无结果</h4>
+          <p>放宽约束 → 切换信源 → 类比外推（标注）→ 标记「信息缺口」，不强行判断。</p>
+        </div>
+        <div class="slide-finding">
+          <h4>来源矛盾</h4>
+          <p>定位矛盾点 → 加权对比 → 检查时间差 → 无法裁决则保留双方，降级置信度。</p>
+        </div>
+      </div>
+      <div>
+        <div class="slide-finding">
+          <h4>来源质量偏低</h4>
+          <p>降级标注为「低置信度」→ 三角定位 → 诚实呈现信息局限性。</p>
+        </div>
+        <div class="slide-finding">
+          <h4>语言壁垒</h4>
+          <p>切换语言重试 → 仍无法获取则标注「语言壁垒」，不影响已有语言结论质量。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 9: Quality Gates -->
+<div class="slide" data-slide="9" data-audio="slide-quality" data-read-time="12">
+  <div class="slide-inner">
+    <div class="slide-label">Quality</div>
+    <h2 style="font-size:2.2rem;">五道质量门禁</h2>
+    <div class="slide-stat-row" style="grid-template-columns:repeat(5,1fr);gap:1rem;">
+      <div class="slide-stat">
+        <div class="number" style="color:var(--accent-1);font-size:1.6rem;">01</div>
+        <div class="label">所有事实性主张有来源标注</div>
+      </div>
+      <div class="slide-stat">
+        <div class="number" style="color:var(--accent-2);font-size:1.6rem;">02</div>
+        <div class="label">结论有置信度标注</div>
+      </div>
+      <div class="slide-stat">
+        <div class="number" style="color:var(--accent-3);font-size:1.6rem;">03</div>
+        <div class="label">因果链有传递深度</div>
+      </div>
+      <div class="slide-stat">
+        <div class="number" style="color:var(--accent-4);font-size:1.6rem;">04</div>
+        <div class="label">建议可执行</div>
+      </div>
+      <div class="slide-stat">
+        <div class="number" style="color:var(--ink-light);font-size:1.6rem;">05</div>
+        <div class="label">信息缺口已标注</div>
+      </div>
+    </div>
+    <p style="font-size:1rem;color:var(--ink-light);margin-top:1.5rem;max-width:none;text-align:center;">七项运作原则贯穿始终：委托模式 · 来源必追溯 · 不确定就说 · 因果链必追问 · 结构由问题驱动 · 输出语言匹配 · 缺省不补搜</p>
+  </div>
+</div>
+
+<!-- Slide 10: Scenarios -->
+<div class="slide" data-slide="10" data-audio="slide-scenarios" data-read-time="12">
+  <div class="slide-inner">
+    <div class="slide-label">Applications</div>
+    <h2 style="font-size:2.2rem;">适用场景</h2>
+    <div class="slide-stat-row" style="grid-template-columns:repeat(4,1fr);">
+      <div class="slide-stat">
+        <div class="number" style="color:var(--accent-1);font-size:2.4rem;">投资判断</div>
+        <div class="label">市场格局、标的评估、多情景对比与风险矩阵</div>
+      </div>
+      <div class="slide-stat">
+        <div class="number" style="color:var(--accent-2);font-size:2.4rem;">技术趋势</div>
+        <div class="label">成熟度评估、演化阶段、关键信号与时机</div>
+      </div>
+      <div class="slide-stat">
+        <div class="number" style="color:var(--accent-3);font-size:2.4rem;">产品决策</div>
+        <div class="label">竞品分析、需求验证、路径规划</div>
+      </div>
+      <div class="slide-stat">
+        <div class="number" style="color:var(--accent-4);font-size:2.4rem;">行业调研</div>
+        <div class="label">产业结构、竞争格局、驱动力分析</div>
+      </div>
+    </div>
+    <p style="font-size:1rem;color:var(--ink-light);margin-top:1.5rem;max-width:none;text-align:center;">也支持生活经验研究和知识储备梳理</p>
+  </div>
+</div>
+
+<!-- Slide 11: Conclusion -->
+<div class="slide" data-slide="11" data-audio="slide-conclusion" data-read-time="10">
+  <div class="slide-inner" style="text-align:center;">
+    <div class="slide-label" style="text-align:center;">Takeaway</div>
+    <h2 style="font-size:2.8rem;text-align:center;">给方向，拿结论</h2>
+    <p style="font-size:1.3rem;text-align:center;max-width:26em;margin:0 auto 1.5rem;">Research Report 把研究从「需要全程陪伴的协作」变成了<strong style="color:var(--accent-1)">可以全权托付的委托</strong></p>
+    <div style="display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;margin-top:1.5rem;">
+      <span style="font-family:'DM Sans',sans-serif;font-size:0.75rem;padding:0.5rem 1.2rem;background:var(--sand);border-radius:3px;">全自动执行</span>
+      <span style="font-family:'DM Sans',sans-serif;font-size:0.75rem;padding:0.5rem 1.2rem;background:var(--sand);border-radius:3px;">因果链深挖</span>
+      <span style="font-family:'DM Sans',sans-serif;font-size:0.75rem;padding:0.5rem 1.2rem;background:var(--sand);border-radius:3px;">来源追溯</span>
+      <span style="font-family:'DM Sans',sans-serif;font-size:0.75rem;padding:0.5rem 1.2rem;background:var(--sand);border-radius:3px;">诚实呈现不确定性</span>
+      <span style="font-family:'DM Sans',sans-serif;font-size:0.75rem;padding:0.5rem 1.2rem;background:var(--sand);border-radius:3px;">可执行建议</span>
+    </div>
+    <p style="font-family:'DM Sans',sans-serif;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-light);margin-top:2.5rem;text-align:center;">Research Report v2.1.0</p>
+  </div>
+</div>
+
+<!-- Slide 12: Sources -->
+<div class="slide" data-slide="12" data-audio="slide-sources" data-read-time="8">
+  <div class="slide-inner">
+    <div class="slide-label">Sources</div>
+    <h2 style="font-size:2rem;">参考来源</h2>
+    <table class="sources-table">
+      <tr><td>Research Report Skill Definition</td><td>SKILL.md v2.1.0</td></tr>
+    </table>
+    <p style="font-family:'DM Sans',sans-serif;font-size:0.65rem;color:var(--ink-light);margin-top:2rem;text-transform:uppercase;letter-spacing:0.1em;">Agent Skills — Interactive Presentations</p>
+  </div>
+</div>
+
+</div>
+
+<!-- Slide navigation -->
+<div class="slide-nav hidden">
+  <button onclick="prevSlide()" title="上一页">&larr;</button>
+  <div class="slide-dots" id="slide-dots"></div>
+  <button onclick="nextSlide()" title="下一页">&rarr;</button>
+</div>
+
+<script>
+// ===== ZONE-BASED BAR VISIBILITY =====
+let barVisMode = 'zone';
+const modeBar = document.querySelector('.mode-bar');
+const slideNav = document.querySelector('.slide-nav');
+let barHideTimer = null;
+let navHideTimer = null;
+
+function updateBarVis(mouseY) {
+  if (barVisMode === 'show') { modeBar.classList.remove('hidden'); slideNav.classList.remove('hidden'); return; }
+  if (barVisMode === 'hide') { modeBar.classList.add('hidden'); slideNav.classList.add('hidden'); return; }
+  const vh = window.innerHeight;
+  if (mouseY <= vh * 0.2) {
+    modeBar.classList.remove('hidden');
+    clearTimeout(barHideTimer);
+    barHideTimer = setTimeout(() => modeBar.classList.add('hidden'), 2000);
+  }
+  if (mouseY >= vh * 0.8 && document.body.classList.contains('slide-mode')) {
+    slideNav.classList.remove('hidden');
+    clearTimeout(navHideTimer);
+    navHideTimer = setTimeout(() => slideNav.classList.add('hidden'), 2000);
+  }
+}
+document.addEventListener('mousemove', e => updateBarVis(e.clientY));
+document.addEventListener('touchstart', e => updateBarVis(e.touches[0].clientY));
+document.addEventListener('focusin', () => { modeBar.classList.remove('hidden'); clearTimeout(barHideTimer); barHideTimer = setTimeout(() => { if (barVisMode === 'zone') modeBar.classList.add('hidden'); }, 3000); });
+modeBar.addEventListener('mouseenter', () => { clearTimeout(barHideTimer); modeBar.classList.remove('hidden'); });
+modeBar.addEventListener('mouseleave', () => { barHideTimer = setTimeout(() => { if (barVisMode === 'zone') modeBar.classList.add('hidden'); }, 1500); });
+slideNav.addEventListener('mouseenter', () => { clearTimeout(navHideTimer); slideNav.classList.remove('hidden'); });
+slideNav.addEventListener('mouseleave', () => { navHideTimer = setTimeout(() => { if (barVisMode === 'zone') slideNav.classList.add('hidden'); }, 1500); });
+
+document.addEventListener('keydown', e => {
+  if (e.shiftKey && e.key === '>') { e.preventDefault(); barVisMode = barVisMode === 'zone' ? 'show' : barVisMode === 'show' ? 'hide' : 'zone'; updateBarVis(-1); }
+});
+
+// ===== MODE =====
+function setMode(mode) {
+  document.body.classList.toggle('slide-mode', mode === 'slides');
+  document.getElementById('btn-article').classList.toggle('active', mode === 'article');
+  document.getElementById('btn-slides').classList.toggle('active', mode === 'slides');
+  if (mode === 'slides') goToSlide(currentSlide);
+}
+
+// ===== SLIDES =====
+const slides = document.querySelectorAll('.slide');
+const totalSlides = slides.length;
+let currentSlide = 0;
+
+const dotsContainer = document.getElementById('slide-dots');
+for (let i = 0; i < totalSlides; i++) {
+  const dot = document.createElement('span');
+  if (i === 0) dot.classList.add('active');
+  dot.addEventListener('click', () => goToSlide(i));
+  dotsContainer.appendChild(dot);
+}
+
+function goToSlide(n, fromAudio) {
+  slides.forEach(s => s.classList.remove('active'));
+  slides[n].classList.add('active');
+  document.querySelectorAll('.slide-dots span').forEach((d, i) => d.classList.toggle('active', i === n));
+  currentSlide = n;
+  if (!fromAudio && isPlaying) stopAudio();
+}
+function nextSlide() { if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1); }
+function prevSlide() { if (currentSlide > 0) goToSlide(currentSlide - 1); }
+
+document.addEventListener('keydown', e => {
+  if (!document.body.classList.contains('slide-mode')) return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+});
+
+// ===== AUDIO ENGINE =====
+const audioBase = '';
+const audioDurations = {};
+const hasAudio = Object.keys(audioDurations).length > 0;
+if (!hasAudio) document.querySelector('.audio-controls').style.display = 'none';
+
+const slideData = [];
+slides.forEach(s => { slideData.push({ audioId: s.dataset.audio, readTime: parseInt(s.dataset.readTime) || 10 }); });
+
+let narrationEl = null;
+let transitionEl = null;
+let audioUnlocked = false;
+let isPlaying = false;
+let autoplayTimer = null;
+let progressInterval = null;
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  narrationEl = new Audio();
+  narrationEl.preload = 'auto';
+  transitionEl = new Audio();
+  transitionEl.preload = 'auto';
+  transitionEl.volume = 0.35;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  ctx.resume().then(() => { audioUnlocked = true; });
+}
+
+function toggleAudio() { unlockAudio(); if (isPlaying) stopAudio(); else startAudio(); }
+
+function startAudio() {
+  if (!narrationEl) unlockAudio();
+  isPlaying = true;
+  document.getElementById('btn-play').classList.add('playing');
+  document.getElementById('btn-play').innerHTML = '&#9646;&#9646;';
+  if (!document.body.classList.contains('slide-mode')) setMode('slides');
+}
+
+function stopAudio() {
+  isPlaying = false;
+  document.getElementById('btn-play').classList.remove('playing');
+  document.getElementById('btn-play').innerHTML = '&#9654;';
+  if (narrationEl) narrationEl.pause();
+  if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = null; }
+  if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
+}
+
+// ===== SCROLL REVEAL =====
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.querySelectorAll('.article-content .exec-summary, .article-content .section, .article-content .stat-card, .article-content .figure, .article-content .rec-card, .article-content .data-table').forEach(el => el.classList.add('reveal'));
+  document.querySelectorAll('.two-col, .rec-grid').forEach(el => el.classList.add('reveal-stagger'));
+  document.querySelectorAll('.article-content h2').forEach(el => el.classList.add('reveal'));
+
+  const revealObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); revealObserver.unobserve(entry.target); } });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+  function animateCounter(el, target, suffix) {
+    const dur = 1200, start = performance.now();
+    const isApprox = target.toString().startsWith('~');
+    const num = parseFloat(target.toString().replace(/[^0-9.]/g, ''));
+    function tick(now) {
+      const t = Math.min((now - start) / dur, 1);
+      const eased = 1 - Math.pow(1 - t, 4);
+      el.textContent = (isApprox ? '~' : '') + Math.round(eased * num) + suffix;
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  const statObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target, text = el.textContent.trim(), match = text.match(/^(~?)(\d+)(%?)$/);
+        if (match) { el.textContent = match[1] + '0' + match[3]; setTimeout(() => animateCounter(el, match[1] + match[2], match[3]), 200); }
+        statObserver.unobserve(el);
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.article-content .stat-card .number').forEach(el => statObserver.observe(el));
+}
+</script>
+</body>
+</html>

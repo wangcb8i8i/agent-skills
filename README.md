@@ -1,6 +1,8 @@
 **Modular, composable AI agent skills for understanding, revising, and planning work.**  
 Works with Claude Code, Codex, OpenCode, and other AI coding agents.
 
+👉 [**Interactive Presentations**](https://wangcb8i8i.github.io/agent-skills/) — 技能介绍与演示文稿索引页
+
 ## Skills
 
 | Skill | Description |
