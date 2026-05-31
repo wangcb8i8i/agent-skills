@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revise Markdown — 结构化审阅-修订循环</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sand: #ede9e0;
+  --ink: #1e1e1e;
+  --ink-light: #555;
+  --accent-1: #b85c54;
+  --accent-2: #5c7a4a;
+  --accent-3: #4a6a7a;
+  --accent-4: #c49a3c;
+  --rule: #d4cec2;
+  --bg: #f7f5ef;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 20px; -webkit-font-smoothing: antialiased; }
+body { font-family: 'EB Garamond', 'Noto Sans SC', Georgia, serif; background: var(--bg); color: var(--ink); line-height: 1.65; padding-top: 40px; }
+
+/* ===== HERO ===== */
+.hero-label, .hero h1, .hero .subtitle, .hero-meta {
+  opacity: 0; transform: translateY(18px);
+  animation: heroIn 0.7s var(--ease-out-quart) forwards;
+}
+.hero-label { animation-delay: 0.1s; }
+.hero h1 { animation-delay: 0.25s; }
+.hero .subtitle { animation-delay: 0.45s; }
+.hero-meta { animation-delay: 0.6s; }
+@keyframes heroIn { to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== REVEAL ===== */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s var(--ease-out-quart), transform 0.6s var(--ease-out-quart); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-stagger > .reveal:nth-child(1) { transition-delay: 0s; }
+.reveal-stagger > .reveal:nth-child(2) { transition-delay: 0.1s; }
+.reveal-stagger > .reveal:nth-child(3) { transition-delay: 0.2s; }
+.reveal-stagger > .reveal:nth-child(4) { transition-delay: 0.3s; }
+
+h2 { background-image: linear-gradient(var(--ink), var(--ink)); background-size: 0% 2px; background-position: bottom left; background-repeat: no-repeat; padding-bottom: 0.5rem; transition: background-size 0.5s var(--ease-out-quart); }
+h2.visible { background-size: 100% 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-label, .hero h1, .hero .subtitle, .hero-meta { animation: none; opacity: 1; transform: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  h2 { background-size: 100% 2px; transition: none; }
+  .slide { transition: none; }
+}
+
+/* ===== MODE BAR ===== */
+.mode-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: var(--ink); color: white; display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0.5rem 1rem; font-family: 'DM Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; transition: transform 0.35s var(--ease-out-quart), opacity 0.35s var(--ease-out-quart); }
+.mode-bar.hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+.mode-bar button { background: none; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.3em 1em; font-family: inherit; font-size: inherit; letter-spacing: inherit; text-transform: uppercase; cursor: pointer; border-radius: 2px; transition: all 0.2s; }
+.mode-bar button.active { background: white; color: var(--ink); border-color: white; }
+.mode-bar button:hover { border-color: white; }
+.audio-controls { display: flex; align-items: center; gap: 0.6rem; margin-left: 1.5rem; padding-left: 1.5rem; border-left: 1px solid rgba(255,255,255,0.2); }
+.audio-controls button { background: none; border: 1px solid rgba(255,255,255,0.3); color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 2px; font-size: 14px; transition: all 0.2s; }
+.audio-controls button:hover { border-color: white; }
+.audio-controls button.playing { background: var(--accent-1); border-color: var(--accent-1); }
+.audio-progress { width: 100px; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+.audio-progress-fill { height: 100%; background: var(--accent-1); width: 0%; transition: width 0.3s; }
+.audio-time { font-variant-numeric: tabular-nums; min-width: 3em; }
+
+/* ===== ARTICLE MODE ===== */
+.hero { min-height: 55vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 4rem 2rem 3rem; background: var(--sand); border-bottom: 3px solid var(--ink); position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; }
+.hero-inner { max-width: 1100px; margin: 0 auto; width: 100%; position: relative; z-index: 1; }
+.hero-label { font-family: 'DM Sans', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent-3); margin-bottom: 1.5rem; }
+.hero h1 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 3.5rem; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; max-width: 16em; margin-bottom: 1.2rem; }
+.hero .subtitle { font-size: 1.25rem; color: var(--ink-light); max-width: 32em; line-height: 1.5; }
+.hero-meta { margin-top: 2rem; font-family: 'DM Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); display: flex; gap: 2rem; flex-wrap: wrap; }
+.container { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem; }
+
+.exec-summary { background: var(--sand); border: 2px solid var(--ink); padding: 2.5rem; margin-bottom: 4rem; position: relative; }
+.exec-summary::before { content: 'Executive Summary'; position: absolute; top: -0.6em; left: 1.5rem; background: var(--sand); padding: 0 0.6rem; font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-3); }
+.exec-summary p { font-size: 1.1rem; line-height: 1.7; margin-bottom: 1rem; }
+.exec-summary p:last-child { margin-bottom: 0; }
+
+.section { margin-bottom: 4rem; }
+.section-number { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-1); margin-bottom: 0.5rem; }
+h2 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 2.2rem; font-weight: 700; line-height: 1.15; letter-spacing: -0.015em; margin-bottom: 1.5rem; }
+h3 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 1.3rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.8rem; }
+p { font-size: 1rem; line-height: 1.7; margin-bottom: 1rem; max-width: 38em; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin: 2rem 0; }
+.two-col p { max-width: none; }
+
+.code-block { background: var(--sand); border: 1px solid var(--rule); padding: 1.2rem 1.5rem; font-family: 'DM Sans', monospace; font-size: 0.75rem; line-height: 1.6; margin: 1.5rem 0; overflow-x: auto; }
+.code-block .comment-highlight { background: rgba(184,92,84,0.12); border-left: 3px solid var(--accent-1); padding: 0.2rem 0.5rem; margin: 0 -0.5rem; display: inline-block; }
+.code-block .marker { color: var(--accent-1); font-weight: 700; }
+
+.flow-diagram { display: flex; align-items: center; justify-content: center; gap: 0.6rem; flex-wrap: wrap; margin: 2rem 0; padding: 1.5rem; background: white; border: 1px solid var(--rule); }
+.flow-diagram .flow-step { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em; padding: 0.5em 1.2em; border-radius: 3px; background: var(--sand); color: var(--ink); }
+.flow-diagram .flow-step.action { background: var(--accent-2); color: white; }
+.flow-diagram .flow-step.review { background: var(--accent-3); color: white; }
+.flow-diagram .flow-step.gate { background: var(--accent-1); color: white; }
+.flow-diagram .flow-arrow { font-size: 0.8rem; color: var(--ink-light); }
+
+.data-table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.85rem; }
+.data-table th { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; text-align: left; padding: 0.8rem 1rem; border-bottom: 2px solid var(--ink); color: var(--ink-light); }
+.data-table td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--rule); vertical-align: top; line-height: 1.4; }
+.data-table tr:last-child td { border-bottom: 2px solid var(--ink); }
+
+.dl-list { margin: 1.5rem 0; }
+.dl-list dt { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-weight: 600; font-size: 1rem; margin-top: 1.2rem; }
+.dl-list dt:first-child { margin-top: 0; }
+.dl-list dd { font-size: 0.9rem; color: var(--ink-light); margin-left: 0; margin-top: 0.15rem; line-height: 1.6; }
+
+.principles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1.5rem 0; }
+.principles-grid .principle-card { padding: 1.2rem 1.5rem; background: white; border: 1px solid var(--rule); }
+.principles-grid .principle-card h4 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; }
+.principles-grid .principle-card p { font-size: 0.8rem; color: var(--ink-light); margin: 0; max-width: none; line-height: 1.5; }
+
+.divider { border: none; border-top: 1px solid var(--rule); margin: 3rem 0; }
+
+.footer { border-top: 2px solid var(--ink); padding: 2rem 0; margin-top: 4rem; }
+.footer-inner { max-width: 1100px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; flex-wrap: wrap; }
+.footer-col h4 { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.8rem; }
+.footer-col p { font-size: 0.75rem; color: var(--ink-light); line-height: 1.6; max-width: 20em; }
+
+/* ===== SLIDE MODE ===== */
+body.slide-mode .article-content { display: none; }
+body.slide-mode .slide-deck { display: flex; }
+body:not(.slide-mode) .slide-deck { display: none; }
+
+.slide-deck { position: fixed; inset: 0; top: 40px; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); overflow: hidden; }
+.slide { position: absolute; inset: 0; top: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 5rem; opacity: 0; display: none; transform: translateY(12px); pointer-events: none; }
+.slide.active { opacity: 1; display: flex; transform: translateY(0); pointer-events: auto; animation: slideIn 0.4s var(--ease-out-quart); }
+.slide-inner { max-width: 1000px; width: 100%; }
+.slide .slide-label { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-3); margin-bottom: 1rem; }
+.slide h2 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 2.8rem; line-height: 1.1; background: none; padding: 0; margin-bottom: 1.2rem; }
+.slide p { font-family: 'Noto Sans SC', serif; font-size: 1.05rem; line-height: 1.7; max-width: 34em; }
+.slide .slide-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+.slide .slide-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+.slide .slide-card { padding: 1rem 1.2rem; border: 1px solid var(--rule); background: white; }
+.slide .slide-card h4 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.85rem; font-weight: 600; margin: 0 0 0.3rem 0; }
+.slide .slide-card p { font-size: 0.68rem; color: var(--ink-light); margin: 0; max-width: none; line-height: 1.4; font-family: 'Noto Sans SC', serif; }
+.slide .flow-row { display: flex; align-items: center; justify-content: center; gap: 0.6rem; flex-wrap: wrap; margin: 1.5rem 0; }
+.slide .flow-item { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.65rem; font-weight: 700; padding: 0.5em 1em; background: var(--sand); border-radius: 3px; }
+.slide .flow-item.decide { background: var(--accent-4); color: white; }
+.slide .flow-arrow { font-size: 0.8rem; color: var(--ink-light); }
+
+.slide .code-show { background: var(--sand); border: 1px solid var(--rule); padding: 0.8rem 1.2rem; font-family: 'DM Sans', monospace; font-size: 0.65rem; line-height: 1.5; margin: 0.8rem 0; overflow-x: auto; }
+.slide .code-show .hl { color: var(--accent-1); font-weight: 700; }
+.slide .code-show .on { color: var(--accent-3); font-style: italic; }
+
+/* Slide nav */
+.slide-nav { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 100; display: none; align-items: center; gap: 1.5rem; font-family: 'DM Sans', sans-serif; transition: transform 0.35s var(--ease-out-quart), opacity 0.35s var(--ease-out-quart); }
+body.slide-mode .slide-nav { display: flex; }
+.slide-nav.hidden { transform: translateX(-50%) translateY(120%); opacity: 0; pointer-events: none; }
+.slide-nav button { background: none; border: none; color: var(--ink); cursor: pointer; font-size: 2rem; line-height: 1; padding: 0.3em 0.5em; border-radius: 3px; transition: background 0.2s, color 0.2s; }
+.slide-nav button:hover { background: var(--sand); }
+.slide-dots { display: flex; gap: 7px; }
+.slide-dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--rule); transition: all 0.3s var(--ease-out-quart); cursor: pointer; }
+.slide-dots span:hover { background: var(--ink-light); }
+.slide-dots span.active { background: var(--accent-1); transform: scale(1.4); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  html { font-size: 17px; }
+  .hero h1 { font-size: 2.2rem; }
+  .hero .subtitle { font-size: 1rem; }
+  .two-col, .principles-grid { grid-template-columns: 1fr; }
+  .slide { padding: 2rem 1.5rem; }
+  .slide h2 { font-size: 2rem; }
+  .slide .slide-grid-3 { grid-template-columns: 1fr 1fr; }
+  .slide .slide-grid-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  html { font-size: 15px; }
+  .slide .slide-grid-3 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- MODE BAR -->
+<div class="mode-bar hidden">
+  <button id="btn-article" class="active" onclick="setMode('article')">Article</button>
+  <button id="btn-slides" onclick="setMode('slides')">Slides</button>
+  <div class="audio-controls" style="display:none">
+    <button id="btn-play" onclick="toggleAudio()" title="Play narration">&#9654;</button>
+    <div class="audio-progress"><div class="audio-progress-fill" id="progress-fill"></div></div>
+    <span class="audio-time" id="audio-time">0:00</span>
+  </div>
+</div>
+
+<!-- ===== ARTICLE CONTENT ===== -->
+<div class="article-content">
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">文档修订方法论</div>
+    <h1>Revise Markdown<br>结构化审阅-修订循环</h1>
+    <p class="subtitle">一个专注的 review-revise loop：在 markdown artifact 中找到、分析、处理嵌入的评审意见，迭代直到用户显式批准。</p>
+    <div class="hero-meta">
+      <span>1 个工作流</span>
+      <span>4 个步骤</span>
+      <span>10 张幻灯片</span>
+      <span>显式批准退出</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="exec-summary">
+  <p>Revise Markdown 是一个单一用途的 skill，专门实现 review-revise 循环。它不处理多阶段 pipeline，而是聚焦于一个精确的闭环：读取 artifact、发现所有嵌入的评审意见、理解每个意见在要求什么、修订文档以妥善处理每条意见、然后请用户再次审阅——重复直到用户说"批准"。</p>
+  <p>这是更大型工作流（如 Research-Plan-Driven）中 review-revise 循环的原子化版本。它解决了一个简单但棘手的问题：当文档中有评注意见时，如何确保每条意见都被认真对待，而不是被忽略或被机械地处理。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第一部分</div>
+  <h2>为什么需要 Review-Revise 循环</h2>
+
+  <p>直接编辑（one-shot edit）是最常见的文档修订方式，但它在面对多条评审意见时几乎总是失败。原因很直接：评论之间可能相互冲突，上下文可能在修订中丢失，某些意见可能被无意中忽略。更常见的情况是——修订者看到几条简单的评论就快速改完，但忽略了其中一条评论背后隐藏的深层问题。</p>
+
+  <p>Revise Markdown 将这个过程结构化为一个可重复的循环，而不是一次性的修改。它强制在修改之前进行分析，在提交之前进行综合评估，并且不允许在用户明确批准之前退出。</p>
+
+  <dl class="dl-list">
+    <dt>一次修改遗漏一条意见</dt>
+    <dd>当文档中有 5 条评论时，一次性修改几乎总会遗漏或部分处理其中一条。循环机制迫使每条评论都单独被处理。</dd>
+    <dt>评论间存在冲突</dt>
+    <dd>两位审阅者可能给出相反的建议。不先综合评估就直接修改，会导致改到一半发现前后矛盾。</dd>
+    <dt>模糊的评论需要澄清</dt>
+    <dd>"把这个改得更好"——更好的什么？没有回退机制时，修订者只能猜测。循环允许在不确定时请求澄清。</dd>
+    <dt>没有明确的"完成"标志</dt>
+    <dd>缺少显式批准机制时，修订可能在仍有未解决问题的状态下被认为"做完了"，留下隐患。</dd>
+  </dl>
+</div>
+
+<div class="section">
+  <div class="section-number">第二部分</div>
+  <h2>工作流总览</h2>
+
+  <p>Revise Markdown 的工作流是一个简单的循环，包含 4 个核心步骤：</p>
+
+  <div class="flow-diagram">
+    <span class="flow-step action">读取 Artifact</span>
+    <span class="flow-arrow">➔</span>
+    <span class="flow-step action">发现 &amp; 分析评论</span>
+    <span class="flow-arrow">➔</span>
+    <span class="flow-step action">综合修订</span>
+    <span class="flow-arrow">➔</span>
+    <span class="flow-step review">用户审阅</span>
+    <span class="flow-arrow">➔</span>
+    <span class="flow-step gate">批准?</span>
+  </div>
+
+  <p style="font-size:0.9rem;color:var(--ink-light);">如果用户审阅后有新的评论，循环回到"发现 &amp; 分析"步骤。只有用户显式批准时循环才结束。</p>
+
+  <p>这个工作流的关键特征在于它不是一个线性序列——它是一个真正的循环。每次迭代都从重新读取 artifact 开始，这确保了修订者始终在处理最新版本，而不是基于过时的上下文进行操作。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第三部分</div>
+  <h2>评论格式</h2>
+
+  <p>评论必须遵循标准格式，这样才能被可靠地识别和处理：</p>
+
+  <div class="code-block">
+    <span class="marker">COMMENT:</span> <span style="color:var(--ink-light);">这里需要更明确的错误处理说明，特别是在网络超时的情况下。用户需要知道重试策略。<br></span>
+    <span class="marker" style="color:var(--accent-3);">[on: "Error handling section"]</span>
+  </div>
+
+  <p>评论可以出现在两个位置：</p>
+
+  <dl class="dl-list">
+    <dt>内联（Inline）</dt>
+    <dd>评论直接放在被评论内容的下方或旁边。这种方式让评论的上下文自然可见。</dd>
+    <dt>文档末尾的评论专区</dt>
+    <dd>在一个专门的 <code>## Review Comments</code> 部分中列出评论，每条评论通过 <code>on:</code> 字段指向被评论的内容。</dd>
+  </dl>
+
+  <p><code>COMMENT:</code> 是标准的 marker。但也接受其他明显的变体，如 <code>REVIEW COMMENT:</code>。关键是 marker 必须明确可识别——这是避免将普通文本误认为评论的要求。</p>
+
+  <p><code>on:</code> 字段是可选的，但强烈推荐。它指向评论所针对的具体内容。在修订时，用这个字段来定位对应的部分，而不是依赖猜测。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第四部分</div>
+  <h2>发现与分析</h2>
+
+  <p>循环的每一步都从重新发现所有评论开始。这不是简单的 grep——它需要理解每条评论的内容和意图。</p>
+
+  <p><strong>发现阶段</strong>检查两个地方：各个部分中的内联评论，以及文档末尾的 <code>## Review Comments</code> 部分。遗漏任何一条评论都是不允许的。</p>
+
+  <p><strong>分析阶段</strong>要求对每条评论进行深入理解，然后才制定修订方案：</p>
+
+  <dl class="dl-list">
+    <dt>理解被请求的变更</dt>
+    <dd>这条评论在要求什么？是内容修改、结构调整、措辞优化，还是补充遗漏的信息？</dd>
+    <dt>识别评论之间的相互作用</dt>
+    <dd>多条评论可能指向同一段落的不同方面。它们可能相互补充，也可能相互冲突。在修改之前需要综合评估所有这些关系。</dd>
+    <dt>评估评论的有效性</dt>
+    <dd>偶尔评论可能基于过时的信息或对文档的误解。在修订前需要判断是否需要澄清。</dd>
+  </dl>
+
+  <p>分析阶段是整个循环中最关键的步骤。跳过它直接修改，几乎必然导致部分处理或不一致的修订结果。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第五部分</div>
+  <h2>综合修订</h2>
+
+  <p>分析完成后，进入修订阶段。这里的核心原则是：每一条评论都被充分处理，没有评论被静默丢弃。</p>
+
+  <p>修订的基本流程：</p>
+
+  <ol style="margin:1rem 0 1rem 1.5rem;font-size:0.95rem;line-height:1.7;">
+    <li><strong>定位</strong>—使用 <code>on:</code> 锚点或上下文找到评论所指的部分</li>
+    <li><strong>修订</strong>—修改文档以解决评论中提出的问题</li>
+    <li><strong>移除</strong>—从 artifact 中移除已解决的评论（内联和总结部分都移除）</li>
+    <li><strong>验证</strong>—确认修订没有引入新的问题或与其他评论冲突</li>
+  </ol>
+
+  <p>注意第三步：已解决的评论必须从文档中物理移除。这不仅仅是为了整洁——它确保在下一轮审阅中，已解决的问题不会再次被误认为未解决。一条评论只应该保留在文档中，当它仍然是一个开放问题时。</p>
+
+  <p>如果一条评论与其他评论冲突，需要解决冲突后再进行修订。如果一条评论不清晰，应该先请求澄清，而不是猜测意图进行修改。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第六部分</div>
+  <h2>处理模糊评论</h2>
+
+  <p>并非所有评论都是清晰明确的。当一条评论的意图模糊不清时，直接猜测并修改是错误的选择。正确的做法是显式地提出模糊性。</p>
+
+  <p>处理流程：</p>
+
+  <div class="code-block">
+    <!-- 示例评论 -->
+    <span style="color:var(--ink-light);">COMMENT: make this better [on: "Conclusion"]<br></span>
+    <br>
+    <!-- 推荐的响应 -->
+    → <span style="color:var(--accent-3);">这条评论说"make this better"——我应该从哪个维度改进：</span><br>
+    <span style="color:var(--accent-3);">&nbsp;&nbsp;清晰度、准确性、完整性还是简洁性？我倾向于认为这篇文章</span><br>
+    <span style="color:var(--accent-3);">&nbsp;&nbsp;在完整性上有所欠缺，建议补充一个具体的案例。这样可以吗？</span>
+  </div>
+
+  <p>这种做法有三个好处：它让用户知道你注意到了评论；它提供了具体的改进方向供确认；它避免了在错误的方向上浪费时间。在评论被澄清之前，它保留在文档中，不会被视为已解决。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第七部分</div>
+  <h2>约束与规则</h2>
+
+  <p>这个 skill 由一套不可协商的约束来定义。这些规则不是建议——它们是工作流之所以有效的结构性保证。</p>
+
+  <table class="data-table">
+    <thead><tr><th>规则</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td>不将评论视为批准</td><td>评论是反馈，不是 sign-off。用户在仍开放评论时说"看起来不错"不算批准。</td></tr>
+      <tr><td>不静默丢弃或部分处理评论</td><td>每一条评论都必须被记录在案。部分处理等于没有处理。</td></tr>
+      <tr><td>不机械化处理——批判性思考每条评论</td><td>评论可能相互作用、冲突或遗漏上下文。机械化的解决方式会遗漏这些细微之处。</td></tr>
+      <tr><td>没有显式批准不能退出循环</td><td>"Looks good"但仍有未解决评论，不算批准。</td></tr>
+      <tr><td>评论不清晰时先请求澄清</td><td>猜测浪费迭代次数。一次澄清可以节省多次错误修订。</td></tr>
+      <tr><td>解决后从 artifact 中移除评论块</td><td>保持 artifact 整洁，使下一轮审阅可以专注于真正未解决的问题。</td></tr>
+    </tbody>
+  </table>
+
+  <p>这些规则的共同主题是：拒绝走捷径。循环设计的原则是"慢在分析，快在确认"——在分析和修订上投入时间，但确保用户不需要反复审阅同样的问题。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第八部分</div>
+  <h2>完成标准</h2>
+
+  <p>循环只在满足以下两个条件时结束：</p>
+
+  <dl class="dl-list">
+    <dt>所有评审意见已被处理并从 artifact 中移除</dt>
+    <dd>文档中不应再有任何 COMMENT marker。已解决的评论已被吸收到正文中；未解决的评论如果仍然开放，则循环不能结束。</dd>
+    <dt>用户已显式批准 artifact</dt>
+    <dd>批准信号必须是显式的：用户说"批准"、"LGTM"、"proceed"，或类似的明确表述。默许、部分同意、或有条件的接受都不算批准。</dd>
+  </dl>
+
+  <p>这两个条件是"与"的关系——只满足其中一个是不够的。一个没有评论但用户没有批准的文档仍然是开放状态；一个被用户"批准"但还有未解决评论的文档实际上没有被批准。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">核心原则</div>
+  <h2>设计哲学</h2>
+
+  <p>Revise Markdown 虽然简单，但它体现了一些重要的设计原则，这些原则也适用于更广泛的工作流：</p>
+
+  <div class="principles-grid">
+    <div class="principle-card">
+      <h4>评论是资产，不是负担</h4>
+      <p>每条评论都代表一个改进机会。处理评论不是通关打怪，而是协作提升质量的体现。</p>
+    </div>
+    <div class="principle-card">
+      <h4>分析先于行动</h4>
+      <p>在看到完整的评论图景之前不要动手修改。单独处理每条评论会导致不一致的修订。</p>
+    </div>
+    <div class="principle-card">
+      <h4>显式优于隐式</h4>
+      <p>批准必须是显式的，模糊必须被指出，评论必须被物理移除。不留下模糊地带。</p>
+    </div>
+    <div class="principle-card">
+      <h4>不能跳过步骤</h4>
+      <p>循环的每一步都是强制性的。发现、分析、综合、修订、审阅——顺序不能乱，步骤不能省。</p>
+    </div>
+  </div>
+
+  <p>这个 skill 的价值不在于复杂——恰恰相反。它的价值在于简单和严谨：把一个被广泛实践但通常做得很随意的事情，变成一个可重复、可审计、可靠的过程。</p>
+</div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  <div class="footer-inner">
+    <div class="footer-col">
+      <h4>关于</h4>
+      <p>Revise Markdown 是 Claude Code 的一个 codified skill。它将文档修订从一次性的猜测转变为结构化的 review-revise 循环。</p>
+    </div>
+    <div class="footer-col">
+      <h4>工作流</h4>
+      <p>Read → Find &amp; Analyze → Revise → User Review → Loop Until Approved</p>
+    </div>
+    <div class="footer-col">
+      <h4>来源</h4>
+      <p>agent-skills 集合的一部分。作为更大工作流（RPD）中 review-revise 循环的原子化版本。</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- /article-content -->
+
+<!-- ===== SLIDE DECK ===== -->
+<div class="slide-deck">
+
+<!-- Slide 0: Title -->
+<div class="slide active" data-audio="slide-0" data-read-time="10">
+  <div class="slide-inner" style="text-align:center">
+    <div class="slide-label" style="margin-bottom:2rem;">文档修订方法论</div>
+    <h2 style="font-size:3.8rem;margin-bottom:1.2rem;">Revise Markdown</h2>
+    <p style="font-size:1.3rem;color:var(--ink-light);margin:0 auto;max-width:20em;">结构化审阅-修订循环：分析、修订、迭代——直到显式批准。</p>
+    <div style="margin-top:2.5rem;font-family:'DM Sans',sans-serif;font-size:0.55rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);display:flex;justify-content:center;gap:2rem;">
+      <span>4 个步骤</span>
+      <span>Review-Revise 循环</span>
+      <span>显式批准退出</span>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 1: Problem -->
+<div class="slide" data-audio="slide-1" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">问题</div>
+    <h2>为什么一次性修改不够</h2>
+    <p style="margin-bottom:1.2rem;">面对多条评审意见时，直接一次性修改几乎总是失败——评论被遗漏、冲突未被发现、模糊处被猜测。</p>
+    <div class="slide-grid-2">
+      <div class="slide-card">
+        <h4>评论被遗漏</h4>
+        <p>5 条评论中总有一条被无意忽略或部分处理。循环迫使每条都被独立处理。</p>
+      </div>
+      <div class="slide-card">
+        <h4>评论相互冲突</h4>
+        <p>两位审阅者给出相反建议。直接修改会导致前后矛盾。</p>
+      </div>
+      <div class="slide-card">
+        <h4>模糊评论被猜测</h4>
+        <p>"改得更好"——没有回退机制时只能猜测，猜错的代价很大。</p>
+      </div>
+      <div class="slide-card">
+        <h4>缺少完成标志</h4>
+        <p>没有显式批准，修订可能在仍有未解决问题时被认为"做完了"。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 2: Workflow -->
+<div class="slide" data-audio="slide-2" data-read-time="16">
+  <div class="slide-inner">
+    <div class="slide-label">总览</div>
+    <h2>Review-Revise 循环</h2>
+    <p style="margin-bottom:0.8rem;">4 个核心步骤构成一个闭环。不是线性序列——是真正的循环，直到显式批准才结束。</p>
+    <div class="flow-row">
+      <span class="flow-item" style="background:var(--accent-2);color:white;">读取 Artifact</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="background:var(--accent-2);color:white;">发现 &amp; 分析</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="background:var(--accent-2);color:white;">综合修订</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="background:var(--accent-3);color:white;">用户审阅</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item decide">批准?</span>
+    </div>
+    <div class="slide-grid-3">
+      <div class="slide-card">
+        <h4>发现</h4>
+        <p>检查内联评论和末尾的 Review Comments 部分。所有评论都必须被找到。</p>
+      </div>
+      <div class="slide-card">
+        <h4>分析 &amp; 综合</h4>
+        <p>理解每条评论的意图，识别相互冲突的评论，在修改前综合评估。</p>
+      </div>
+      <div class="slide-card">
+        <h4>修订 &amp; 移除</h4>
+        <p>定位 → 修订 → 移除已解决的评论 → 验证一致性。</p>
+      </div>
+    </div>
+    <p style="margin-top:1rem;font-size:0.8rem;color:var(--ink-light);">有新的评论就回到"发现"步骤。每次迭代都从重新读取 artifact 开始。</p>
+  </div>
+</div>
+
+<!-- Slide 3: Comment Format -->
+<div class="slide" data-audio="slide-3" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">格式</div>
+    <h2>评论格式</h2>
+    <p>标准化格式确保评论可被可靠识别：</p>
+    <div class="code-show">
+      <span class="hl">COMMENT:</span> 这里需要更明确的错误处理说明<br>
+      <span class="on">[on: "Error handling section"]</span>
+    </div>
+    <div class="slide-grid-2" style="margin-top:0.5rem;">
+      <div class="slide-card">
+        <h4>内联评论</h4>
+        <p>直接放在被评论内容下方。上下文自然可见。</p>
+      </div>
+      <div class="slide-card">
+        <h4>结尾专区</h4>
+        <p>在 <code>## Review Comments</code> 中列出，<code>on:</code> 指向对应的内容。适合评论较多的情况。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 4: Analysis -->
+<div class="slide" data-audio="slide-4" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">关键步骤</div>
+    <h2>分析先于修订</h2>
+    <p>跳过分析直接修改是循环中最大的错误。理解每条评论真正在要求什么。</p>
+    <div class="slide-grid-3">
+      <div class="slide-card">
+        <h4>理解意图</h4>
+        <p>要求什么？内容修改、结构调整、措辞优化，还是补充遗漏的信息？</p>
+      </div>
+      <div class="slide-card">
+        <h4>识别相互作用</h4>
+        <p>评论可能相互补充或冲突。在修改之前综合评估所有关系。</p>
+      </div>
+      <div class="slide-card">
+        <h4>评估有效性</h4>
+        <p>评论是否基于过期信息或误解？在修订前判断是否需要请求澄清。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 5: Revision -->
+<div class="slide" data-audio="slide-5" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">方法</div>
+    <h2>修订四步法</h2>
+    <p style="margin-bottom:1rem;">每一条评论都经过定位→修订→移除→验证的完整处理流程。</p>
+    <div class="flow-row">
+      <span class="flow-item" style="background:var(--accent-3);color:white;">定位</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="background:var(--accent-2);color:white;">修订</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="background:var(--accent-1);color:white;">移除</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="background:var(--accent-4);color:white;">验证</span>
+    </div>
+    <div class="slide-grid-2" style="margin-top:0.8rem;">
+      <div class="slide-card">
+        <h4>定位 → 修订</h4>
+        <p>使用 <code>on:</code> 锚点找到所指的位置。修改文档以解决评论提出的问题。</p>
+      </div>
+      <div class="slide-card">
+        <h4>移除 → 验证</h4>
+        <p>已解决的评论从 artifact 中物理移除。确认修订没有引入新问题或与其他修改冲突。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 6: Ambiguity -->
+<div class="slide" data-audio="slide-6" data-read-time="12">
+  <div class="slide-inner">
+    <div class="slide-label">边界情况</div>
+    <h2>处理模糊评论</h2>
+    <p style="margin-bottom:0.8rem;">意图不清晰时，直接猜测是错误的选择。显式提出模糊性，并提供推荐的改进方向。</p>
+    <div class="code-show" style="font-size:0.6rem;">
+      <span class="hl">COMMENT:</span> make this better <span class="on">[on: "Conclusion"]</span><br>
+      <br>
+      → 这条评论说"make this better"——<br>
+      &nbsp;&nbsp;我应该从哪个维度改进？清晰度、准确性、<br>
+      &nbsp;&nbsp;完整性还是简洁性？我认为完整性有欠缺，<br>
+      &nbsp;&nbsp;建议补充具体案例。这样可以吗？
+    </div>
+    <p style="margin-top:0.6rem;font-size:0.8rem;color:var(--ink-light);">在评论澄清之前，它保留在文档中，不被视为已解决。</p>
+  </div>
+</div>
+
+<!-- Slide 7: Rules -->
+<div class="slide" data-audio="slide-7" data-read-time="15">
+  <div class="slide-inner">
+    <div class="slide-label">约束</div>
+    <h2>不可协商的规则</h2>
+    <div class="slide-grid-2">
+      <div class="slide-card">
+        <h4>评论 ≠ 批准</h4>
+        <p>评论是反馈，不是 sign-off。仍有开放评论时"看起来不错"不算批准。</p>
+      </div>
+      <div class="slide-card">
+        <h4>不静默丢弃</h4>
+        <p>每条评论都必须被记录在案。部分处理等于没有处理。</p>
+      </div>
+      <div class="slide-card">
+        <h4>不机械化</h4>
+        <p>批判性思考每条评论。它们可能相互作用、冲突或遗漏上下文。</p>
+      </div>
+      <div class="slide-card">
+        <h4>不清晰时先问</h4>
+        <p>猜测浪费迭代。一次澄清可以节省多次错误修订。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 8: Completion -->
+<div class="slide" data-audio="slide-8" data-read-time="12">
+  <div class="slide-inner">
+    <div class="slide-label">出口条件</div>
+    <h2>完成标准</h2>
+    <p style="margin-bottom:1.5rem;">两个条件必须同时满足，循环才能结束：</p>
+    <div class="slide-grid-2">
+      <div class="slide-card">
+        <h4>所有评论已处理并移除</h4>
+        <p>文档中不再有 COMMENT marker。已解决的评论已吸收到正文中。</p>
+      </div>
+      <div class="slide-card">
+        <h4>用户显式批准</h4>
+        <p>明确的信号："批准"、"LGTM"、"proceed"。默许或有条件的接受不算。</p>
+      </div>
+    </div>
+    <p style="margin-top:1rem;font-size:0.8rem;color:var(--ink-light);">少一个条件都不行。没有评论但用户没批准 = 开放。用户"批准"但还有评论 = 未批准。</p>
+  </div>
+</div>
+
+<!-- Slide 9: Principles -->
+<div class="slide" data-audio="slide-9" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">总结</div>
+    <h2>核心原则</h2>
+    <div class="slide-grid-2">
+      <div class="slide-card">
+        <h4>评论是资产</h4>
+        <p>每条评论都是改进机会。不是通关打怪，而是协作提升质量。</p>
+      </div>
+      <div class="slide-card">
+        <h4>分析先于行动</h4>
+        <p>在看到完整评论图景前不动手修改。单独处理每条评论会导致不一致。</p>
+      </div>
+      <div class="slide-card">
+        <h4>显式优于隐式</h4>
+        <p>批准必须显式，模糊必须指出，评论必须物理移除。不留模糊地带。</p>
+      </div>
+      <div class="slide-card">
+        <h4>不跳步</h4>
+        <p>发现→分析→综合→修订→审阅。顺序不能乱，步骤不能省。</p>
+      </div>
+    </div>
+    <p style="margin-top:1rem;font-style:italic;color:var(--ink-light);text-align:center;">简单 + 严谨 = 可重复、可审计、可靠的文档修订。</p>
+  </div>
+</div>
+
+</div><!-- /slide-deck -->
+
+<!-- Slide navigation -->
+<div class="slide-nav hidden">
+  <button onclick="prevSlide()" title="上一张">&larr;</button>
+  <div class="slide-dots" id="slide-dots"></div>
+  <button onclick="nextSlide()" title="下一张">&rarr;</button>
+</div>
+
+<script>
+// ===== ZONE-BASED BAR VISIBILITY =====
+let barVisMode = 'zone';
+const modeBar = document.querySelector('.mode-bar');
+const slideNav = document.querySelector('.slide-nav');
+let barHideTimer = null;
+let navHideTimer = null;
+
+function updateBarVis(mouseY) {
+  if (barVisMode === 'show') { modeBar.classList.remove('hidden'); slideNav.classList.remove('hidden'); return; }
+  if (barVisMode === 'hide') { modeBar.classList.add('hidden'); slideNav.classList.add('hidden'); return; }
+  const vh = window.innerHeight;
+  if (mouseY <= vh * 0.2) {
+    modeBar.classList.remove('hidden');
+    clearTimeout(barHideTimer);
+    barHideTimer = setTimeout(() => modeBar.classList.add('hidden'), 2000);
+  }
+  if (mouseY >= vh * 0.8 && document.body.classList.contains('slide-mode')) {
+    slideNav.classList.remove('hidden');
+    clearTimeout(navHideTimer);
+    navHideTimer = setTimeout(() => slideNav.classList.add('hidden'), 2000);
+  }
+}
+document.addEventListener('mousemove', e => updateBarVis(e.clientY));
+document.addEventListener('touchstart', e => updateBarVis(e.touches[0].clientY));
+document.addEventListener('focusin', () => { modeBar.classList.remove('hidden'); clearTimeout(barHideTimer); barHideTimer = setTimeout(() => { if (barVisMode === 'zone') modeBar.classList.add('hidden'); }, 3000); });
+modeBar.addEventListener('mouseenter', () => { clearTimeout(barHideTimer); modeBar.classList.remove('hidden'); });
+modeBar.addEventListener('mouseleave', () => { barHideTimer = setTimeout(() => { if (barVisMode === 'zone') modeBar.classList.add('hidden'); }, 1500); });
+slideNav.addEventListener('mouseenter', () => { clearTimeout(navHideTimer); slideNav.classList.remove('hidden'); });
+slideNav.addEventListener('mouseleave', () => { navHideTimer = setTimeout(() => { if (barVisMode === 'zone') slideNav.classList.add('hidden'); }, 1500); });
+
+document.addEventListener('keydown', e => {
+  if (e.shiftKey && e.key === '>') { e.preventDefault(); barVisMode = barVisMode === 'zone' ? 'show' : barVisMode === 'show' ? 'hide' : 'zone'; updateBarVis(-1); }
+});
+
+// ===== MODE =====
+function setMode(mode) {
+  document.body.classList.toggle('slide-mode', mode === 'slides');
+  document.getElementById('btn-article').classList.toggle('active', mode === 'article');
+  document.getElementById('btn-slides').classList.toggle('active', mode === 'slides');
+  if (mode === 'slides') goToSlide(currentSlide);
+}
+
+// ===== SLIDES =====
+const slides = document.querySelectorAll('.slide');
+const totalSlides = slides.length;
+let currentSlide = 0;
+
+const dotsContainer = document.getElementById('slide-dots');
+for (let i = 0; i < totalSlides; i++) {
+  const dot = document.createElement('span');
+  if (i === 0) dot.classList.add('active');
+  dot.addEventListener('click', () => goToSlide(i));
+  dotsContainer.appendChild(dot);
+}
+
+function goToSlide(n, fromAudio) {
+  slides.forEach(s => s.classList.remove('active'));
+  slides[n].classList.add('active');
+  document.querySelectorAll('.slide-dots span').forEach((d, i) => d.classList.toggle('active', i === n));
+  currentSlide = n;
+}
+function nextSlide() { if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1); }
+function prevSlide() { if (currentSlide > 0) goToSlide(currentSlide - 1); }
+
+document.addEventListener('keydown', e => {
+  if (!document.body.classList.contains('slide-mode')) return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+});
+
+// ===== SCROLL REVEAL =====
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.querySelectorAll('.article-content .exec-summary, .article-content .section, .article-content .data-table, .article-content .dl-list, .article-content .flow-diagram, .article-content .code-block, .article-content .principles-grid').forEach(el => el.classList.add('reveal'));
+  document.querySelectorAll('.article-content h2').forEach(el => el.classList.add('reveal'));
+
+  const revealObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); revealObserver.unobserve(entry.target); } });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research-Plan-Driven 工作流</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sand: #f0ede6;
+  --ink: #1e1e1e;
+  --ink-light: #555;
+  --accent-1: #b85c54;
+  --accent-2: #5c7a4a;
+  --accent-3: #4a6a7a;
+  --accent-4: #c49a3c;
+  --rule: #d4cec2;
+  --bg: #f8f6f0;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 20px; -webkit-font-smoothing: antialiased; }
+body { font-family: 'EB Garamond', 'Noto Sans SC', Georgia, serif; background: var(--bg); color: var(--ink); line-height: 1.65; padding-top: 40px; }
+
+/* ===== HERO ===== */
+.hero-label, .hero h1, .hero .subtitle, .hero-meta {
+  opacity: 0; transform: translateY(18px);
+  animation: heroIn 0.7s var(--ease-out-quart) forwards;
+}
+.hero-label { animation-delay: 0.1s; }
+.hero h1 { animation-delay: 0.25s; }
+.hero .subtitle { animation-delay: 0.45s; }
+.hero-meta { animation-delay: 0.6s; }
+@keyframes heroIn { to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== REVEAL ===== */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s var(--ease-out-quart), transform 0.6s var(--ease-out-quart); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-stagger > .reveal:nth-child(1) { transition-delay: 0s; }
+.reveal-stagger > .reveal:nth-child(2) { transition-delay: 0.1s; }
+.reveal-stagger > .reveal:nth-child(3) { transition-delay: 0.2s; }
+.reveal-stagger > .reveal:nth-child(4) { transition-delay: 0.3s; }
+.reveal-stagger > .reveal:nth-child(5) { transition-delay: 0.4s; }
+
+h2 { background-image: linear-gradient(var(--ink), var(--ink)); background-size: 0% 2px; background-position: bottom left; background-repeat: no-repeat; padding-bottom: 0.5rem; transition: background-size 0.5s var(--ease-out-quart); }
+h2.visible { background-size: 100% 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-label, .hero h1, .hero .subtitle, .hero-meta { animation: none; opacity: 1; transform: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  h2 { background-size: 100% 2px; transition: none; }
+  .slide { transition: none; }
+}
+
+/* ===== MODE BAR ===== */
+.mode-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: var(--ink); color: white; display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0.5rem 1rem; font-family: 'DM Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; transition: transform 0.35s var(--ease-out-quart), opacity 0.35s var(--ease-out-quart); }
+.mode-bar.hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+.mode-bar button { background: none; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.3em 1em; font-family: inherit; font-size: inherit; letter-spacing: inherit; text-transform: uppercase; cursor: pointer; border-radius: 2px; transition: all 0.2s; }
+.mode-bar button.active { background: white; color: var(--ink); border-color: white; }
+.mode-bar button:hover { border-color: white; }
+.audio-controls { display: flex; align-items: center; gap: 0.6rem; margin-left: 1.5rem; padding-left: 1.5rem; border-left: 1px solid rgba(255,255,255,0.2); }
+.audio-controls button { background: none; border: 1px solid rgba(255,255,255,0.3); color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 2px; font-size: 14px; transition: all 0.2s; }
+.audio-controls button:hover { border-color: white; }
+.audio-controls button.playing { background: var(--accent-1); border-color: var(--accent-1); }
+.audio-progress { width: 100px; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+.audio-progress-fill { height: 100%; background: var(--accent-1); width: 0%; transition: width 0.3s; }
+.audio-time { font-variant-numeric: tabular-nums; min-width: 3em; }
+
+/* ===== ARTICLE MODE ===== */
+.hero { min-height: 60vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 4rem 2rem 3rem; background: var(--sand); border-bottom: 3px solid var(--ink); position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; }
+.hero-inner { max-width: 1100px; margin: 0 auto; width: 100%; position: relative; z-index: 1; }
+.hero-label { font-family: 'DM Sans', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent-3); margin-bottom: 1.5rem; }
+.hero h1 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 3.5rem; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; max-width: 16em; margin-bottom: 1.2rem; }
+.hero .subtitle { font-size: 1.25rem; color: var(--ink-light); max-width: 32em; line-height: 1.5; }
+.hero-meta { margin-top: 2rem; font-family: 'DM Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); display: flex; gap: 2rem; flex-wrap: wrap; }
+.container { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem; }
+
+.exec-summary { background: var(--sand); border: 2px solid var(--ink); padding: 2.5rem; margin-bottom: 4rem; position: relative; }
+.exec-summary::before { content: 'Executive Summary'; position: absolute; top: -0.6em; left: 1.5rem; background: var(--sand); padding: 0 0.6rem; font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-3); }
+.exec-summary p { font-size: 1.1rem; line-height: 1.7; margin-bottom: 1rem; }
+.exec-summary p:last-child { margin-bottom: 0; }
+
+.section { margin-bottom: 4rem; }
+.section-number { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-1); margin-bottom: 0.5rem; }
+h2 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 2.2rem; font-weight: 700; line-height: 1.15; letter-spacing: -0.015em; margin-bottom: 1.5rem; }
+h3 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 1.3rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.8rem; }
+p { font-size: 1rem; line-height: 1.7; margin-bottom: 1rem; max-width: 38em; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin: 2rem 0; }
+.two-col p { max-width: none; }
+
+.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin: 2rem 0; }
+.stat-card { background: var(--sand); padding: 1.8rem; border-left: 4px solid var(--accent-1); }
+.stat-card .number { font-family: 'DM Sans', sans-serif; font-size: 3.2rem; font-weight: 700; line-height: 1; color: var(--accent-1); letter-spacing: -0.03em; }
+.stat-card .label { font-size: 0.85rem; line-height: 1.35; margin-top: 0.5rem; color: var(--ink-light); }
+.stat-card:nth-child(2) { border-left-color: var(--accent-2); }
+.stat-card:nth-child(2) .number { color: var(--accent-2); }
+.stat-card:nth-child(3) { border-left-color: var(--accent-3); }
+.stat-card:nth-child(3) .number { color: var(--accent-3); }
+.stat-card:nth-child(4) { border-left-color: var(--accent-4); }
+.stat-card:nth-child(4) .number { color: var(--accent-4); }
+
+.figure { margin: 2.5rem 0; }
+.figure img { width: 100%; max-width: 600px; display: block; border: 1px solid var(--rule); }
+.figure.full img { max-width: 100%; }
+.figure-caption { font-family: 'DM Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.05em; color: var(--ink-light); margin-top: 0.4rem; text-transform: uppercase; }
+
+.data-table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.85rem; }
+.data-table th { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; text-align: left; padding: 0.8rem 1rem; border-bottom: 2px solid var(--ink); color: var(--ink-light); }
+.data-table td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--rule); vertical-align: top; line-height: 1.4; }
+.data-table tr:last-child td { border-bottom: 2px solid var(--ink); }
+
+.dl-list { margin: 1.5rem 0; }
+.dl-list dt { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-weight: 600; font-size: 1rem; margin-top: 1.2rem; }
+.dl-list dt:first-child { margin-top: 0; }
+.dl-list dd { font-size: 0.9rem; color: var(--ink-light); margin-left: 0; margin-top: 0.15rem; line-height: 1.6; }
+
+.phases-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 2rem 0; padding: 1.5rem; background: white; border: 1px solid var(--rule); }
+.phases-flow .phase-pill { font-family: 'DM Sans', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; padding: 0.5em 1.2em; border-radius: 20px; background: var(--sand); color: var(--ink); }
+.phases-flow .phase-pill.gate { background: var(--accent-1); color: white; font-size: 0.5rem; padding: 0.3em 0.8em; }
+.phases-flow .phase-arrow { font-family: 'DM Sans', sans-serif; font-size: 0.7rem; color: var(--ink-light); }
+
+.rule-table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.8rem; }
+.rule-table th { font-family: 'DM Sans', sans-serif; font-size: 0.5rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; text-align: left; padding: 0.6rem 1rem; border-bottom: 2px solid var(--ink); color: var(--ink-light); }
+.rule-table td { padding: 0.6rem 1rem; border-bottom: 1px solid var(--rule); vertical-align: top; line-height: 1.4; }
+.rule-table td:first-child { font-weight: 600; width: 40%; }
+.rule-table tr:last-child td { border-bottom: 2px solid var(--ink); }
+
+.divider { border: none; border-top: 1px solid var(--rule); margin: 3rem 0; }
+
+.footer { border-top: 2px solid var(--ink); padding: 2rem 0; margin-top: 4rem; }
+.footer-inner { max-width: 1100px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; flex-wrap: wrap; }
+.footer-col h4 { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.8rem; }
+.footer-col p { font-size: 0.75rem; color: var(--ink-light); line-height: 1.6; max-width: 20em; }
+
+/* ===== SLIDE MODE ===== */
+body.slide-mode .article-content { display: none; }
+body.slide-mode .slide-deck { display: flex; }
+body:not(.slide-mode) .slide-deck { display: none; }
+
+.slide-deck { position: fixed; inset: 0; top: 40px; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); overflow: hidden; }
+.slide { position: absolute; inset: 0; top: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 5rem; opacity: 0; display: none; transform: translateY(12px); pointer-events: none; }
+.slide.active { opacity: 1; display: flex; transform: translateY(0); pointer-events: auto; animation: slideIn 0.4s var(--ease-out-quart); }
+.slide-inner { max-width: 1000px; width: 100%; }
+.slide .slide-label { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-3); margin-bottom: 1rem; }
+.slide h2 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 2.8rem; line-height: 1.1; background: none; padding: 0; margin-bottom: 1.2rem; }
+.slide p { font-family: 'Noto Sans SC', serif; font-size: 1.05rem; line-height: 1.7; max-width: 34em; }
+.slide .slide-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2rem; margin-top: 1.2rem; }
+.slide .slide-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.2rem; }
+.slide .slide-card { padding: 1.2rem; border: 1px solid var(--rule); background: white; }
+.slide .slide-card .card-num { font-family: 'DM Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: var(--rule); line-height: 1; }
+.slide .slide-card h4 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; font-size: 0.85rem; font-weight: 600; margin: 0.3rem 0; }
+.slide .slide-card p { font-size: 0.68rem; color: var(--ink-light); margin: 0; max-width: none; line-height: 1.4; font-family: 'Noto Sans SC', serif; }
+.slide .flow-row { display: flex; align-items: center; justify-content: center; gap: 0.8rem; flex-wrap: wrap; margin: 1.5rem 0; }
+.slide .flow-item { font-family: 'DM Sans', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em; padding: 0.6em 1.2em; background: var(--sand); border-radius: 3px; }
+.slide .flow-item.gate { background: var(--accent-1); color: white; font-size: 0.5rem; padding: 0.4em 0.8em; }
+.slide .flow-arrow { font-size: 1rem; color: var(--ink-light); }
+
+/* Slide nav */
+.slide-nav { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 100; display: none; align-items: center; gap: 1.5rem; font-family: 'DM Sans', sans-serif; transition: transform 0.35s var(--ease-out-quart), opacity 0.35s var(--ease-out-quart); }
+body.slide-mode .slide-nav { display: flex; }
+.slide-nav.hidden { transform: translateX(-50%) translateY(120%); opacity: 0; pointer-events: none; }
+.slide-nav button { background: none; border: none; color: var(--ink); cursor: pointer; font-size: 2rem; line-height: 1; padding: 0.3em 0.5em; border-radius: 3px; transition: background 0.2s, color 0.2s; }
+.slide-nav button:hover { background: var(--sand); }
+.slide-dots { display: flex; gap: 7px; }
+.slide-dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--rule); transition: all 0.3s var(--ease-out-quart); cursor: pointer; }
+.slide-dots span:hover { background: var(--ink-light); }
+.slide-dots span.active { background: var(--accent-1); transform: scale(1.4); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  html { font-size: 17px; }
+  .hero h1 { font-size: 2.2rem; }
+  .hero .subtitle { font-size: 1rem; }
+  .two-col, .stat-row { grid-template-columns: 1fr; }
+  .slide { padding: 2rem 1.5rem; }
+  .slide h2 { font-size: 2rem; }
+  .slide .slide-grid-3 { grid-template-columns: 1fr 1fr; }
+  .slide .slide-grid-2 { grid-template-columns: 1fr; }
+  .phases-flow { gap: 0.4rem; padding: 1rem; }
+}
+@media (max-width: 480px) {
+  html { font-size: 15px; }
+  .slide .slide-grid-3 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- MODE BAR -->
+<div class="mode-bar hidden">
+  <button id="btn-article" class="active" onclick="setMode('article')">Article</button>
+  <button id="btn-slides" onclick="setMode('slides')">Slides</button>
+  <div class="audio-controls" style="display:none">
+    <button id="btn-play" onclick="toggleAudio()" title="Play narration">&#9654;</button>
+    <div class="audio-progress"><div class="audio-progress-fill" id="progress-fill"></div></div>
+    <span class="audio-time" id="audio-time">0:00</span>
+  </div>
+</div>
+
+<!-- ===== ARTICLE CONTENT ===== -->
+<div class="article-content">
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">工作流方法论</div>
+    <h1>Research-Plan-Driven<br>AI 辅助开发的精度工作流</h1>
+    <p class="subtitle">从无结构的 ad-hoc 提示，到有审批门的纪律化交付——一个为 AI 与人类协作设计的六阶段方法论。</p>
+    <div class="hero-meta">
+      <span>6 个阶段</span>
+      <span>4 道审批门</span>
+      <span>12 张幻灯片</span>
+      <span>持续验证</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="exec-summary">
+  <p>Research-Plan-Driven 工作流将 AI 辅助开发从自由形式的聊天对话转变为规范的工程流程。它由六个依次执行的阶段组成——Task Clarify、Research、Planning、Todo List、Implementation、Verification——每个阶段之间由明确的审批门隔开。每行代码都必须经过经过验证的研究和已批准的计划来证明其合理性。这套方法论能有效减少返工、防止 scope creep，并在每个环节产出可审计的 artifact。</p>
+  <p>这并非一个关于 AI"应该怎么做"的建议。它是一个被明确编码的技能（codified skill），带有不可协商的规则（non-negotiable rules）、证据标准（evidence standards）和验证协议（verification protocols），全部经过真实使用场景的打磨。每个阶段都有清晰定义的目标、具体的交付物、完成标准，以及旨在防止错误累积的约束条件。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第一部分</div>
+  <h2>Ad-Hoc AI 开发的困境</h2>
+
+  <p>当今大多数 AI 辅助开发遵循一条直线路径：用户描述任务，AI 立即生成代码。这跳过了理解、研究和规划这三个人类工程师在写代码前通常会投入精力的步骤。后果是什么？是 hallucinated 的架构根本不匹配现有代码库、被遗漏的约束条件、悄无声息的 scope creep，以及被误认为是进展的返工循环。</p>
+
+  <p>当 AI agent 直接跳到代码生成时，几种典型的失败模式就会出现：</p>
+
+  <dl class="dl-list">
+    <dt>上下文缺失（Missing context）</dt>
+    <dd>Agent 不了解代码库真实的约定、现有的 pattern 和架构约束。它在猜测，而猜测的修正成本很高。</dd>
+    <dt>虚假信心（False confidence）</dt>
+    <dd>生成的代码看上去合理，但遗漏了边界情况（edge cases）、错误处理和集成点。没有研究环节，这些缺口在运行之前是不可见的。</dd>
+    <dt>范围蔓延（Scope creep）</dt>
+    <dd>没有书面计划和明确的审批，实现过程会不断漂移。每一轮对话都在"顺便加一个功能"，直到最初的意图被埋没。</dd>
+    <dt>缺乏审计轨迹（No audit trail）</dt>
+    <dd>当问题出现时，没有 artifact 轨迹可以追溯——什么被决定了、为什么、谁批准的。调试变成了考古。</dd>
+  </dl>
+
+  <p>Research-Plan-Driven 工作流用一个可预测的 pipeline 取代了这些失败模式。每个阶段都有进入条件（entry condition）、具体交付物（concrete deliverable）和完成标准（completion criterion）。没有假设，一切都被验证。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第二部分</div>
+  <h2>六阶段 Pipeline 总览</h2>
+
+  <p>该工作流是一个线性的六阶段序列，每个阶段产出一个 artifact，作为下一个阶段的契约。前四个阶段之间有显式的审批门（approval gates）：用户必须审阅并批准每个 artifact，工作才能继续推进。</p>
+
+  <div class="phases-flow">
+    <span class="phase-pill" style="background:#b85c54;color:white;">Clarify</span>
+    <span class="phase-arrow">➔</span>
+    <span class="phase-pill gate">审批门</span>
+    <span class="phase-arrow">➔</span>
+    <span class="phase-pill" style="background:#5c7a4a;color:white;">Research</span>
+    <span class="phase-arrow">➔</span>
+    <span class="phase-pill gate">审批门</span>
+    <span class="phase-arrow">➔</span>
+    <span class="phase-pill" style="background:#4a6a7a;color:white;">Planning</span>
+    <span class="phase-arrow">➔</span>
+    <span class="phase-pill gate">审批门</span>
+    <span class="phase-arrow">➔</span>
+    <span class="phase-pill" style="background:#c49a3c;color:white;">Todo&nbsp;List</span>
+    <span class="phase-arrow">➔</span>
+    <span class="phase-pill gate">审批门</span>
+    <span class="phase-arrow">➔</span>
+    <span class="phase-pill" style="border:2px solid var(--ink);">Implementation</span>
+    <span class="phase-arrow">➔</span>
+    <span class="phase-pill" style="border:2px solid var(--ink);">Verification</span>
+  </div>
+
+  <p>前四个阶段——Clarify、Research、Planning、Todo List——每个阶段都以 review-revise cycle 结束。用户阅读 artifact、给出意见、agent 修订、重复直到显式批准。只有在那之后，Implementation 和 Verification 阶段才以无需中途批准的方式开始执行。</p>
+
+  <table class="data-table">
+    <thead><tr><th>阶段</th><th>产出 Artifact</th><th>门控</th></tr></thead>
+    <tbody>
+      <tr><td>Task Clarify</td><td>共享理解（对话中）</td><td>用户确认清晰</td></tr>
+      <tr><td>Research</td><td><code>docs/&lt;slug&gt;.research.md</code></td><td>显式批准</td></tr>
+      <tr><td>Planning</td><td><code>docs/&lt;slug&gt;.plan.md</code></td><td>显式批准</td></tr>
+      <tr><td>Todo List</td><td>嵌入 plan.md 的 <code>## Todo List</code> 部分</td><td>显式批准</td></tr>
+      <tr><td>Implementation</td><td>代码变更</td><td>按 todo list 自动执行</td></tr>
+      <tr><td>Verification</td><td>Fidelity report</td><td>用户审阅报告</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-number">第三部分</div>
+  <h2>Task Clarify：行动前的共享理解</h2>
+
+  <p>工作流不是从 research 开始的。它从结构化的对话开始。目标是通过有纪律的提问，在调研开始之前将原始想法转化为清晰、准确、明确的共享理解。</p>
+
+  <p>问题一次只问一个，遵循特定的方法：优先使用选择题，只在必要时使用开放式问题，避免让用户感到被淹没。每个问题针对以下五个维度之一：</p>
+
+  <dl class="dl-list">
+    <dt>目的（Purpose）</dt>
+    <dd>为什么要做这个？它解决什么问题？</dd>
+    <dt>具体交付物（Concrete deliverables）</dt>
+    <dd>输出应该是什么样的？我们怎么知道它完成了？</dd>
+    <dt>约束（Constraints）</dt>
+    <dd>我们必须在什么边界内工作？技术、时间、资源、依赖？</dd>
+    <dt>边界（Boundaries）</dt>
+    <dd>什么在范围内？什么与什么交互？系统边界在哪里？</dd>
+    <dt>非目标（Non-goals）</dt>
+    <dd>我们明确<em>不</em>做什么？说明非目标与说明目标同等重要。</dd>
+  </dl>
+
+  <p>这一阶段有意采用对话形式而非 artifact 驱动。输出是一个共享心智模型，记录在对话本身中，它指导所有后续阶段。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第四部分</div>
+  <h2>Research：基于证据的 grounding</h2>
+
+  <p>Research 阶段是这个工作流区分于肤浅方法的关键。它不是关于产生想法或提出方案。它是关于建立对代码库现实的经过验证的理解——任何计划都必须尊重这种现实。</p>
+
+  <p>研究过程遵循一个"委托-验证"（delegation-and-verify）模式。协调人将任务分解为聚焦的、不重叠的问题或子系统，然后并行派遣 1&ndash;3 个子 agent 调查每个领域。每个子 agent 收到详细的 prompt，指定要调查什么、为什么调查、以及需要返回何种类型的发现。目标是全面理解抽象、架构和控制流。</p>
+
+  <p>返回的发现被视为未经验证。协调人综合审查它们、解决冲突、并直接读取代码以验证关键主张或填补实质性缺口。冲突的发现不会被静默合并——模棱两可之处被显式提出。只有经过这种交叉验证后，协调人才撰写 research artifact。</p>
+
+  <p>每个非显而易见的发现必须包含源引用，格式为 <code>[src: path:line]</code>，让审阅者无需重新搜索代码库就能验证主张。Artifact 应包含相关系统概览、关键文件及其职责、数据流和控制流、现有 pattern 和约定、依赖关系、以及潜在的陷阱。</p>
+
+  <p>Research phase 只有在 artifact 存在、基于代码库证据、影响计划的实质性问题已被解决或提出、且用户已显式批准其用于 planning 时，才算完成。</p>
+
+  <p class="divider"></p>
+
+  <p><strong>什么不能算作充分的研究：</strong>没有行为理解的文件列表、没有综合的 grep 输出、被当作事实呈现的设计方案、未经过交叉验证的单一来源发现、或会实质性影响计划却未得到回答的问题。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第五部分</div>
+  <h2>Planning：渐进披露架构</h2>
+
+  <p>Planning artifact 建立在一个简单的洞察之上：审阅者应该在任意详细程度上都能停下来并做出有依据的判断。这一点通过一个包含七个必需部分的渐进披露结构实现，每个层次只提供前一个层次无法传达的内容。</p>
+
+  <table class="data-table">
+    <thead><tr><th>层级</th><th>部分</th><th>目的</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Title &amp; Summary</td><td>我们要构建什么以及为什么，引用 research artifact。2&ndash;3 句话。</td></tr>
+      <tr><td>2</td><td>Change Inventory</td><td>要创建/修改的确切文件路径以及每个变更的意图。清单列表。</td></tr>
+      <tr><td>3</td><td>Top-Level Approach</td><td>高层策略——各部分如何组装在一起。3&ndash;5 句话。</td></tr>
+      <tr><td>4</td><td>Resulting Shape</td><td>执行后代码库的样子。必须包含结构图。</td></tr>
+      <tr><td>5</td><td>Key Decisions</td><td>重要的技术决策及其理由。每个决策 2&ndash;4 句话。</td></tr>
+      <tr><td>6</td><td>Detailed Approach</td><td>具体的实现细节。优先展示新颖或有风险的部分。</td></tr>
+      <tr><td>7</td><td>Scope &amp; Risks</td><td>非目标、范围边界、风险、边界情况、未解决的决策。</td></tr>
+    </tbody>
+  </table>
+
+  <p>"Resulting Shape"部分是计划中最常被遗漏的部分，而且是强制性的。它通过结构图、模块图或关系示意来展示最终状态，让审阅者一目了然地看到结果，而不必从一大堆 diff 中推断。</p>
+
+  <p>在 Detailed Approach 部分，指导原则是"权重优先于顺序，而非顺序优先于权重"。先展示最新颖、最 risky 或影响最重大的实现细节。常规的 wiring 和样板代码放在最后。这确保审阅者的注意力花在最重要的事情上。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第六部分</div>
+  <h2>Pre-Review：多角色评审门</h2>
+
+  <p>在用户审阅计划之前，可以进行一次可选的自动化 pre-review。这不是走形式——它是由 1&ndash;3 个专门审阅者角色进行的、选择性的、基于证据的评审，只有在计划中有明确的强匹配信号时才会触发。</p>
+
+  <p>可用的审阅者角色包括 architect、test engineer、software engineer、performance engineer、security engineer、API designer、frontend engineer、product reviewer 和 documentation engineer。每个角色都有定义的关注领域。一个角色只有在计划明确触及该角色的关注领域、<em>并且</em>该角色的视角很可能暴露出实质性问题时才会被选中。</p>
+
+  <p>每个审阅者阅读已获批准的 research 作为背景语境，然后从自己被分配的角色视角审阅计划。发现必须同时锚定在计划和研究两个文件中。没有证据的主张会被丢弃。重要性标准（materiality standard）很严格——一个发现必须切实影响实现可靠性、验证清晰度、架构安全性、兼容性信心或用户审批信心。</p>
+
+  <p>审阅者的输出被综合处理：重叠的问题去重、保留最强证据支持的表述、保留有意义的分歧。综合后的 notes 写入 pre-review artifact，控制权返回到正常的用户审阅流程。最终决定始终由用户做出。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第七部分</div>
+  <h2>Todo List：执行契约</h2>
+
+  <p>计划获批后，工作流会在 plan artifact 中追加一个 <code>## Todo List</code> 部分。这不是粗略的任务分解——它是一份精确的执行契约，完整覆盖已获批的实现工作，按真实执行顺序和依赖关系拆分为客观上可完成的步骤。</p>
+
+  <p>每个 todo item 使用 checkbox markdown 格式，有清晰的主题和对计划中相应部分的引用。Todo list 不仅包含实现任务，还包含显式的验证任务：typecheck、lint、运行相关测试套件。列表后面跟着一个 <code>## Things to note</code> 部分，记录实现阶段必须遵守的关键约束。</p>
+
+  <p>Todo list 必须被显式批准后才能开始实现。这防止了一种常见的失败模式：计划被批准了，但执行者对它的解释与计划者的意图不同。Checklist 使解释变得具体和可审阅。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第八部分</div>
+  <h2>Implementation：忠诚度优先于创造力</h2>
+
+  <p>Implementation 阶段执行已获批的 todo list，而不是重新定义它。这是前面所有 artifact 投资获得回报的阶段：有了经过验证的研究基础、已获批的计划以及具体的 todo items，执行者可以完全专注于正确实现，而无需临时做出架构决策。</p>
+
+  <p>一套清晰的变更策略（change policy）规定了当现实与计划出现偏差时该怎么做。小的 wiring 改动、imports、测试调整和次要的支持性编辑可以接受，无需重开早期阶段。但任何构成新 scope、未获批的行为变更、静默重构或机会主义重构的行为，都需要回退到最早的无效阶段。如果已批准的计划不再符合实际代码库，或者新发现的需求改变了 scope 或设计，工作流就会回退。</p>
+
+  <p>这一策略为深入的研究和规划创造了强大的激励。它也确保当意外出现时——它们一定会出现——这些意外被有意识地处理，而不是被静默吸收到一份越来越不准确的实现中。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第九部分</div>
+  <h2>Verification：双向忠诚度审计</h2>
+
+  <p>最后一个阶段是一个 fidelity audit（忠诚度审计），而不是功能测试。它回答一个问题：我们做了我们承诺要做的事，而且只做了我们承诺要做的事吗？审计同时从两个方向进行。</p>
+
+  <p><strong>正向验证（Forward verification）</strong>捕捉 false positives。对于 todo list 中的每个 <code>[x]</code> 项，验证所声称的交付物是否确实存在、是否符合描述。任何标记为完成但实际上未完成的内容都会被标记。</p>
+
+  <p><strong>反向验证（Reverse verification）</strong>捕捉 false negatives。它将实际的代码变更与 todo list 进行交叉核对。每个创建或修改的文件都被追溯到一个具体的 todo item。无法映射到任何 todo item 的变更会被作为"可能意料之外的"提出。微小的支撑代码——imports、脚手架、错误处理——被接受。任何改变了 todos 范围之外行为或功能的变更都会被标记为 unexpected change。</p>
+
+  <p>偏差按来源分类：implementation-level（工作已做但与 todo 不匹配）、plan-level（todo list 不充分）、research-level（计划正确但研究错误）。这种分类确保修复进入正确的阶段，而不是将错误累积在错误之上。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">第十部分</div>
+  <h2>Review-Revise 循环：持续对齐</h2>
+
+  <p>该工作流的一个决定性特征是在前四个阶段内部运行的 review-revise 循环。每个阶段产出一个 artifact。用户审阅它并用标准格式标注意见（<code>COMMENT: &lt;text&gt; [on: "&lt;anchor text&gt;"]</code>）。Agent 全面分析每条意见，修订 artifact 以解决该意见，然后呈现更新版本供再次审阅。这一过程重复进行直到显式批准。</p>
+
+  <p>这个循环有严格的规则。意见不被视为批准。没有意见被忽略、静默丢弃或部分解决。Agent 不会机械地解决问题——每条意见都需要批判性思考，以维护 artifact 上下文的逻辑一致性。而且不能在没有用户明确批准的情况下退出循环。</p>
+
+  <p>这个看似缓慢的过程正是快速执行阶段成为可能的原因。在 review-revise 上投入的每一小时，都能节省未来三小时调试基于未经验证的假设构建的代码的时间。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">核心规则</div>
+  <h2>不可协商的规则</h2>
+
+  <p>该工作流由一套适用于所有阶段的规则治理。这些不是指南——它们是界定该工作流为何物的约束。</p>
+
+  <table class="rule-table">
+    <thead><tr><th>规则</th><th>适用阶段</th></tr></thead>
+    <tbody>
+      <tr><td>进入下一阶段前必须获得显式批准</td><td>Research, Planning, Todo List</td></tr>
+      <tr><td>将每个已批准的 artifact 视为下一阶段的合同</td><td>Research, Planning, Todo List</td></tr>
+      <tr><td>每次 review-revise 都需要批判性思考，以维护上下文和逻辑一致性</td><td>Research, Planning, Todo List</td></tr>
+      <tr><td>除非用户明确要求，否则不读取无关文件</td><td>所有阶段</td></tr>
+      <tr><td>进入下一阶段时，先阅读对应的参考文档</td><td>所有阶段</td></tr>
+      <tr><td>问题必须聚焦于打磨真正的需求</td><td>Task Clarify</td></tr>
+      <tr><td>苏格拉底式提问：每个问题都附上你的推荐答案</td><td>Task Clarify</td></tr>
+      <tr><td>执行阶段无需停下等待批准</td><td>Implementation, Verification</td></tr>
+    </tbody>
+  </table>
+
+  <p>前四个阶段和最后两个阶段之间的区别是刻意的。Clarify、Research、Planning 和 Todo List 关乎共享理解和对齐——它们受益于审视和迭代。Implementation 和 Verification 关乎执行一个已经达成一致的合同——它们受益于速度和专注。</p>
+</div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  <div class="footer-inner">
+    <div class="footer-col">
+      <h4>关于</h4>
+      <p>Research-Plan-Driven 是 Claude Code 的一个 codified skill。它将 AI 辅助开发从 ad-hoc 提示转变为有纪律的、可审计的工程工作流。</p>
+    </div>
+    <div class="footer-col">
+      <h4>六个阶段</h4>
+      <p>Task Clarify / Research / Planning / Todo List / Implementation / Verification</p>
+    </div>
+    <div class="footer-col">
+      <h4>来源</h4>
+      <p>agent-skills 集合的一部分。基于数百次开发会话的真实使用模式构建。</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- /article-content -->
+
+<!-- ===== SLIDE DECK ===== -->
+<div class="slide-deck">
+
+<!-- Slide 0: Title -->
+<div class="slide active" data-audio="slide-0" data-read-time="10">
+  <div class="slide-inner" style="text-align:center">
+    <div class="slide-label" style="margin-bottom:2rem;">工作流方法论</div>
+    <h2 style="font-size:3.8rem;margin-bottom:1.5rem;">Research-Plan-Driven</h2>
+    <p style="font-size:1.3rem;color:var(--ink-light);margin:0 auto;max-width:22em;">AI 辅助开发的精度工作流：从 ad-hoc 提示到有审批门的纪律化交付。</p>
+    <div style="margin-top:2.5rem;font-family:'DM Sans',sans-serif;font-size:0.55rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);display:flex;justify-content:center;gap:2rem;">
+      <span>6 个阶段</span>
+      <span>4 道审批门</span>
+      <span>持续验证</span>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 1: Problem -->
+<div class="slide" data-audio="slide-1" data-read-time="15">
+  <div class="slide-inner">
+    <div class="slide-label">困境</div>
+    <h2>为什么 Ad-Hoc AI 会失败</h2>
+    <p style="margin-bottom:1.5rem;">直接跳到代码生成，跳过了理解、研究和规划——产出的代码看似合理，却与代码库现实脱节。</p>
+    <div class="slide-grid-2">
+      <div class="slide-card">
+        <h4>上下文缺失</h4>
+        <p>Agent 不了解代码库真实的约定和架构。它在猜测，而猜测的修正成本很高。</p>
+      </div>
+      <div class="slide-card">
+        <h4>虚假信心</h4>
+        <p>生成的代码看似合理，但遗漏了边界情况、错误处理和集成点。</p>
+      </div>
+      <div class="slide-card">
+        <h4>范围蔓延</h4>
+        <p>没有书面计划和审批门，每一轮对话都在添加，直到最初意图被埋没。</p>
+      </div>
+      <div class="slide-card">
+        <h4>缺乏审计轨迹</h4>
+        <p>问题出现时，无法追溯什么被决定了、为什么、谁批准的。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 2: Pipeline Overview -->
+<div class="slide" data-audio="slide-2" data-read-time="18">
+  <div class="slide-inner">
+    <div class="slide-label">总览</div>
+    <h2>六阶段 Pipeline</h2>
+    <p style="margin-bottom:1rem;">每个阶段产出一个 artifact，作为下一阶段的契约。前四个阶段之间有 4 道显式审批门。</p>
+    <div class="flow-row">
+      <span class="flow-item" style="background:#b85c54;color:white;">Clarify</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item gate">审批</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="background:#5c7a4a;color:white;">Research</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item gate">审批</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="background:#4a6a7a;color:white;">Plan</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item gate">审批</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="background:#c49a3c;color:white;">Todo</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item gate">审批</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="border:2px solid var(--ink);">Implement</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="border:2px solid var(--ink);">Verify</span>
+    </div>
+    <p style="margin-top:1.2rem;font-size:0.85rem;color:var(--ink-light);">前四个阶段内有 review-revise 循环，直到用户显式批准。Implementation 和 Verification 无需中途批准即可自动执行。</p>
+  </div>
+</div>
+
+<!-- Slide 3: Task Clarify -->
+<div class="slide" data-audio="slide-3" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">阶段 1</div>
+    <h2>Task Clarify</h2>
+    <p>通过结构化的对话，在调研开始之前将原始想法转化为清晰、明确、具体的共享理解。一次一个问题，优先选选择题。</p>
+    <div class="slide-grid-2" style="margin-top:0.5rem;">
+      <div class="slide-card">
+        <h4>目的 &amp; 交付物</h4>
+        <p>为什么做？输出应该是什么样的？怎么才算完成？</p>
+      </div>
+      <div class="slide-card">
+        <h4>约束 &amp; 边界</h4>
+        <p>在什么范围内工作？什么与什么交互？我们不做什么？</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 4: Research -->
+<div class="slide" data-audio="slide-4" data-read-time="16">
+  <div class="slide-inner">
+    <div class="slide-label">阶段 2</div>
+    <h2>Research</h2>
+    <p>建立对代码库现实的经过验证的理解。委托-验证模式：1&ndash;3 个子 agent 并行调查，发现结果再与实际代码库交叉验证。</p>
+    <div class="slide-grid-3">
+      <div class="slide-card">
+        <h4>并行调查</h4>
+        <p>按问题或子系统拆分。每个子 agent 获得详细的上下文和明确的约束。</p>
+      </div>
+      <div class="slide-card">
+        <h4>交叉验证</h4>
+        <p>所有发现视为未经验证。协调人解决冲突、填补缺口、直接读取代码验证关键主张。</p>
+      </div>
+      <div class="slide-card">
+        <h4>源引用</h4>
+        <p>每个非显而易见的发现包含 <code>[src: path:line]</code>，审阅者无需重新搜索即可验证。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 5: Planning -->
+<div class="slide" data-audio="slide-5" data-read-time="17">
+  <div class="slide-inner">
+    <div class="slide-label">阶段 3</div>
+    <h2>Planning</h2>
+    <p>渐进披露结构：审阅者可以在任意详细程度上停下来做出有依据的判断。7 个部分，每个部分只提供前一层无法传达的细节。</p>
+    <div class="slide-grid-2" style="grid-template-columns:1fr 1.3fr;">
+      <div>
+        <div class="slide-card" style="margin-bottom:0.6rem;">
+          <h4>1. Title &amp; Summary</h4>
+          <p>2&ndash;3 句话。做什么和为什么。</p>
+        </div>
+        <div class="slide-card" style="margin-bottom:0.6rem;">
+          <h4>2. Change Inventory</h4>
+          <p>确切文件 + 每个变更的意图。</p>
+        </div>
+        <div class="slide-card" style="margin-bottom:0.6rem;">
+          <h4>3. Top-Level Approach</h4>
+          <p>策略。3&ndash;5 句话。</p>
+        </div>
+        <div class="slide-card">
+          <h4>4. Resulting Shape</h4>
+          <p>最终状态的结构图。</p>
+        </div>
+      </div>
+      <div>
+        <div class="slide-card" style="margin-bottom:0.6rem;">
+          <h4>5. Key Decisions</h4>
+          <p>权衡和理由。</p>
+        </div>
+        <div class="slide-card" style="margin-bottom:0.6rem;">
+          <h4>6. Detailed Approach</h4>
+          <p>从新颖/有风险的开始，而非常规内容。</p>
+        </div>
+        <div class="slide-card">
+          <h4>7. Scope &amp; Risks</h4>
+          <p>非目标、风险、边界情况。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 6: Pre-Review -->
+<div class="slide" data-audio="slide-6" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">门控流程</div>
+    <h2>多角色 Pre-Review</h2>
+    <p>在用户审阅前，1&ndash;3 个专门审阅者角色评审计划——仅当计划中有该角色的强匹配信号时才触发。</p>
+    <div class="slide-grid-3">
+      <div class="slide-card">
+        <h4>证据锚定</h4>
+        <p>每个发现必须同时引用计划和研究。没有证据的主张被丢弃。</p>
+      </div>
+      <div class="slide-card">
+        <h4>重要性标准</h4>
+        <p>只报告会实际影响可靠性、安全性、兼容性或审批信心的内容。不吹毛求疵。</p>
+      </div>
+      <div class="slide-card">
+        <h4>综合而非汇总</h4>
+        <p>重叠问题去重，保留最强证据支持的表述，保留有意义的分歧。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 7: Todo List -->
+<div class="slide" data-audio="slide-7" data-read-time="12">
+  <div class="slide-inner">
+    <div class="slide-label">阶段 4</div>
+    <h2>Todo List</h2>
+    <p style="margin-bottom:1.5rem;">追加到 plan artifact 中的执行契约。客观上可完成的步骤，按真实依赖关系排序，包含显式的验证任务。</p>
+    <div style="font-family:'DM Sans','Noto Sans SC',sans-serif;font-size:0.8rem;background:var(--sand);padding:1.5rem;border:1px solid var(--rule);">
+      <p style="margin-bottom:0.8rem;font-weight:600;">## Todo List</p>
+      <p style="margin:0;font-size:0.75rem;">☐ 在 <code>src/api/controller.ts</code> 中添加路由注册和 handler</p>
+      <p style="margin:0.3rem 0 0 0;font-size:0.75rem;">☐ 添加带分页和排序的 service 方法</p>
+      <p style="margin:0.3rem 0 0 0;font-size:0.75rem;">☐ 按照现有约定处理无效的分页输入</p>
+      <p style="margin:0.3rem 0 0 0;font-size:0.75rem;">☐ 运行 typecheck、lint 和测试套件</p>
+      <p style="margin:0.8rem 0 0 0;font-size:0.7rem;color:var(--ink-light);">## Things to note — 实现阶段必须遵守的约束</p>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 8: Implementation -->
+<div class="slide" data-audio="slide-8" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">阶段 5</div>
+    <h2>Implementation</h2>
+    <p>执行已获批的 todo list，而不是重新定义它。前期 artifact 的投资让执行者可以完全专注于正确的代码，而非架构决策。</p>
+    <div class="slide-grid-2">
+      <div class="slide-card" style="background:#e8f0e4;">
+        <h4 style="color:#5c7a4a;">无需回退</h4>
+        <p style="font-size:0.68rem;">小的 wiring、imports、测试调整、次要支持编辑。不影响 scope 或设计的日常变更。</p>
+      </div>
+      <div class="slide-card" style="background:#f5e4e2;">
+        <h4 style="color:#b85c54;">需要回退</h4>
+        <p style="font-size:0.68rem;">新 scope、未获批的行为变更、静默重构、机会主义重构。当计划不再匹配现实时，回到正确的阶段。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 9: Verification -->
+<div class="slide" data-audio="slide-9" data-read-time="16">
+  <div class="slide-inner">
+    <div class="slide-label">阶段 6</div>
+    <h2>Verification</h2>
+    <p>双向忠诚度审计：我们做了承诺要做的事，而且只做了承诺要做的事吗？</p>
+    <div class="slide-grid-2">
+      <div class="slide-card">
+        <h4>正向验证（Forward）</h4>
+        <p>对每个 <code>[x]</code> 项：交付物真的存在吗？匹配描述吗？捕捉 false positives——标记为完成但实际未完成。</p>
+      </div>
+      <div class="slide-card">
+        <h4>反向验证（Reverse）</h4>
+        <p>将每个文件变更追溯到 todo item。超出 todos 的变更被提出为意料之外的。捕捉 false negatives。</p>
+      </div>
+    </div>
+    <p style="margin-top:1rem;font-size:0.8rem;color:var(--ink-light);">偏差按来源分类：implementation mismatch、plan gap、research error——确保修复进入正确的阶段。</p>
+  </div>
+</div>
+
+<!-- Slide 10: Review-Revise Loop -->
+<div class="slide" data-audio="slide-10" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">核心机制</div>
+    <h2>Review-Revise 循环</h2>
+    <p style="margin-bottom:1.2rem;">前四个阶段中的每一个都通过结构化的迭代循环运行，直到显式批准。</p>
+    <div class="flow-row">
+      <span class="flow-item" style="background:var(--accent-2);color:white;">撰写 Artifact</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="background:var(--accent-3);color:white;">用户审阅</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item" style="background:var(--accent-1);color:white;">修订</span>
+      <span class="flow-arrow">➔</span>
+      <span class="flow-item gate" style="background:var(--accent-4);">批准?</span>
+    </div>
+    <div class="slide-grid-3" style="margin-top:1rem;">
+      <div class="slide-card">
+        <h4>批判性响应</h4>
+        <p>每条意见在修订前都被全面分析。不做机械式的问题解决。</p>
+      </div>
+      <div class="slide-card">
+        <h4>不静默丢弃</h4>
+        <p>意见不会被忽略、部分处理，或被当作批准。</p>
+      </div>
+      <div class="slide-card">
+        <h4>显式退出</h4>
+        <p>没有用户的明确批准，不能退出循环。没有捷径。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 11: Principles & Summary -->
+<div class="slide" data-audio="slide-11" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">总结</div>
+    <h2>核心原则</h2>
+    <div class="slide-grid-2">
+      <div class="slide-card">
+        <h4>审批门（Approval Gates）</h4>
+        <p>没有用户对 artifact 的显式签字，阶段不能推进。每个 artifact 都是下一阶段的合同。</p>
+      </div>
+      <div class="slide-card">
+        <h4>证据锚定（Evidence Grounding）</h4>
+        <p>Research 来自代码库，而非假设。每个主张都必须通过源引用可验证。</p>
+      </div>
+      <div class="slide-card">
+        <h4>渐进披露（Progressive Disclosure）</h4>
+        <p>计划的结构使审阅者能在任意深度停下来并做出有依据的判断。</p>
+      </div>
+      <div class="slide-card">
+        <h4>忠诚度优先（Fidelity Over Creativity）</h4>
+        <p>Implementation 执行合同。现实偏离时，回退到正确的阶段——不要吸收偏差。</p>
+      </div>
+    </div>
+    <p style="margin-top:1.2rem;font-style:italic;color:var(--ink-light);text-align:center;">Clarify &rarr; Research &rarr; Plan &rarr; Todo &rarr; Implement &rarr; Verify。每个阶段、每道门、每个 artifact——都为一个目的服务：一次性交付正确的代码。</p>
+  </div>
+</div>
+
+</div><!-- /slide-deck -->
+
+<!-- Slide navigation -->
+<div class="slide-nav hidden">
+  <button onclick="prevSlide()" title="上一张">&larr;</button>
+  <div class="slide-dots" id="slide-dots"></div>
+  <button onclick="nextSlide()" title="下一张">&rarr;</button>
+</div>
+
+<script>
+// ===== ZONE-BASED BAR VISIBILITY =====
+let barVisMode = 'zone';
+const modeBar = document.querySelector('.mode-bar');
+const slideNav = document.querySelector('.slide-nav');
+let barHideTimer = null;
+let navHideTimer = null;
+
+function updateBarVis(mouseY) {
+  if (barVisMode === 'show') { modeBar.classList.remove('hidden'); slideNav.classList.remove('hidden'); return; }
+  if (barVisMode === 'hide') { modeBar.classList.add('hidden'); slideNav.classList.add('hidden'); return; }
+  const vh = window.innerHeight;
+  if (mouseY <= vh * 0.2) {
+    modeBar.classList.remove('hidden');
+    clearTimeout(barHideTimer);
+    barHideTimer = setTimeout(() => modeBar.classList.add('hidden'), 2000);
+  }
+  if (mouseY >= vh * 0.8 && document.body.classList.contains('slide-mode')) {
+    slideNav.classList.remove('hidden');
+    clearTimeout(navHideTimer);
+    navHideTimer = setTimeout(() => slideNav.classList.add('hidden'), 2000);
+  }
+}
+document.addEventListener('mousemove', e => updateBarVis(e.clientY));
+document.addEventListener('touchstart', e => updateBarVis(e.touches[0].clientY));
+document.addEventListener('focusin', () => { modeBar.classList.remove('hidden'); clearTimeout(barHideTimer); barHideTimer = setTimeout(() => { if (barVisMode === 'zone') modeBar.classList.add('hidden'); }, 3000); });
+modeBar.addEventListener('mouseenter', () => { clearTimeout(barHideTimer); modeBar.classList.remove('hidden'); });
+modeBar.addEventListener('mouseleave', () => { barHideTimer = setTimeout(() => { if (barVisMode === 'zone') modeBar.classList.add('hidden'); }, 1500); });
+slideNav.addEventListener('mouseenter', () => { clearTimeout(navHideTimer); slideNav.classList.remove('hidden'); });
+slideNav.addEventListener('mouseleave', () => { navHideTimer = setTimeout(() => { if (barVisMode === 'zone') slideNav.classList.add('hidden'); }, 1500); });
+
+document.addEventListener('keydown', e => {
+  if (e.shiftKey && e.key === '>') { e.preventDefault(); barVisMode = barVisMode === 'zone' ? 'show' : barVisMode === 'show' ? 'hide' : 'zone'; updateBarVis(-1); }
+});
+
+// ===== MODE =====
+function setMode(mode) {
+  document.body.classList.toggle('slide-mode', mode === 'slides');
+  document.getElementById('btn-article').classList.toggle('active', mode === 'article');
+  document.getElementById('btn-slides').classList.toggle('active', mode === 'slides');
+  if (mode === 'slides') goToSlide(currentSlide);
+}
+
+// ===== SLIDES =====
+const slides = document.querySelectorAll('.slide');
+const totalSlides = slides.length;
+let currentSlide = 0;
+
+const dotsContainer = document.getElementById('slide-dots');
+for (let i = 0; i < totalSlides; i++) {
+  const dot = document.createElement('span');
+  if (i === 0) dot.classList.add('active');
+  dot.addEventListener('click', () => goToSlide(i));
+  dotsContainer.appendChild(dot);
+}
+
+function goToSlide(n, fromAudio) {
+  slides.forEach(s => s.classList.remove('active'));
+  slides[n].classList.add('active');
+  document.querySelectorAll('.slide-dots span').forEach((d, i) => d.classList.toggle('active', i === n));
+  currentSlide = n;
+}
+function nextSlide() { if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1); }
+function prevSlide() { if (currentSlide > 0) goToSlide(currentSlide - 1); }
+
+document.addEventListener('keydown', e => {
+  if (!document.body.classList.contains('slide-mode')) return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+});
+
+// ===== SCROLL REVEAL =====
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.querySelectorAll('.article-content .exec-summary, .article-content .section, .article-content .stat-card, .article-content .figure, .article-content .data-table, .article-content .rule-table, .article-content .dl-list, .article-content .phases-flow').forEach(el => el.classList.add('reveal'));
+  document.querySelectorAll('.article-content h2').forEach(el => el.classList.add('reveal'));
+
+  const revealObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); revealObserver.unobserve(entry.target); } });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+}
+</script>
+</body>
+</html>
