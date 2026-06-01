@@ -2,3 +2,4 @@ docs/*.md
 scripts/pre-push
 docs/**/*.md
 .playwright-mcp
+research-plan-driven/docs
