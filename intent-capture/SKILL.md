@@ -76,11 +76,15 @@ Capture user intent through guided conversation — not just what users say they
     </rules>
     
     <conditional_prompts>
-      <prompt if="unclear who benefits">Who is this for? Who will use it?</prompt>
-      <prompt if="unclear what painful now">What happens today without this? How do people cope?</prompt>
-      <prompt if="unclear scope">What's the smallest version that would be useful? What can wait?</prompt>
-      <prompt if="unclear constraints">Any boundaries — technical, organizational, timeline — that shape what's possible?</prompt>
-      <prompt if="unclear success">When this works, what changes? How would you measure that?</prompt>
+      <method>列出当前仍需澄清的维度，逐一编号后同步抛出。用户按编号逐条回答，节奏自控。若用户对某题不知道如何回答，主动推几个选项并标注推荐项以打开思路，而非替用户决策。</method>
+      <prompt id="A" if="unclear who benefits">Who is this for? Who will use it?</prompt>
+      <prompt id="B" if="unclear what painful now">What happens today without this? How do people cope?</prompt>
+      <prompt id="C" if="unclear scope">What's the smallest version that would be useful? What can wait?</prompt>
+      <prompt id="D" if="unclear constraints">Any boundaries — technical, organizational, timeline — that shape what's possible?</prompt>
+      <prompt id="E" if="unclear success">When this works, what changes? How would you measure that?</prompt>
+      <fallback>
+        For example: User says "I don't know who would use this" → Agent offers "A few possibilities to consider: (1) end users who... (Recommended), (2) ops team who..., (3) leadership who... — any of these resonate?"
+      </fallback>
     </conditional_prompts>
     
     <loop allowed="true">
@@ -194,15 +198,16 @@ Capture user intent through guided conversation — not just what users say they
       </lens_catalog>
       
       <step n="2" name="Present">
-        <action>State which lenses you're checking, then ask the key question for each — all together, not one-by-one waiting for confirmation. Keep each lens to 1-2 sentences.</action>
+        <action>State which lenses you're checking, then number each question (A/B/C...) and present them together. User responds per-number at their own pace.</action>
         <rule>Don't narrate the lens name unless it adds clarity. The user cares about the insight, not the taxonomy.</rule>
+        <rule>If user gets stuck on a lens, offer a few concrete angles as thought starters — mark one as recommended to lower the entry cost, not to steer the decision.</rule>
         <format>
           <example output>
             Before we lock this down, a couple other angles:
             
-            From an on-call perspective — if this export fails silently at 3am Sunday, does anyone notice before Monday's staffing meeting?
+            A. From an on-call perspective — if this export fails silently at 3am Sunday, does anyone notice before Monday's staffing meeting?
             
-            And at scale — "all projects" is 10 or 10,000? The shape of the solution changes a lot at different orders of magnitude.
+            B. At scale — "all projects" is 10 or 10,000? The shape of the solution changes a lot at different orders of magnitude.
           </example>
         </format>
       </step>
