@@ -16,10 +16,11 @@
 | `[MOTION]` | ❖ | 流向 → 速度 → 静态元素 | `L→R directional, static elements fixed` |
 | `[FOCUS]` | ❖ | 主焦点 → 权重 → 引导 | `center-left, 60/40 weight, arrows guiding` |
 | `[ANNOTATIONS]` | ❖ | 标签 → 标注线 → 图例 → 层级 | `sans-serif, dashed leader lines, legend yes` |
+| `[SEPARABILITY]` | ✅* | 间距 → 标签位置 → 连接线路由 | `elements separated with visible whitespace, labels outside icons, connectors around shapes` |
 | `[EXCLUSIONS]` | ✅ | 逗号分隔排除项 | `no human figures, no logos, no UI chrome` |
 | `[FORMAT]` | ✅ | 横纵比 · 分辨率 | `16:9 wide landscape, high resolution` |
 
-- ✅ = always required · ❖ = conditional（见 Type-Dimension 矩阵）
+- ✅ = always required · ✅* = required except decorative（见 Type-Dimension 矩阵）· ❖ = conditional（见 Type-Dimension 矩阵）
 
 ## 常用色彩科学对照
 
