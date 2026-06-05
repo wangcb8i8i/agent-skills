@@ -1,11 +1,11 @@
 ---
 name: intent-capture
-description: Capture user intent through guided conversation. Exploratory phase with high degrees of freedom.
-version: 2.0.0
+description: Capture user intent through guided conversation when the user is starting something new, expressing ideas incompletely, or says they want to optimize/improve something but cannot yet define the problem clearly.
+version: 3.0.0
 ---
 
 <objective>
-Capture user intent through guided conversation — not just what users say they want, but the real need beneath it.
+Capture, clarify, and confirm the user's real intent through guided conversation when their expression is incomplete, mixed, or still forming.
 </objective>
 
 
@@ -14,253 +14,295 @@ Capture user intent through guided conversation — not just what users say they
 
   - No active intent exists
   - User wants to start something new
+  - User expresses ideas as fragments, examples, complaints, or rough direction words
+  - User says they want to optimize, improve, or fix something but cannot explain how
+  - User knows the object of change but cannot yet define the problem, boundary, or success condition clearly
 
 </triggers>
 
 
 
 <degrees_of_freedom>
-  **HIGH** — This is a creative, exploratory phase. Ask open-ended questions. Don't constrain prematurely.
+  **HIGH** — This is an exploratory phase. Let the user speak loosely, then help them shape the meaning.
 </degrees_of_freedom>
 
 
 
 <llm critical="true">
-  <mandate>NEVER assume requirements — ALWAYS ask clarifying questions</mandate>
-  <mandate>Capture the "what" and "why" — leave the "how" for decomposition</mandate>
-  <mandate>Let user describe freely — don't interrupt</mandate>
-  <mandate>Intent is discovered, not stated. Keep digging until you reach the root motivation.</mandate>
-  <mandate>NEVER ask multiple questions in a single turn during depth drilling. One question per turn — the user's answer determines the next direction.</mandate>
+  <mandate>NEVER assume requirements — ALWAYS clarify before concluding.</mandate>
+  <mandate>Prioritize helping the user express intent clearly over making the user defend a solution.</mandate>
+  <mandate>Capture the what, why, and boundary — leave the how for later decomposition.</mandate>
+  <mandate>Let the user describe freely at the start — accept fragments, examples, complaints, and partial thoughts.</mandate>
+  <mandate>Intent is often discovered progressively. Keep refining until the user recognizes the captured meaning as their real intent.</mandate>
+  <mandate>Default to one question per turn while drilling into ambiguity. Only batch numbered prompts after a stable draft exists and specific gaps remain.</mandate>
+  <mandate>Stage summaries are mandatory. Periodically restate the current understanding and ask the user to confirm, correct, or sharpen it.</mandate>
+  <mandate>If the user gets stuck, offer a few low-friction options as thought starters and mark one as recommended only to reduce activation energy, not to decide for them.</mandate>
+  <mandate>If the user says the current understanding is off, stop, identify the type of miss, and return to the smallest earlier phase needed to repair it.</mandate>
   <mandate>NEVER modify, create, or delete any file except the output artifact {workspace}/docs/{intent-slug}.intention.md. This is absolute — no exceptions, no "just a quick fix", no "while I'm here".</mandate>
 </llm>
 
 
 
 <flow>
-  <phase id="explore" title="EXPLORE">
-    <goal>Understand the real intent beneath the surface request.</goal>
-    <strategy>Start with "why?", drill deep, then cover gaps.</strategy>
-    
+  <phase id="open" title="OPEN">
+    <goal>Give the user room to get the raw thought out before structuring it.</goal>
 
     <entry>
-      <ask>What do you want to build? or What's the problem?</ask>
-      <listen>Let user describe freely. Don't interrupt.</listen>
+      <ask>What are you trying to do, change, improve, or figure out right now?</ask>
+      <listen>Accept loose input: examples, frustrations, goals, scenarios, and unfinished thoughts.</listen>
     </entry>
-    
-    <rules priority_order="strict">
-      <rule priority="1">
-        <principle>Always accept first, then probe</principle>
-        <mandate>Never challenge in this phase. Questions must be open, curious, exploring — not skeptical.</mandate>
+
+    <rules>
+      <rule>
+        <principle>Receive before organizing.</principle>
+        <mandate>Do not force structure too early. The first job is to surface raw material.</mandate>
       </rule>
-      <rule priority="2">
-        <name>Depth Drill</name>
-        <trigger>After every substantive user answer</trigger>
-        <method>Ask "why" — drive toward the underlying motivation.</method>
-        <depth>Not a fixed count. Stop when the user reaches a root need or repeats.</depth>
-        <anti_pattern>Asking two or more questions at once (e.g. "why do you need that and what format?"). This collapses the drill into a survey, losing the chain.</anti_pattern>
-        <anti_pattern>Pre-answering your own question or listing options alongside it. Let the user's answer stand alone.</anti_pattern>
-        <example>
-          User: "I want an export button"
-          Agent: "That makes sense. Help me understand — once the data is exported, what do you do with it?"
-          User: "Import it into my analytics tool for weekly reports"
-          Agent: "Got it. And those weekly reports — what decisions do they drive?"
-          User: "We adjust staffing for the following week"
-          Agent: "So the real need is having data flow into your decision loop on a weekly cadence — the export button is just the means."
-        </example>
-      </rule>
-      <rule priority="3">
-        <name>Gap Fill</name>
-        <trigger>After depth drilling has reached a natural stopping point</trigger>
-        <method>Check for uncovered dimensions using the conditional prompts below.</method>
+      <rule>
+        <principle>Do not challenge here.</principle>
+        <mandate>Questions in this phase are invitational, not skeptical.</mandate>
       </rule>
     </rules>
-    
-    <conditional_prompts>
-      <method>列出当前仍需澄清的维度，逐一编号后同步抛出。用户按编号逐条回答，节奏自控。若用户对某题不知道如何回答，主动推几个选项并标注推荐项以打开思路，而非替用户决策。</method>
-      <prompt id="A" if="unclear who benefits">Who is this for? Who will use it?</prompt>
-      <prompt id="B" if="unclear what painful now">What happens today without this? How do people cope?</prompt>
-      <prompt id="C" if="unclear scope">What's the smallest version that would be useful? What can wait?</prompt>
-      <prompt id="D" if="unclear constraints">Any boundaries — technical, organizational, timeline — that shape what's possible?</prompt>
-      <prompt id="E" if="unclear success">When this works, what changes? How would you measure that?</prompt>
-      <fallback>
-        For example: User says "I don't know who would use this" → Agent offers "A few possibilities to consider: (1) end users who... (Recommended), (2) ops team who..., (3) leadership who... — any of these resonate?"
-      </fallback>
-    </conditional_prompts>
-    
-    <loop allowed="true">
-      Depth drill and gap fill may alternate until all dimensions are covered and motivation is at root level.
-    </loop>
-    
+
     <exit_criteria>
-      <required>Root motivation understood (not just surface request)</required>
-      <required>All five dimensions probed at least once: users, pain-today, scope, constraints, success</required>
-      <required>No obvious contradiction or ambiguity detected (these go to CHALLENGE)</required>
+      <required>User has provided at least one concrete fragment, scenario, complaint, or goal.</required>
     </exit_criteria>
-    
-    <transition to="challenge">
-      Agent: "I think I understand the real need here. Let me reflect that back and test it."
+
+    <transition to="extract">
+      Agent: "Let me pull out the signal from that and make sure I'm focusing on the right part."
     </transition>
   </phase>
 
 
 
-  <phase id="challenge" title="CHALLENGE">
-    <goal>Test the understanding. Make sure we're solving the right problem.</goal>
+  <phase id="extract" title="EXTRACT">
+    <goal>Pull out the first usable intent signals from the user's raw input.</goal>
+
+    <strategy>Find the most important missing dimension and ask about that one next.</strategy>
+
+    <priority_dimensions>
+      <dimension>Object — what is the thing or area under discussion?</dimension>
+      <dimension>Symptom — what currently feels wrong, painful, slow, confusing, risky, or insufficient?</dimension>
+      <dimension>Impact — who feels the problem first or most strongly?</dimension>
+      <dimension>Desired change — what should become better: faster, more accurate, more stable, easier, cheaper, clearer, or something else?</dimension>
+      <dimension>Context — why is this coming up now?</dimension>
+    </priority_dimensions>
+
+    <rules>
+      <rule>
+        <principle>Default to one missing dimension at a time.</principle>
+        <mandate>Do not turn extraction into a survey.</mandate>
+      </rule>
+      <rule>
+        <principle>"Optimize X" is not enough.</principle>
+        <mandate>When the user says they want to optimize or improve something, first ask what the most unsatisfying current behavior is.</mandate>
+      </rule>
+      <rule>
+        <principle>Do not force why too early.</principle>
+        <mandate>If the user cannot answer "why", switch to scenarios, examples, or recent incidents.</mandate>
+      </rule>
+    </rules>
+
+    <examples>
+      <example>
+        User: "I want to optimize search"
+        Agent: "Which part feels worst today — results quality, speed, coverage, or the search experience itself?"
+      </example>
+      <example>
+        User: "Something about this flow is bad"
+        Agent: "What's the moment where it starts to feel bad — what happens there?"
+      </example>
+    </examples>
+
+    <exit_criteria>
+      <required>A rough intent sketch exists: object plus at least one of symptom, impact, desired change, or context.</required>
+    </exit_criteria>
+
+    <transition to="shape">
+      Agent: "I think I have the rough shape. Let me put it back in clearer words and you tell me where it's off."
+    </transition>
+  </phase>
+
+
+
+  <phase id="shape" title="SHAPE">
+    <goal>Turn the rough sketch into a user-confirmable expression of intent.</goal>
+
+    <core_move>
+      <action>Restate the current understanding in plain language.</action>
+      <action>Ask the user to confirm, correct, or sharpen it.</action>
+      <action>If the user stalls, offer a few low-friction options to help them react.</action>
+    </core_move>
+
+    <dimensions_to_fill>
+      <dimension>Users / beneficiaries</dimension>
+      <dimension>Pain today</dimension>
+      <dimension>Smallest useful scope</dimension>
+      <dimension>Success criteria</dimension>
+      <dimension>Constraints</dimension>
+      <dimension>Unknowns / open questions</dimension>
+    </dimensions_to_fill>
+
+    <rules>
+      <rule>
+        <principle>Stage summaries are mandatory.</principle>
+        <mandate>After meaningful progress, summarize the current understanding before asking for more detail.</mandate>
+      </rule>
+      <rule>
+        <principle>Single-question drilling remains the default.</principle>
+        <mandate>Only switch to numbered gap-fill prompts after the user has confirmed a mostly-correct draft and specific holes remain.</mandate>
+      </rule>
+      <rule>
+        <principle>Approximate confirmation is acceptable.</principle>
+        <mandate>If the user says "that's close" or "mostly", keep refining; do not require perfect wording before progressing.</mandate>
+      </rule>
+    </rules>
+
+    <numbered_gap_fill>
+      <method>List only the still-missing dimensions. Number them. Let the user answer in any order at their own pace.</method>
+      <prompt id="A" if="unclear who benefits">Who is this really for, or who feels the benefit first?</prompt>
+      <prompt id="B" if="unclear current pain">What happens today that makes this worth changing?</prompt>
+      <prompt id="C" if="unclear minimum scope">What's the smallest version that would already feel useful?</prompt>
+      <prompt id="D" if="unclear constraints">What boundaries shape this: technical, organizational, time, or process?</prompt>
+      <prompt id="E" if="unclear success">How would you know this improved enough to count as a win?</prompt>
+      <prompt id="F" if="unknowns remain important">What part is still fuzzy even to you?</prompt>
+      <fallback>
+        If the user is stuck, offer a few plausible options with one recommended to make reacting easier, for example: "A few ways to think about success: (1) users stop complaining about the wait time (Recommended), (2) the team completes the workflow faster, (3) error rate drops. Which is closest?"
+      </fallback>
+    </numbered_gap_fill>
+
+    <exit_criteria>
+      <required>A clearer draft exists that the user recognizes as close to what they mean.</required>
+      <required>The remaining gaps are either minor or explicitly listed.</required>
+    </exit_criteria>
+
+    <transition to="calibrate">
+      Agent: "This is close enough to test. I'll restate the deeper job to be done and see if it really lands."
+    </transition>
+  </phase>
+
+
+
+  <phase id="calibrate" title="CALIBRATE">
+    <goal>Verify that the captured intent matches the real need without turning the exchange into a defense of solutions.</goal>
 
     <move n="1" name="Translate">
-      <action>Restate the user's request as a problem statement, not a feature ask.</action>
-      <principle>If the user said "I need X", reframe as "You're trying to achieve Y". Strip the solution-language.</principle>
+      <action>Restate the user's request as the underlying job, problem, or desired change rather than surface solution language.</action>
       <example output>
-        So if I step back: the export button isn't the point.
-        You need weekly staffing data flowing into your decision loop.
-        The export is one way to make that happen.
-        Is that the real job to be done?
-      </example>
+        So stepping back: the point is not "an export button" by itself.
+        You need the staffing data to reliably reach the weekly decision process.
+        The export is one possible mechanism.
+        Is that the real intent?
+      </example output>
     </move>
-    
-    <move n="2" name="Surface Tension" optional="true">
-      <trigger>Agent detects any of: conflicting goals, mutually exclusive constraints, unstated tradeoffs, logical gaps.</trigger>
-      <action>Name the tension directly. Don't resolve it — let the user react.</action>
+
+    <move n="2" name="Surface Miss" optional="true">
+      <trigger>User says the restatement is off, or the agent detects a clear contradiction, ambiguity, or boundary error.</trigger>
+      <action>Name the miss precisely and return to the smallest earlier phase needed to repair it.</action>
       <example output>
-        One thing I'm noticing: you want this to be fast, and you also want it to
-        cover every edge case. Those pull in opposite directions.
-        Which matters more for the first version?
-      </example>
-      <example output>
-        You mentioned "for the whole team" but the pain you described only affects
-        the ops lead. Is this actually a single-person workflow?
-      </example>
-      <skip if="no tension detected">Nothing to surface — move on.</skip>
+        I think I blurred the problem and the solution there. Let me back up and re-focus on the actual pain first.
+      </example output>
     </move>
-    
-    <move n="3" name="Offer Alternatives" optional="true">
-      <trigger>Agent can think of a meaningfully simpler way to meet the same root need.</trigger>
-      <action>Offer it as a thought experiment — not a recommendation.</action>
-      <principle>If the user rejects it, that's useful signal about what actually matters.</principle>
+
+    <move n="3" name="Offer Contrast" optional="true">
+      <trigger>A simpler contrast helps reveal what the user actually values.</trigger>
+      <action>Offer it as a clarification device, not as a recommendation or design proposal.</action>
       <example output>
-        One thought: instead of building a full export feature with filters and
-        scheduling, would giving the ops lead a read-only SQL client solve the
-        immediate problem with 10% of the work?
-      </example>
-      <skip if="no simpler alternative comes to mind">Nothing useful to offer — move on.</skip>
+        Quick check: if the workflow stayed manual but became reliable, would that satisfy the real need, or is automation itself part of the intent?
+      </example output>
+      <skip if="no clarifying contrast is useful">Move on.</skip>
     </move>
-    
-    <move n="4" name="Multi-Lens Check">
-      <goal>Don't stop at one perspective. Scan for other role viewpoints that would surface different concerns — 1 to N lenses, driven by the intent, not a template.</goal>
-      
-      <principle>After the first round of challenge (translate, tension, alternatives), pause and ask: "Who else has skin in this game?" The first lens the conversation naturally fell into might not be the only one that matters.</principle>
-      
-      <anti_pattern>
-        <bad>Mechanically running through all 8 lenses every time. Most intents only need 1-3.</bad>
-        <bad>Forcing a lens that has nothing to say. If the lens question is already answered by what the user said, skip it.</bad>
-        <bad>Treating this as a checklist to complete before moving on. The goal is surfacing blind spots, not filling a quota.</bad>
-      </anti_pattern>
-      
-      <step n="1" name="Judge Applicability">
-        <action>Given this specific intent, which roles or stakeholders would have a genuinely different take? Scan the reference catalog below — not as a checklist, but as a prompt to think.</action>
-        <rule>If only one lens applies (the one the conversation already used), acknowledge it and move on. Don't invent perspectives.</rule>
-        <rule>If 0 additional lenses apply, skip the move entirely.</rule>
-      </step>
-      
+
+    <move n="4" name="Selective Lens Check" optional="true">
+      <goal>Use only the additional perspectives that genuinely help clarify the boundary of the intent.</goal>
+      <principle>Scan only for lenses that would expose a materially different concern. Most intents need few or none.</principle>
+
       <lens_catalog purpose="reference, not checklist">
         <lens name="End User">
-          <question>Will the person actually using this understand it? Is it discoverable? Does it match their mental model?</question>
-          <applies_when>There's a UI, a workflow, or a human-in-the-loop action.</applies_when>
+          <question>Does the person using this experience the pain the same way the requester describes it?</question>
         </lens>
         <lens name="Operator / On-Call">
-          <question>What breaks at 3am? How do you know it's broken? What's the recovery path?</question>
-          <applies_when>Anything that runs in production, has dependencies, or changes state.</applies_when>
+          <question>Is reliability or recovery part of the real intent, even if the user did not phrase it that way?</question>
         </lens>
         <lens name="Security / Compliance">
-          <question>Who can do what? What data moves where? What audit trail exists?</question>
-          <applies_when>The intent touches auth, data access, PII, external integrations, or permissions.</applies_when>
-        </lens>
-        <lens name="Maintainer / Future Team">
-          <question>Will someone inheriting this 6 months from now understand why it exists and how it works?</question>
-          <applies_when>The intent involves custom logic, configuration, or non-obvious design choices.</applies_when>
+          <question>Does data access, permission, or auditability change the boundary of what the user actually means?</question>
         </lens>
         <lens name="Business / Stakeholder">
-          <question>Does this move a metric that matters? What's the cost of being wrong? What's the opportunity cost?</question>
-          <applies_when>The intent has a business goal, a budget, or a timeline.</applies_when>
-        </lens>
-        <lens name="Data / Analytics">
-          <question>What does success look like in data? What events or metrics would prove this worked?</question>
-          <applies_when>The intent involves user behavior, business outcomes, or anything that should be measured.</applies_when>
-        </lens>
-        <lens name="Newcomer / Onboarding">
-          <question>Does this assume knowledge a new user or team member wouldn't have?</question>
-          <applies_when>The intent creates a new surface, API, workflow, or convention.</applies_when>
+          <question>Is the intent really about a business outcome, timeline, or cost of delay rather than the described feature?</question>
         </lens>
         <lens name="Scale / Edge Cases">
-          <question>What happens at 10x? 0 items? 10,000 items? Concurrent users? Retry storms?</question>
-          <applies_when>The intent involves data processing, queues, lists, or multi-user scenarios.</applies_when>
+          <question>Does the intended change only matter at a certain size, frequency, or concurrency level?</question>
         </lens>
       </lens_catalog>
-      
-      <step n="2" name="Present">
-        <action>State which lenses you're checking, then number each question (A/B/C...) and present them together. User responds per-number at their own pace.</action>
-        <rule>Don't narrate the lens name unless it adds clarity. The user cares about the insight, not the taxonomy.</rule>
-        <rule>If user gets stuck on a lens, offer a few concrete angles as thought starters — mark one as recommended to lower the entry cost, not to steer the decision.</rule>
-        <format>
-          <example output>
-            Before we lock this down, a couple other angles:
-            
-            A. From an on-call perspective — if this export fails silently at 3am Sunday, does anyone notice before Monday's staffing meeting?
-            
-            B. At scale — "all projects" is 10 or 10,000? The shape of the solution changes a lot at different orders of magnitude.
-          </example>
-        </format>
-      </step>
-      
-      <step n="3" name="Resolve">
-        <action>Let the user respond to the set. They may dismiss some lenses, dig into others, or adjust the intent.</action>
-        <action>Each lens is resolved when the user confirms, defers, or the concern proves irrelevant.</action>
-      </step>
+
+      <rule>Do not run a full checklist. If no lens adds clarity, skip this move.</rule>
     </move>
-    
+
     <exit_criteria>
-      <required>User confirmed the translation accurately captures the real need</required>
-      <required>Any surfaced tension has been resolved or explicitly deferred by the user</required>
-      <required>Any offered alternative has been accepted or explicitly rejected by the user</required>
-      <required>Applicable lenses have been scanned — at least one, at most as many as the intent genuinely calls for</required>
+      <required>User confirms the calibrated statement captures what they really mean, even if some implementation details remain unknown.</required>
+      <required>Any important miss, contradiction, or ambiguity has been resolved or explicitly marked open.</required>
     </exit_criteria>
-    
+
     <transition to="capture">
-      Agent: "Are we aligned? Does this all feel right?" — User confirms without reservation.
-    </transition>
-    
-    <transition to="explore" trigger="challenge-revealed-gap">
-      Challenge exposed a missing dimension or a flawed premise. Go back and re-explore that specific gap, then return to CHALLENGE.
+      Agent: "I think we have the real intent pinned down. I'll capture it in a brief so the next step has a reliable starting point."
     </transition>
   </phase>
 
 
 
   <phase id="capture" title="CAPTURE">
-    <goal>Write the brief and hand off.</goal>
+    <goal>Persist the aligned intent in a form that downstream work can use.</goal>
 
-	<move n="1" name="Generate Brief">
-	  <action>Derive intent-slug from title (kebab-case, auto-summarized)</action>
-	  <action>Write brief to {workspace}/docs/{intent-slug}.intention.md</action>
+    <move n="1" name="Generate Brief">
+      <action>Derive intent-slug from title (kebab-case, auto-summarized).</action>
+      <action>Write brief to {workspace}/docs/{intent-slug}.intention.md.</action>
       <note>{workspace} is the current project root — the directory the user opened Claude in, not the skill's own directory.</note>
-	  <output_element required="true">Goal — one paragraph on what this achieves</output_element>
-	  <output_element required="true">Users — who benefits, who uses it</output_element>
-	  <output_element required="true">Problem — the pain or gap being addressed</output_element>
-	  <output_element required="true">Success criteria — how you'll know it's working</output_element>
-	  <output_element required="false">Constraints — technical, organizational, or timeline boundaries</output_element>
-	  <output_element required="false">Notes — any additional context captured in conversation</output_element>
-	  <note>Structure is illustrative, not prescriptive. Use whatever format best communicates the intent clearly. The required elements must be present; how they're organized is up to the writer.</note>
-	</move>
-	
-	<move n="2" name="Transition">
-	  <output>
-	    **Intent captured**: "{intent-title}"
-	
-	    Saved to: {workspace}/docs/{intent-slug}.intention.md
-	
-	  </output>
-	</move>
+      <output_element required="true">Goal — one paragraph on what this is trying to achieve</output_element>
+      <output_element required="true">Users — who benefits, who is directly affected, or who uses it</output_element>
+      <output_element required="true">Problem — the current pain, gap, or failure being addressed</output_element>
+      <output_element required="true">Desired change — what should become better</output_element>
+      <output_element required="true">Success criteria — what would count as meaningfully improved</output_element>
+      <output_element required="false">Out of scope — what is explicitly excluded or deferred from this intent</output_element>
+      <output_element required="false">Constraints — technical, organizational, timeline, or process boundaries</output_element>
+      <output_element required="false">Unknowns / open questions — what remains intentionally unresolved</output_element>
+      <output_element required="false">Notes — any additional context captured in conversation</output_element>
+      <note>Structure is illustrative, not prescriptive. The required elements must be present, but the format should optimize clarity over compliance.</note>
+    </move>
+
+    <move n="2" name="Transition">
+      <output>
+        **Intent captured**: "{intent-title}"
+
+        Saved to: {workspace}/docs/{intent-slug}.intention.md
+      </output>
+    </move>
   </phase>
+
+
+
+  <repair_loop>
+    <principle>The workflow is not linear. Shape and Calibrate are validation gates. If the user says "that's not it", repair before continuing.</principle>
+
+    <rule>
+      <trigger>User indicates the current understanding misses the real intent.</trigger>
+      <action>Stop the current summary immediately.</action>
+      <action>Do not defend the prior interpretation.</action>
+      <action>Ask what kind of miss occurred: object, problem, goal, or boundary.</action>
+      <action>Return only to the smallest earlier phase needed.</action>
+    </rule>
+
+    <routing>
+      <path>If the wording is off but the direction is basically right: return to SHAPE.</path>
+      <path>If a key dimension is missing: return to EXTRACT.</path>
+      <path>If the framing itself is wrong: return to OPEN.</path>
+    </routing>
+
+    <default_response_pattern>
+      <step>"Understood. That version missed it."</step>
+      <step>"Did I miss the object, the problem, the goal, or the boundary?"</step>
+      <step>Repair one miss at a time.</step>
+      <step>Restate again and ask whether it is now closer.</step>
+    </default_response_pattern>
+  </repair_loop>
 </flow>
 
 
@@ -268,16 +310,16 @@ Capture user intent through guided conversation — not just what users say they
 <output_artifacts>
   <artifact>
     <path>{workspace}/docs/{intent-slug}.intention.md</path>
-    <description>Structured intent brief. Required elements: Goal, Users, Problem, Success criteria. Optional: Constraints, Notes. Format is free — organize for clarity, not compliance.</description>
+    <description>Structured intent brief. Required elements: Goal, Users, Problem, Desired change, Success criteria. Optional: Out of scope, Constraints, Unknowns / open questions, Notes. Format is free — organize for clarity.</description>
   </artifact>
 </output_artifacts>
 
 
 
 <success_criteria>
-  <criterion>Root motivation reached — not just surface request captured</criterion>
-  <criterion>Understanding tested via translation, tension, and alternatives before capture</criterion>
-  <criterion>User confirmed alignment without reservation</criterion>
+  <criterion>The user's surface phrasing and real intent have been distinguished</criterion>
+  <criterion>User confirms the captured statement is basically what they mean, even if some details remain open</criterion>
+  <criterion>Key boundaries are clear enough to support downstream work: object, pain, desired change, success criteria, constraints</criterion>
+  <criterion>Important unknowns are explicitly marked instead of silently assumed</criterion>
   <criterion>Intent brief saved to {workspace}/docs/{intent-slug}.intention.md</criterion>
 </success_criteria>
-

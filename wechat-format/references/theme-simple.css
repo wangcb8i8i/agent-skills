@@ -1,0 +1,290 @@
+/**
+ * MD Simple Theme (简洁主题) by @okooo5km
+ * Resolve var() calls when outputting final HTML.
+ * Default variable values (replace if user configured otherwise):
+ *   --md-primary-color: #0F4C81
+ *   --md-font-family: -apple-system-font, BlinkMacSystemFont, Helvetica Neue, PingFang SC, Hiragino Sans GB, Microsoft YaHei UI, Microsoft YaHei, Arial, sans-serif
+ *   --md-font-size: 16px
+ *   --foreground: 0, 0%, 20%     (HSL)
+ *   --blockquote-background: #f5f5f5
+ *   --text-muted: #87867F
+ *   --code-bg: #F6F0E8
+ */
+
+/* === Base Container === */
+#output,
+#output section,
+#output container {
+  font-family: var(--md-font-family);
+  font-size: var(--md-font-size);
+  line-height: 1.75;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* === Heading Serif === */
+#output h1,
+#output h2,
+#output h3 {
+  font-family: Georgia, "Times New Roman", "PingFang SC", serif;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+}
+
+/* === Headings === */
+#output h1 {
+  padding: 0.5em 1em;
+  font-size: calc(var(--md-font-size) * 1.4);
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.05);
+  margin: 2em auto 1em;
+}
+#output h2 {
+  padding: 0.3em 1.2em;
+  font-size: calc(var(--md-font-size) * 1.3);
+  border-radius: 8px 24px 8px 24px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  margin: 3em auto 1.5em;
+}
+#output h3 {
+  padding-left: 12px;
+  font-size: calc(var(--md-font-size) * 1.2);
+  border-radius: 6px;
+  line-height: 2.4em;
+  border-left: 4px solid var(--md-primary-color);
+  border-right: 1px solid rgba(15, 76, 129, 0.10); /* ← adjust when primary color changes */
+  border-bottom: 1px solid rgba(15, 76, 129, 0.10); /* ← adjust when primary color changes */
+  border-top: 1px solid rgba(15, 76, 129, 0.10); /* ← adjust when primary color changes */
+  background: rgba(15, 76, 129, 0.08); /* ← adjust when primary color changes */
+  margin: 2em 8px 0.75em 0;
+}
+#output h4 { font-size: calc(var(--md-font-size) * 1.1); border-radius: 6px; margin: 1.5em 8px 0.5em; }
+#output h5 { font-size: var(--md-font-size); border-radius: 6px; margin: 1.5em 8px 0.5em; }
+#output h6 { font-size: var(--md-font-size); border-radius: 6px; margin: 1.5em 8px 0.5em; }
+
+/* === Paragraph === */
+#output p {
+  margin: 1.5em 8px;
+  letter-spacing: 0.1em;
+  color: hsl(var(--foreground));
+}
+#output p + p {
+  margin-top: 12px;
+}
+
+/* === Blockquote === */
+#output blockquote {
+  font-style: italic;
+  padding: 16px 20px;
+  border-left: 4px solid var(--md-primary-color);
+  border-radius: 8px;
+  color: rgba(0,0,0,0.6);
+  background: rgba(15, 76, 129, 0.06); /* ← adjust when primary color changes */
+  border-bottom: 0.2px solid rgba(0,0,0,0.04);
+  border-top: 0.2px solid rgba(0,0,0,0.04);
+  border-right: 0.2px solid rgba(0,0,0,0.04);
+  margin: 16px 8px;
+}
+#output .markdown-alert-note,
+#output .markdown-alert-tip,
+#output .markdown-alert-info,
+#output .markdown-alert-important,
+#output .markdown-alert-warning,
+#output .markdown-alert-caution {
+  font-style: italic;
+}
+
+/* === Inline Code === */
+#output .codespan {
+  font-family: 'Fira Code', Menlo, Operator Mono, Consolas, Monaco, monospace;
+  border-radius: 6px;
+  border: 1px solid rgba(15, 76, 129, 0.15); /* ← adjust when primary color changes */
+  background: rgba(15, 76, 129, 0.08);
+  padding: 3px 5px;
+}
+
+/* === Code Block === */
+#output pre.code__pre,
+#output .hljs.code__pre {
+  background: #F6F0E8;
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin: 16px 8px;
+  border: 1px solid #EBE0D0;
+  overflow-x: auto;
+  line-height: 1.7;
+}
+#output pre.code__pre > code,
+#output .hljs.code__pre > code {
+  font-family: 'Fira Code', Menlo, Operator Mono, Consolas, Monaco, monospace;
+  color: #3D3D3A;
+  background: none;
+  font-size: 14px;
+  padding: 0;
+  margin: 0;
+  white-space: nowrap;
+  overflow-x: auto;
+  text-indent: 0;
+  display: block;
+}
+
+/* === Image === */
+#output img {
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+#output figcaption,
+#output .md-figcaption {
+  text-align: center;
+  color: #888;
+  font-size: 0.8em;
+}
+
+/* === Lists === */
+#output ol { padding-left: 1.5em; color: hsl(var(--foreground)); }
+#output ul { list-style: none; padding-left: 1.5em; color: hsl(var(--foreground)); }
+#output li { margin: 0.5em 8px; color: hsl(var(--foreground)); }
+#output li + li { margin-top: 6px; }
+
+/* === HR === */
+#output hr {
+  border: 0;
+  border-top: 1.5px solid #D1CFC5;
+  margin: 2em 8px;
+}
+
+/* === Table === */
+#output table {
+  border-collapse: collapse;
+  margin: 16px 8px;
+  color: hsl(var(--foreground));
+  width: 100%;
+}
+#output thead {
+  background: rgba(15, 76, 129, 0.05); /* ← adjust when primary color changes */
+}
+#output th {
+  font-family: Menlo, Monaco, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8em;
+  padding: 10px 14px;
+  word-break: keep-all;
+  color: hsl(var(--foreground));
+  border: 1px solid rgba(51, 51, 51, 0.15); /* ← adjust when foreground changes */
+}
+#output td {
+  padding: 10px 14px;
+  word-break: keep-all;
+  color: hsl(var(--foreground));
+  border-bottom: 1px solid rgba(51, 51, 51, 0.12);
+  border-left: 1px solid rgba(51, 51, 51, 0.12);
+  border-right: 1px solid rgba(51, 51, 51, 0.12);
+}
+#output tr:last-child td {
+  border-bottom: 1px solid rgba(51, 51, 51, 0.15);
+}
+
+/* === Links === */
+#output a { color: #576b95; text-decoration: none; }
+
+/* === Semantic Components === */
+#output .callout {
+  padding: 24px;
+  border-left: 4px solid rgba(15, 76, 129, 0.35); /* ← adjust when primary color changes */
+  border-radius: 8px;
+  background: rgba(15, 76, 129, 0.04); /* ← adjust when primary color changes */
+  margin: 16px 8px;
+}
+#output .callout-warning {
+  border-left-color: #c69026;
+  background: rgba(198, 144, 38, 0.05);
+}
+#output .callout-label {
+  display: block;
+  margin-bottom: 8px;
+  font-family: Menlo, Monaco, monospace;
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #87867F;
+}
+#output .callout > :last-child { margin-bottom: 0; }
+#output .card {
+  padding: 24px;
+  border-radius: 10px;
+  margin: 16px 8px;
+  background: #f5f5f5;
+}
+#output .card-danger { border-left: 5px solid #e5534b; }
+#output .card-accent { border-left: 5px solid var(--md-primary-color); }
+#output .card-filled { background: #eee; }
+#output .flow-list {
+  list-style: none;
+  margin: 16px 8px;
+  padding: 0;
+}
+#output .flow-step {
+  display: flex;
+  gap: 16px;
+  padding: 16px 0;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  color: hsl(var(--foreground));
+}
+#output .flow-step:last-child { border-bottom: none; }
+#output .flow-num {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e8e8e8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Menlo, Monaco, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+#output .flow-step-cnt { flex: 1; min-width: 0; }
+#output .insight-list {
+  list-style: none;
+  margin: 16px 8px;
+  padding: 0;
+}
+#output .insight-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0.2em 0;
+  color: hsl(var(--foreground));
+}
+#output .insight-list li + li { margin-top: 8px; }
+#output .insight-marker {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--md-primary-color);
+  margin-top: 0.65em;
+  flex-shrink: 0;
+}
+
+/* === Dark Mode === */
+@media (prefers-color-scheme: dark) {
+  #output body { background: #1a1a2e; }
+  #output h1 { text-shadow: 1px 1px 3px rgba(255,255,255,0.03); }
+  #output h2 { box-shadow: 0 2px 6px rgba(255,255,255,0.03); }
+  #output h3 { background: rgba(15, 76, 129, 0.15); border-color: rgba(15, 76, 129, 0.3); }
+  #output blockquote { color: rgba(255,255,255,0.6); background: #2d2d44; }
+  #output pre.code__pre { background: #2a2a3e; border-color: #3d3d54; }
+  #output pre.code__pre > code { color: #d0d0d0; }
+  #output hr { border-top-color: rgba(255,255,255,0.12); }
+  #output .callout { background: rgba(15,76,129,0.15); border-color: rgba(15,76,129,0.4); }
+  #output .card { background: #2d2d44; }
+  #output .card-filled { background: #353550; }
+  #output .flow-num { background: #353550; }
+  #output .flow-step { border-color: rgba(255,255,255,0.08); }
+}
