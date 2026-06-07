@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Illustration Prompt Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sand: #f5f0e8;
+  --ink: #2c2c2c;
+  --ink-light: #5a5a5a;
+  --accent-1: #c4756e;
+  --accent-2: #6b7c4e;
+  --accent-3: #5b7b8a;
+  --accent-4: #c9a84c;
+  --rule: #d4cfc4;
+  --bg: #faf8f3;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 20px; -webkit-font-smoothing: antialiased; }
+body { font-family: 'EB Garamond', 'Noto Serif SC', Georgia, serif; background: var(--bg); color: var(--ink); line-height: 1.65; padding-top: 40px; }
+
+.hero-label, .hero h1, .hero .subtitle, .hero-meta {
+  opacity: 0; transform: translateY(18px);
+  animation: heroIn 0.7s var(--ease-out-quart) forwards;
+}
+.hero-label { animation-delay: 0.1s; }
+.hero h1 { animation-delay: 0.25s; }
+.hero .subtitle { animation-delay: 0.45s; }
+.hero-meta { animation-delay: 0.6s; }
+@keyframes heroIn { to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+.reveal {
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 0.6s var(--ease-out-quart), transform 0.6s var(--ease-out-quart);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-stagger > .reveal:nth-child(1) { transition-delay: 0s; }
+.reveal-stagger > .reveal:nth-child(2) { transition-delay: 0.08s; }
+.reveal-stagger > .reveal:nth-child(3) { transition-delay: 0.16s; }
+.reveal-stagger > .reveal:nth-child(4) { transition-delay: 0.24s; }
+
+h2 {
+  background-image: linear-gradient(var(--ink), var(--ink));
+  background-size: 0% 2px; background-position: bottom left; background-repeat: no-repeat;
+  padding-bottom: 0.5rem; transition: background-size 0.5s var(--ease-out-quart);
+}
+h2.visible { background-size: 100% 2px; }
+
+.figure img { transition: opacity 0.5s var(--ease-out-quart), transform 0.5s var(--ease-out-quart); }
+.figure:not(.visible) img { opacity: 0.4; transform: scale(0.97); }
+.figure.visible img { opacity: 1; transform: scale(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-label, .hero h1, .hero .subtitle, .hero-meta { animation: none; opacity: 1; transform: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  h2 { background-size: 100% 2px; transition: none; }
+  .figure img { opacity: 1; transform: none; transition: none; }
+  .slide { transition: none; }
+}
+
+.mode-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: var(--ink); color: white;
+  display: flex; align-items: center; justify-content: center; gap: 1rem;
+  padding: 0.5rem 1rem; font-family: 'DM Sans', sans-serif; font-size: 0.6rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  transition: transform 0.35s var(--ease-out-quart), opacity 0.35s var(--ease-out-quart);
+}
+.mode-bar.hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+.mode-bar button { background: none; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.3em 1em; font-family: inherit; font-size: inherit; letter-spacing: inherit; text-transform: uppercase; cursor: pointer; border-radius: 2px; transition: all 0.2s; }
+.mode-bar button.active { background: white; color: var(--ink); border-color: white; }
+.mode-bar button:hover { border-color: white; }
+
+.audio-controls { display: flex; align-items: center; gap: 0.6rem; margin-left: 1.5rem; padding-left: 1.5rem; border-left: 1px solid rgba(255,255,255,0.2); }
+.audio-controls button { background: none; border: 1px solid rgba(255,255,255,0.3); color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 2px; font-size: 14px; transition: all 0.2s; }
+.audio-controls button:hover { border-color: white; }
+.audio-controls button.playing { background: var(--accent-1); border-color: var(--accent-1); }
+.audio-progress { width: 100px; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+.audio-progress-fill { height: 100%; background: var(--accent-1); width: 0%; transition: width 0.3s; }
+.audio-time { font-variant-numeric: tabular-nums; min-width: 3em; }
+
+.hero { min-height: 65vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 4rem 2rem 3rem; background: var(--sand); border-bottom: 3px solid var(--ink); position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; }
+.hero-inner { max-width: 1100px; margin: 0 auto; width: 100%; position: relative; z-index: 1; }
+.hero-label { font-family: 'DM Sans', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent-3); margin-bottom: 1.5rem; }
+.hero h1 { font-size: 3.8rem; line-height: 1.05; font-weight: 700; letter-spacing: -0.02em; max-width: 14em; margin-bottom: 1.2rem; }
+.hero .subtitle { font-size: 1.35rem; font-style: italic; color: var(--ink-light); max-width: 32em; line-height: 1.4; }
+.hero-meta { margin-top: 2rem; font-family: 'DM Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); display: flex; gap: 2rem; flex-wrap: wrap; }
+.container { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem; }
+
+.exec-summary { background: var(--sand); border: 2px solid var(--ink); padding: 2.5rem; margin-bottom: 4rem; position: relative; }
+.exec-summary::before { content: 'Executive Summary'; position: absolute; top: -0.6em; left: 1.5rem; background: var(--sand); padding: 0 0.6rem; font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-3); }
+.exec-summary p { font-size: 1.15rem; line-height: 1.6; margin-bottom: 1rem; }
+.exec-summary p:last-child { margin-bottom: 0; }
+
+.section { margin-bottom: 4rem; }
+.section-number { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-1); margin-bottom: 0.5rem; }
+h2 { font-size: 2.4rem; font-weight: 700; line-height: 1.15; letter-spacing: -0.015em; margin-bottom: 1.5rem; }
+h3 { font-size: 1.4rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.8rem; }
+p { font-size: 1rem; line-height: 1.65; margin-bottom: 1rem; max-width: 38em; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin: 2rem 0; }
+.two-col p { max-width: none; }
+
+.stat-card { background: var(--sand); padding: 1.8rem; border-left: 4px solid var(--accent-1); }
+.stat-card .number { font-family: 'DM Sans', sans-serif; font-size: 3.2rem; font-weight: 700; line-height: 1; color: var(--accent-1); letter-spacing: -0.03em; }
+.stat-card .label { font-size: 0.85rem; line-height: 1.35; margin-top: 0.5rem; color: var(--ink-light); }
+.stat-card .source { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent-3); margin-top: 0.6rem; }
+.stat-card:nth-child(2) { border-left-color: var(--accent-2); }
+.stat-card:nth-child(2) .number { color: var(--accent-2); }
+.stat-card:nth-child(3) { border-left-color: var(--accent-3); }
+.stat-card:nth-child(3) .number { color: var(--accent-3); }
+.stat-card:nth-child(4) { border-left-color: var(--accent-4); }
+.stat-card:nth-child(4) .number { color: var(--accent-4); }
+
+.figure { margin: 2.5rem 0; }
+.figure img { width: 100%; max-width: 600px; display: block; border: 1px solid var(--rule); }
+.figure.full img { max-width: 100%; }
+.figure.float-right { float: right; margin: 0 0 1.5rem 2.5rem; max-width: 340px; }
+.figure.float-right img { max-width: 100%; }
+.figure-caption { font-family: 'DM Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.05em; color: var(--ink-light); margin-top: 0.4rem; text-transform: uppercase; }
+
+.data-table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.85rem; }
+.data-table th { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; text-align: left; padding: 0.8rem 1rem; border-bottom: 2px solid var(--ink); color: var(--ink-light); }
+.data-table td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--rule); vertical-align: top; line-height: 1.4; }
+.data-table tr:last-child td { border-bottom: 2px solid var(--ink); }
+
+.rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0; }
+.rec-card { padding: 1.8rem; border: 1px solid var(--rule); background: white; }
+.rec-card .rec-number { font-family: 'DM Sans', sans-serif; font-size: 2rem; font-weight: 700; color: var(--rule); line-height: 1; margin-bottom: 0.5rem; }
+.rec-card h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.6rem; }
+.rec-card p { font-size: 0.85rem; color: var(--ink-light); margin-bottom: 0; max-width: none; }
+
+.prose-list { margin: 1.5rem 0; }
+.prose-list dt { font-weight: 600; font-size: 1rem; margin-top: 1rem; }
+.prose-list dt:first-child { margin-top: 0; }
+.prose-list dd { font-size: 0.9rem; color: var(--ink-light); margin-left: 0; margin-top: 0.2rem; }
+
+.badge { display: inline-block; font-family: 'DM Sans', sans-serif; font-size: 0.5rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.2em 0.6em; border-radius: 2px; }
+.badge-accent { background: var(--accent-2); color: white; }
+
+.divider { border: none; border-top: 1px solid var(--rule); margin: 3rem 0; }
+
+.footer { border-top: 2px solid var(--ink); padding: 2rem 0; margin-top: 4rem; }
+.footer-inner { max-width: 1100px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; flex-wrap: wrap; }
+.footer-col h4 { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.8rem; }
+.footer-col a { display: block; font-size: 0.75rem; color: var(--accent-3); text-decoration: none; line-height: 1.8; }
+.footer-col a:hover { text-decoration: underline; }
+
+body.slide-mode .article-content { display: none; }
+body.slide-mode .slide-deck { display: flex; }
+body:not(.slide-mode) .slide-deck { display: none; }
+
+.slide-deck { position: fixed; inset: 0; top: 40px; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); overflow: hidden; }
+
+.slide {
+  position: absolute; inset: 0; top: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 3rem 5rem;
+  opacity: 0; display: none; transform: translateY(12px);
+  pointer-events: none;
+}
+.slide.active {
+  opacity: 1; display: flex; transform: translateY(0); pointer-events: auto;
+  animation: slideIn 0.4s var(--ease-out-quart);
+}
+.slide-inner { max-width: 1000px; width: 100%; }
+.slide .slide-label { font-family: 'DM Sans', sans-serif; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent-3); margin-bottom: 1rem; }
+.slide h2 { font-size: 3rem; line-height: 1.12; background: none; padding: 0; margin-bottom: 1.2rem; }
+.slide p { font-size: 1.15rem; line-height: 1.65; max-width: 34em; }
+.slide img { max-height: 380px; border: 1px solid var(--rule); }
+
+.slide .slide-stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; margin: 1.5rem 0; }
+.slide .slide-stat .number { font-family: 'DM Sans', sans-serif; font-size: 3.5rem; font-weight: 700; line-height: 1; }
+.slide .slide-stat .label { font-size: 0.8rem; color: var(--ink-light); margin-top: 0.3rem; line-height: 1.3; }
+
+.slide .slide-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; margin-top: 1.5rem; }
+.slide .slide-finding { margin-bottom: 1rem; }
+.slide .slide-finding h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.2rem; }
+.slide .slide-finding p { font-size: 0.85rem; color: var(--ink-light); margin-bottom: 0; }
+
+.slide .slide-grid-3x2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2rem; margin-top: 1.2rem; }
+.slide .slide-card { padding: 1.2rem; border: 1px solid var(--rule); background: white; }
+.slide .slide-card .card-num { font-family: 'DM Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: var(--rule); line-height: 1; }
+.slide .slide-card h4 { font-size: 0.9rem; font-weight: 600; margin: 0.3rem 0; }
+.slide .slide-card p { font-size: 0.72rem; color: var(--ink-light); margin: 0; max-width: none; line-height: 1.4; }
+
+.slide .sources-table { font-size: 0.78rem; width: 100%; }
+.slide .sources-table td { padding: 0.4rem 0.8rem; border-bottom: 1px solid var(--rule); }
+.slide .sources-table a { color: var(--accent-3); }
+
+.slide-nav {
+  position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 100;
+  display: none; align-items: center; gap: 1.5rem;
+  font-family: 'DM Sans', sans-serif;
+  transition: transform 0.35s var(--ease-out-quart), opacity 0.35s var(--ease-out-quart);
+}
+body.slide-mode .slide-nav { display: flex; }
+.slide-nav.hidden { transform: translateX(-50%) translateY(120%); opacity: 0; pointer-events: none; }
+.slide-nav button { background: none; border: none; color: var(--ink); cursor: pointer; font-size: 2rem; line-height: 1; padding: 0.3em 0.5em; border-radius: 3px; transition: background 0.2s, color 0.2s; }
+.slide-nav button:hover { background: var(--sand); }
+.slide-dots { display: flex; gap: 7px; }
+.slide-dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--rule); transition: all 0.3s var(--ease-out-quart); cursor: pointer; }
+.slide-dots span:hover { background: var(--ink-light); }
+.slide-dots span.active { background: var(--accent-1); transform: scale(1.4); }
+
+@media (max-width: 768px) {
+  html { font-size: 17px; }
+  .hero h1 { font-size: 2.4rem; }
+  .two-col, .rec-grid { grid-template-columns: 1fr; }
+  .figure.float-right { float: none; max-width: 100%; margin: 2rem 0; }
+  .hero-meta { flex-direction: column; gap: 0.5rem; }
+  .footer-inner { flex-direction: column; }
+  .stat-card .number { font-size: 2.4rem; }
+  .slide { padding: 2rem 1.5rem; }
+  .slide .slide-stat-row { grid-template-columns: 1fr 1fr; }
+  .slide .slide-grid-3x2 { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- MODE BAR -->
+<div class="mode-bar hidden">
+  <button id="btn-article" class="active" onclick="setMode('article')" aria-label="切换到文章模式">Article</button>
+  <button id="btn-slides" onclick="setMode('slides')" aria-label="切换到幻灯片模式">Slides</button>
+  <div class="audio-controls">
+    <button id="btn-play" onclick="toggleAudio()" title="播放讲解">&#9654;</button>
+    <div class="audio-progress"><div class="audio-progress-fill" id="progress-fill"></div></div>
+    <span class="audio-time" id="audio-time">0:00</span>
+  </div>
+</div>
+
+<!-- ===== 文章模式 ===== -->
+<div class="article-content">
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">技能文档</div>
+    <h1>Illustration Prompt Generator</h1>
+    <p class="subtitle">将文档转化为视觉——结构化的提示词工程系统</p>
+    <div class="hero-meta">
+      <span>6 阶段工作流</span>
+      <span>3 道确认关卡</span>
+      <span>50+ 质量检测</span>
+      <span>6 种视觉风格</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="exec-summary">
+  <p>Illustration-prompt 技能接收文档（文件、URL、粘贴文本或对话上下文），分析其内容，并生成可直接投喂图像生成模型的高质量提示词。它通过一套严谨的六阶段工作流运作——摄取、理解、锚定、规划、生成、输出——在三个关键决策点设置用户确认关卡。</p>
+  <p>这套系统与随意写提示词的本质区别在于它的系统性：它从六个维度对候选配图节点打分，建立跨图复用的元素词典，在生成任何提示词之前锚定视觉风格和调色板，并在交付前执行五十多项质量检测。每个视觉元素都必须能回溯到原始素材——确保生成的配图忠实于原文，而非看似合理的幻觉。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">Section 01</div>
+  <h2>什么是 Illustration-Prompt 技能？</h2>
+  <p>这是 agent-skill 生态中连接文字内容与视觉沟通的桥梁。与随意写提示词不同，它遵循一条可审计的严谨工作流：每个视觉元素必须通过三类溯源之一回到原始素材——直接文本证据、合理推断、或已记录的视觉转化方案。</p>
+  <p>技能支持四种输入方式：本地文件路径、URL（通过 web 工具抓取）、粘贴文本、以及对话上下文。无论内容领域如何——技术、科学、人文、商业、教育——它都能根据文章类型、受众和语气自动适配视觉策略。教程得到步骤图加干净矢量；分析文章得到隐喻图像加戏剧光影。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">Section 02</div>
+  <h2>六阶段工作流</h2>
+  <p>整个流程按序经过六个阶段，其中三个阶段需要用户确认后才能继续：</p>
+
+  <div class="two-col">
+    <div>
+      <p><strong>阶段 1 — 摄取。</strong>接收输入文档或上下文。技能确定来源类型并读取全文。</p>
+      <p><strong>阶段 2 — 理解。</strong>提取领域、受众、类型、语气。对候选配图节点进行六因子评分：概念密度、理解增益、叙事重要性、视觉可译性、复用价值、传播价值。需要用户确认。</p>
+      <p><strong>阶段 3 — 产出锚定。</strong>选择产出形态——内联插图、封面图、轮廓图、信息图、社交卡片或演示配图——并锚定目标模型（GPT Image、Midjourney、Flux、SDXL 或通用）。需要用户确认。</p>
+    </div>
+    <div>
+      <p><strong>阶段 4 — 规划。</strong>系统的核心。用户选择视觉风格基调，然后技能生成完整的配图规划——每张图的意图表达、位置预设、文字策略、以及跨图复用的元素词典。需要用户确认。</p>
+      <p><strong>阶段 5 — 生成。</strong>将每张图的提示词写成自然语言段落，遵循严格写作规则：祈使句开头、hex 色值必用、内嵌语义锚点、阅读顺序引导、明确排除项。</p>
+      <p><strong>阶段 6 — 输出。</strong>每张图独立写入 <code>.prompt</code> 文件，包含 Context、Style Anchor 和 Prompt 三个区块。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-number">Section 03</div>
+  <h2>候选配图评分系统</h2>
+  <p>并非每个段落都值得配图。技能从六个维度评估候选节点，产生综合优先级分数，决定哪些概念获得配图以及提示词的详细程度：</p>
+
+  <div class="stat-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+    <div class="stat-card">
+      <div class="number">6</div>
+      <div class="label">评分维度：概念密度、理解增益、叙事重要性、视觉可译性、复用价值、传播价值</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">3</div>
+      <div class="label">密度级别决定提示词详略：高密度多层细节、中密度结构清晰、低密度极简氛围</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">5</div>
+      <div class="label">视觉角色：帮助理解、装饰点缀、数据对比、流程说明、架构示意</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">6</div>
+      <div class="label">文章类型映射视觉策略：教程、观点、技术报告、产品文档、博客等各有一套</div>
+    </div>
+  </div>
+
+  <p>评分系统防止了"概念密度高就一定配图"的陷阱。一个概念密度高但叙事重要性低的节点，可能会被一个密度中等但承载核心论点的节点超越。技能还会考虑概念是否跨图复用——可复用元素进入视觉词汇表，确保整篇文档中视觉表现一致。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">Section 04</div>
+  <h2>规划阶段详解</h2>
+  <p>阶段 4 是技能将分析转化为可执行设计的核心环节，分为两个子阶段。</p>
+
+  <h3>视觉风格选择</h3>
+  <p>用户从六种视觉风格基调中选择：简洁技术风（矢量扁平）、温暖教程风（干净明亮）、高对比分析风（戏剧光影）、产品文档风（信息图风格）、冷静报告风（精确几何）、手记博客风（手绘质感）。对于 HTML 输入，技能会自动检测文档自身的配色和字体作为参考。</p>
+
+  <h3>元素词典</h3>
+  <p>对于多图批次，技能构建一个视觉词汇表——将复用概念映射到特定视觉表现的共享字典。例如，Raft 共识算法中的 Candidate 实体一次定义为"深蓝灰六边形，发光边缘"，后续所有图像复用同一描述。这保证了跨图视觉一致性，无需每张图重新发明一遍。</p>
+
+  <h3>单图独立配置</h3>
+  <p>每张配图获得独立配置：意图表达（读者应理解什么）、位置预设（文中何处出现）、视觉角色（帮助理解 vs 装饰点缀）、文字策略（无文字/仅标签/仅数字/精确文字）、以及目标模型。配置还记录源信息溯源——原文依据、合理推导、视觉转化方案。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">Section 05</div>
+  <h2>提示词写作规范</h2>
+  <p>生成阶段执行一套精确的写作纪律。提示词始终是英文自然语言段落，从不使用列表或要点。第一句是祈使句总述场景，紧接着核心声明句说明该图要传达什么。</p>
+
+  <p>主实体首先出场，描述最详细——形状、hex 色值、大小、状态。次实体跟随其后，使用 <em>while</em>、<em>in contrast to</em> 等标记显示差异。关系用动作动词表达：<em>radiates outward from</em>、<em>connects through</em>、<em>flows from ... to</em>。颜色必须使用精确 hex 码——<code>#FF6B35</code> 而非"amber"——且每个 hex 必须来自项目色板。</p>
+
+  <p>每个提示词嵌入三层叙事线索：阅读顺序（引导视线从主到次）、语义锚点（通过 <em>representing</em>、<em>indicating</em>、<em>depicting</em> 将实体绑定到概念）、状态叙事（解释视觉差异背后的业务含义）。提示词以排除项（<code>No text labels, no UI elements</code>）和宽高比收尾。</p>
+
+  <div class="figure" style="background:var(--sand);padding:2rem;border:1px solid var(--rule);margin:2rem 0;">
+    <p style="font-family:'DM Sans';font-size:0.55rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-light);margin-bottom:1rem;">提示词结构示例</p>
+    <p style="font-size:0.85rem;font-style:italic;color:var(--ink-light);max-width:none;">Create a hexagonal node at center representing the Candidate server, glowing #FF6B35 to indicate active vote-request state. Four circular nodes surround it in light gray #D4CFC4, representing the Follower replicas, while confirmation checkmarks in green #6B7C4E overlay three of them to indicate majority agreement has been achieved. RequestVote RPC arrows radiate outward from center hexagon to each surrounding circle, dashed lines indicating in-flight messages. Start from the center hexagon, follow the arrows clockwise to each Follower, ending at the three confirmed green checkmarks. No text labels, no UI chrome. Aspect ratio 16:9.</p>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-number">Section 06</div>
+  <h2>质量保证体系</h2>
+  <p>交付前，每个提示词批次经历全面的语义扫描，覆盖十大类别，每类三到五项具体检测。系统验证：规划阶段的每个实体都出现在提示词中、所有 hex 值与项目色板一致、关系通过动作动词表达且方向正确、空间布局已描述（径向/线性/网格/分割）、以及光源类型和对比度均已明确。</p>
+
+  <p>扫描还强制跨图一致性——复用概念在所有提示词中必须使用完全相同的视觉描述。源信息溯源检查确保没有幻觉元素混入。叙事完整性检查验证每个主实体都有语义锚点、提示词包含阅读顺序引导、状态差异附带了业务含义解释。</p>
+
+  <table class="data-table">
+    <tr><th>类别</th><th>检测目标</th><th>检查项</th></tr>
+    <tr><td>实体覆盖</td><td>所有规划实体出现，数量准确</td><td>3</td></tr>
+    <tr><td>色值精确</td><td>Hex 与色板一致，无别名</td><td>2</td></tr>
+    <tr><td>关系表达</td><td>动作用动作动词，方向正确</td><td>2</td></tr>
+    <tr><td>空间布局</td><td>布局类型、视角、构图已描述</td><td>3</td></tr>
+    <tr><td>光照氛围</td><td>光源、对比度、氛围关键词</td><td>3</td></tr>
+    <tr><td>格式排除</td><td>宽高比、排除项、无模型参数</td><td>3</td></tr>
+    <tr><td>词汇表一致性</td><td>跨图复用使用相同描述</td><td>2</td></tr>
+    <tr><td>上下文一致性</td><td>位置和摘要与原文一致</td><td>2</td></tr>
+    <tr><td>源信息溯源</td><td>元素可追溯，无禁止添加</td><td>4</td></tr>
+    <tr><td>叙事完整性</td><td>语义锚点、阅读顺序、状态叙事</td><td>4</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-number">Section 07</div>
+  <h2>反模式</h2>
+  <p>技能明确记录了需要避免的模式，其中许多源于将提示词生成视为随意写作而非工程规范。用中文写提示词、用颜色名称代替 hex 值、把多张图塞到一个文件、跳过风格确认，都属于反模式。</p>
+
+  <p>更微妙的是，技能警告不要在没有源信息溯源的情况下生成提示词。每个视觉元素必须能追溯到原始文档——要么是直接陈述、合理推断、要么是已记录的视觉转化。系统维护一个"禁止添加"列表，贯穿所有阶段，确保用户的约束被一致执行。</p>
+
+  <p>最重要的反模式或许是"概念密度高就应该配图"。六因子评分系统的存在正是为了防止这一点：概念密度高但理解增益、叙事重要性、视觉可译性低的时候，不应触发配图。一张定位精准的简单图胜过一张外围概念的精美图。</p>
+</div>
+
+<div class="section">
+  <div class="section-number">Section 08</div>
+  <h2>按内容类型的视觉策略</h2>
+  <p>技能将文章类型映射到视觉策略——这个映射影响从风格调色板到提示词详细度的所有后续决策。</p>
+
+  <dl class="prose-list">
+    <dt>教程与操作指南</dt>
+    <dd>步骤可视化，截图风格元素，干净矢量图形，明亮调色板，清晰的递进标记。每张图信息密度低，序列清晰度高。</dd>
+    <dt>观点与分析文章</dt>
+    <dd>隐喻插图，戏剧化光影，抽象拓扑，丰富纹理，高对比度。视觉承载情感权重和概念框架，而非字面描绘。</dd>
+    <dt>技术报告</dt>
+    <dd>精确几何图，数据可视化，中性调色板。氛围冷静精确，中等细节密度，准确优先于氛围。</dd>
+    <dt>产品文档</dt>
+    <dd>UI 和流程导向，简化架构图，干净明亮，高信息密度，含标注和说明。</dd>
+    <dt>博客与笔记</dt>
+    <dd>思维导图风格，手绘线描质感，松散构图，有机形状。精度要求低，个性要求高。</dd>
+  </dl>
+</div>
+
+<div class="section">
+  <div class="section-number">Section 09</div>
+  <h2>为什么这套方法有效</h2>
+  <p>提示词工程不是创意写作——是结构化翻译。目标不是写出"漂亮"的提示词，而是写出<em>忠实</em>的提示词——那些描述经图像模型生成后，能准确反映源文档含义的提示词。</p>
+
+  <p>三个设计决策支撑了这套方法。第一，源信息溯源要求：每个视觉元素必须可追溯到原文、合理推断或已记录的隐喻。这让过程可审计，防止幻觉。第二，阶段 2、3、4 的确认关卡在歧义最高的节点强制人工判断——文档说了什么、要产出什么、如何视觉化。第三，质量检测编码了具体、可测试的标准而非模糊的风格偏好。一个提示词要么包含了阅读顺序引导，要么没有；一个实体要么在提示词中，要么缺失。</p>
+
+  <p>结果是一套能稳定产出高质量提示词的系统，附带可衡量的质量指标——与随意写提示词那种不可预测的"碰运气"方式形成鲜明对比。</p>
+</div>
+
+<hr class="divider">
+
+<div class="footer">
+  <div class="footer-inner">
+    <div class="footer-col">
+      <h4>参考</h4>
+      <p style="font-size:0.75rem;color:var(--ink-light);">基于 agent-skills 仓库中 illustration-prompt 技能规范文档（SKILL.md）。</p>
+    </div>
+    <div class="footer-col">
+      <h4>相关技能</h4>
+      <a href="#">imagegen — GPT Image 2 集成</a>
+      <a href="#">present — 语音旁白演示</a>
+      <a href="#">visual-explainer — HTML 可视化解释器</a>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+</div><!-- /article-content -->
+
+<!-- ===== 幻灯片模式 ===== -->
+<div class="slide-deck">
+
+<div class="slide active" data-slide="0" data-audio="slide-title" data-read-time="8">
+  <div class="slide-inner">
+    <div class="slide-label">技能文档</div>
+    <h2 style="font-size:3.8rem;">Illustration Prompt<br>Generator</h2>
+    <p style="font-style:italic;color:var(--ink-light);font-size:1.3rem;margin-top:1rem;">将文档转化为视觉——结构化的提示词工程系统</p>
+    <p style="font-family:'DM Sans';font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-light);margin-top:2rem;">6 阶段工作流 &bull; 3 道确认关卡 &bull; 50+ 质量检测</p>
+  </div>
+</div>
+
+<div class="slide" data-slide="1" data-audio="slide-summary" data-read-time="16">
+  <div class="slide-inner">
+    <div class="slide-label">执行摘要</div>
+    <p style="font-size:1.5rem;line-height:1.5;max-width:30em;">一套<strong style="color:var(--accent-1)">六阶段</strong>工作流，将文档转化为可投喂图像模型的提示词，<strong style="color:var(--accent-2)">源信息可审计</strong>，附带<strong style="color:var(--accent-3)">五十多项质量检测</strong>。</p>
+    <p style="font-size:1.2rem;margin-top:1.5rem;max-width:34em;color:var(--ink-light);">阶段 2–4 需要用户确认。系统从六个维度为候选配图评分，建立跨图复用的元素词典，在生成提示词之前锚定视觉风格。</p>
+  </div>
+</div>
+
+<div class="slide" data-slide="2" data-audio="slide-phases" data-read-time="18">
+  <div class="slide-inner">
+    <div class="slide-label">工作流</div>
+    <h2>六阶段流水线</h2>
+    <p style="margin-bottom:1.5rem;">每个阶段输出作为下个阶段输入，三个决策点需人工判断。</p>
+    <div class="slide-two-col">
+      <div>
+        <div class="slide-finding"><h4>1 &rarr; 摄取</h4><p>从文件、URL、粘贴文本或对话上下文读取</p></div>
+        <div class="slide-finding"><h4>2 &rarr; 理解</h4><p>提取领域/受众/类型/语气；六因子评分候选节点</p></div>
+        <div class="slide-finding"><h4>3 &rarr; 产出锚定</h4><p>选择产出形态和目标模型；用户确认方向</p></div>
+      </div>
+      <div>
+        <div class="slide-finding"><h4>4 &rarr; 规划</h4><p>选择视觉风格；构建元素词典；分配单图意图和文字策略</p></div>
+        <div class="slide-finding"><h4>5 &rarr; 生成</h4><p>英文自然语言段落：hex 色值、语义锚点、阅读顺序</p></div>
+        <div class="slide-finding"><h4>6 &rarr; 输出</h4><p>写入 .prompt 文件，包含 Context + Style Anchor + Prompt</p></div>
+      </div>
+    </div>
+    <p style="font-family:'DM Sans';font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent-1);margin-top:1rem;">&#9654; 阶段 2、3、4 需要用户确认后方可继续</p>
+  </div>
+</div>
+
+<div class="slide" data-slide="3" data-audio="slide-scoring" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">评分系统</div>
+    <h2>六因子候选评估</h2>
+    <div class="slide-stat-row">
+      <div class="slide-stat"><div class="number" style="color:var(--accent-1)">6</div><div class="label">每个候选节点的评分维度</div></div>
+      <div class="slide-stat"><div class="number" style="color:var(--accent-2)">3</div><div class="label">概念密度级别<br>高 &rarr; 多层细节</div></div>
+      <div class="slide-stat"><div class="number" style="color:var(--accent-3)">5</div><div class="label">视觉角色：理解、装饰、数据、流程、架构</div></div>
+      <div class="slide-stat"><div class="number" style="color:var(--accent-4)">3</div><div class="label">流水线中用户确认关卡数</div></div>
+    </div>
+    <p style="font-size:0.85rem;margin-top:1rem;color:var(--ink-light);max-width:36em;">概念密度并非决定优先级——系统综合理解增益、叙事重要性、视觉可译性、复用价值和传播价值得出综合分。</p>
+  </div>
+</div>
+
+<div class="slide" data-slide="4" data-audio="slide-planning" data-read-time="16">
+  <div class="slide-inner">
+    <div class="slide-label">阶段 4</div>
+    <h2>规划——核心决策</h2>
+    <p>从<strong>六种风格基调</strong>中选择：简洁技术、温暖教程、高对比分析、产品文档、冷静报告、手记博客。HTML 输入时自动检测文档自有风格。</p>
+    <div class="slide-two-col" style="margin-top:1.2rem;">
+      <div>
+        <div class="slide-finding"><h4>元素词典</h4><p>复用概念映射到特定视觉表现——颜色、形状、渲染特征——保证跨图一致性。</p></div>
+      </div>
+      <div>
+        <div class="slide-finding"><h4>单图独立配置</h4><p>每张配图独立设定意图、位置、视觉角色、文字策略、目标模型和源信息溯源。</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide" data-slide="5" data-audio="slide-write" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">阶段 5</div>
+    <h2>提示词写作规范</h2>
+    <div class="slide-two-col">
+      <div>
+        <div class="slide-finding"><h4>结构规则</h4><p>祈使句开头 + 核心声明。主实体先出场（hex 色值 + 状态）。次实体用对比标记。关系用动作动词。</p></div>
+        <div class="slide-finding"><h4>叙事层次</h4><p>阅读顺序引导视线。语义锚点（representing/indicating/depicting）绑定实体到概念。状态叙事解释差异含义。</p></div>
+      </div>
+      <div>
+        <div class="slide-finding"><h4>溯源规则</h4><p>每个元素必须追溯到原文、合理推断或已记录隐喻。Hex 码必用，禁止颜色名称。不含模型专用参数。</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide" data-slide="6" data-audio="slide-quality" data-read-time="16">
+  <div class="slide-inner">
+    <div class="slide-label">质量</div>
+    <h2>十大类全面验证</h2>
+    <p style="margin-bottom:1rem;">每个提示词批次交付前经过完整的语义扫描检测。</p>
+    <div class="slide-grid-3x2">
+      <div class="slide-card"><div class="card-num">01</div><h4>实体覆盖</h4><p>所有规划实体出现，数量准确</p></div>
+      <div class="slide-card"><div class="card-num">02</div><h4>色值精确</h4><p>Hex 与色板一致，无别名描述</p></div>
+      <div class="slide-card"><div class="card-num">03</div><h4>关系表达</h4><p>动作动词 + 正确方向</p></div>
+      <div class="slide-card"><div class="card-num">04</div><h4>空间布局</h4><p>类型、视角、构图已描述</p></div>
+      <div class="slide-card"><div class="card-num">05</div><h4>源信息溯源</h4><p>每个元素可追溯到原文</p></div>
+      <div class="slide-card"><div class="card-num">06</div><h4>叙事完整性</h4><p>语义锚点 + 阅读顺序 + 状态叙事</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="slide" data-slide="7" data-audio="slide-compare" data-read-time="16">
+  <div class="slide-inner">
+    <div class="slide-label">对比</div>
+    <h2>朴素 vs 工程化提示词</h2>
+    <div class="slide-two-col">
+      <div style="background:var(--sand);padding:1.5rem;border:1px solid var(--rule);">
+        <p style="font-family:'DM Sans';font-size:0.55rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-1);margin-bottom:0.5rem;">朴素</p>
+        <p style="font-size:0.82rem;font-style:italic;color:var(--ink-light);max-width:none;">A diagram showing Raft leader election with a leader node and follower nodes.</p>
+      </div>
+      <div style="background:var(--sand);padding:1.5rem;border:1px solid var(--rule);">
+        <p style="font-family:'DM Sans';font-size:0.55rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-2);margin-bottom:0.5rem;">工程化</p>
+        <p style="font-size:0.82rem;max-width:none;">A hexagonal node at center representing the Candidate, glowing #FF6B35, with four circular Follower nodes around it. Three show green confirmation overlays indicating majority. RequestVote arrows radiate outward. No text labels. 16:9.</p>
+      </div>
+    </div>
+    <p style="font-size:0.95rem;font-weight:600;margin-top:1rem;">工程化提示词控制颜色、形状、空间布局、阅读顺序和叙事含义——朴素提示词只能指望模型猜对。</p>
+  </div>
+</div>
+
+<div class="slide" data-slide="8" data-audio="slide-strategy" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">适配</div>
+    <h2>按内容类型的视觉策略</h2>
+    <p style="margin-bottom:1rem;">技能自动将文章类型映射到视觉策略。</p>
+    <div class="slide-two-col">
+      <div>
+        <div class="slide-finding"><h4>教程</h4><p>步骤可视化，干净矢量，明亮调色板，递进清晰</p></div>
+        <div class="slide-finding"><h4>观点分析</h4><p>隐喻图像，戏剧光影，抽象拓扑，高对比度</p></div>
+        <div class="slide-finding"><h4>技术报告</h4><p>精确几何，数据图表，中性调色板，冷静氛围</p></div>
+      </div>
+      <div>
+        <div class="slide-finding"><h4>产品文档</h4><p>UI/流程导向，简化架构，干净明亮，含标注</p></div>
+        <div class="slide-finding"><h4>博客笔记</h4><p>思维导图风，手绘质感，松散构图，有机形状</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide" data-slide="9" data-audio="slide-antipatterns" data-read-time="14">
+  <div class="slide-inner">
+    <div class="slide-label">反模式</div>
+    <h2>常见错误</h2>
+    <div class="slide-two-col">
+      <div>
+        <div class="slide-finding"><h4>中文提示词</h4><p>英文提示词在各图像模型中结果更稳定</p></div>
+        <div class="slide-finding"><h4>颜色名代替 hex</h4><p>"amber" 有歧义，#FFB84D 才精确</p></div>
+        <div class="slide-finding"><h4>多张图塞一个文件</h4><p>每张配图独立 .prompt 文件</p></div>
+      </div>
+      <div>
+        <div class="slide-finding"><h4>跳过风格确认</h4><p>生成前必须锁定视觉调色板和元素词典</p></div>
+        <div class="slide-finding"><h4>无文字策略</h4><p>必须声明每张图的文字策略：无字/仅标签/仅数字/精确文字</p></div>
+        <div class="slide-finding"><h4>概念密就配图</h4><p>优先级由综合分决定，不只看概念密度</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide" data-slide="10" data-audio="slide-why" data-read-time="12">
+  <div class="slide-inner">
+    <div class="slide-label">设计哲学</div>
+    <h2>为什么这套方法有效</h2>
+    <p style="font-size:1.2rem;max-width:30em;">提示词工程不是创意写作——它是<strong style="color:var(--accent-1)">结构化翻译</strong>。目标是忠实的提示词，而非漂亮的。</p>
+    <p style="font-size:1rem;margin-top:1.2rem;color:var(--ink-light);max-width:32em;">三大支柱：源信息可审计、歧义节点人工判断、可测试的质量标准取代模糊风格偏好。</p>
+  </div>
+</div>
+
+<div class="slide" data-slide="11" data-audio="slide-sources" data-read-time="10">
+  <div class="slide-inner">
+    <div class="slide-label">参考</div>
+    <h2 style="font-size:2rem;">来源</h2>
+    <table class="sources-table">
+      <tr><td><strong>illustration-prompt SKILL.md</strong></td><td>技能规范主文档，500 行，详述六阶段工作流、评分系统、质量检测和反模式</td></tr>
+      <tr><td><strong>metaphor-guide.md</strong></td><td>概念到视觉隐喻参考，溯源风险评估，类型约束</td></tr>
+      <tr><td><strong>type-strategies.md</strong></td><td>各配图类型的特定 Prompt 策略</td></tr>
+    </table>
+    <p style="font-family:'DM Sans';font-size:0.65rem;color:var(--ink-light);margin-top:2rem;text-transform:uppercase;letter-spacing:0.1em;">agent-skills 仓库 &bull; .agents/skills/illustration-prompt/</p>
+  </div>
+</div>
+
+</div>
+
+<!-- 幻灯片导航 -->
+<div class="slide-nav hidden">
+  <button onclick="prevSlide()" title="上一页">&larr;</button>
+  <div class="slide-dots" id="slide-dots"></div>
+  <button onclick="nextSlide()" title="下一页">&rarr;</button>
+</div>
+
+<script>
+let barVisMode = 'zone';
+const modeBar = document.querySelector('.mode-bar');
+const slideNav = document.querySelector('.slide-nav');
+let barHideTimer = null;
+let navHideTimer = null;
+
+function updateBarVis(mouseY) {
+  if (barVisMode === 'show') { modeBar.classList.remove('hidden'); slideNav.classList.remove('hidden'); return; }
+  if (barVisMode === 'hide') { modeBar.classList.add('hidden'); slideNav.classList.add('hidden'); return; }
+  const vh = window.innerHeight;
+  if (mouseY <= vh * 0.2) {
+    modeBar.classList.remove('hidden');
+    clearTimeout(barHideTimer);
+    barHideTimer = setTimeout(() => modeBar.classList.add('hidden'), 2000);
+  }
+  if (mouseY >= vh * 0.8 && document.body.classList.contains('slide-mode')) {
+    slideNav.classList.remove('hidden');
+    clearTimeout(navHideTimer);
+    navHideTimer = setTimeout(() => slideNav.classList.add('hidden'), 2000);
+  }
+}
+document.addEventListener('mousemove', e => updateBarVis(e.clientY));
+document.addEventListener('touchstart', e => updateBarVis(e.touches[0].clientY));
+document.addEventListener('focusin', () => { modeBar.classList.remove('hidden'); clearTimeout(barHideTimer); barHideTimer = setTimeout(() => { if (barVisMode === 'zone') modeBar.classList.add('hidden'); }, 3000); });
+modeBar.addEventListener('mouseenter', () => { clearTimeout(barHideTimer); modeBar.classList.remove('hidden'); });
+modeBar.addEventListener('mouseleave', () => { barHideTimer = setTimeout(() => { if (barVisMode === 'zone') modeBar.classList.add('hidden'); }, 1500); });
+slideNav.addEventListener('mouseenter', () => { clearTimeout(navHideTimer); slideNav.classList.remove('hidden'); });
+slideNav.addEventListener('mouseleave', () => { navHideTimer = setTimeout(() => { if (barVisMode === 'zone') slideNav.classList.add('hidden'); }, 1500); });
+
+document.addEventListener('keydown', e => {
+  if (e.shiftKey && e.key === '>') { e.preventDefault(); barVisMode = barVisMode === 'zone' ? 'show' : barVisMode === 'show' ? 'hide' : 'zone'; updateBarVis(-1); }
+});
+
+function setMode(mode) {
+  document.body.classList.toggle('slide-mode', mode === 'slides');
+  document.getElementById('btn-article').classList.toggle('active', mode === 'article');
+  document.getElementById('btn-slides').classList.toggle('active', mode === 'slides');
+  if (mode === 'slides') goToSlide(currentSlide);
+}
+
+const slides = document.querySelectorAll('.slide');
+const totalSlides = slides.length;
+let currentSlide = 0;
+
+const dotsContainer = document.getElementById('slide-dots');
+for (let i = 0; i < totalSlides; i++) {
+  const dot = document.createElement('span');
+  if (i === 0) dot.classList.add('active');
+  dot.addEventListener('click', () => goToSlide(i));
+  dotsContainer.appendChild(dot);
+}
+
+function goToSlide(n, fromAudio) {
+  slides.forEach(s => s.classList.remove('active'));
+  slides[n].classList.add('active');
+  document.querySelectorAll('.slide-dots span').forEach((d, i) => d.classList.toggle('active', i === n));
+  currentSlide = n;
+  if (!fromAudio && isPlaying) stopAudio();
+}
+function nextSlide() { if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1); }
+function prevSlide() { if (currentSlide > 0) goToSlide(currentSlide - 1); }
+
+document.addEventListener('keydown', e => {
+  if (!document.body.classList.contains('slide-mode')) return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+});
+
+const audioBase = './audio/';
+const audioDurations = {};
+const hasAudio = Object.keys(audioDurations).length > 0;
+if (!hasAudio) document.querySelector('.audio-controls').style.display = 'none';
+
+const slideData = [];
+slides.forEach(s => { slideData.push({ audioId: s.dataset.audio, readTime: parseInt(s.dataset.readTime) || 10 }); });
+
+let narrationEl = null;
+let transitionEl = null;
+let audioUnlocked = false;
+let isPlaying = false;
+let autoplayTimer = null;
+let progressInterval = null;
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  narrationEl = new Audio();
+  narrationEl.preload = 'auto';
+  transitionEl = new Audio();
+  transitionEl.preload = 'auto';
+  transitionEl.volume = 0.35;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  ctx.resume().then(() => { audioUnlocked = true; });
+}
+
+function toggleAudio() { unlockAudio(); if (isPlaying) stopAudio(); else startAudio(); }
+
+function startAudio() {
+  if (!narrationEl) unlockAudio();
+  isPlaying = true;
+  document.getElementById('btn-play').classList.add('playing');
+  document.getElementById('btn-play').innerHTML = '&#9646;&#9646;';
+  if (!document.body.classList.contains('slide-mode')) setMode('slides');
+  playSlideAudio(currentSlide);
+}
+
+function stopAudio() {
+  isPlaying = false;
+  document.getElementById('btn-play').classList.remove('playing');
+  document.getElementById('btn-play').innerHTML = '&#9654;';
+  if (narrationEl) narrationEl.pause();
+  if (autoplayTimer) { clearTimeout(autoplayTimer); autoplayTimer = null; }
+  if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
+}
+
+function playSlideAudio(slideIndex) {
+  if (!isPlaying || slideIndex >= totalSlides || !narrationEl) { stopAudio(); return; }
+  goToSlide(slideIndex, true);
+  const entry = slideData[slideIndex];
+  const audioDur = audioDurations[entry.audioId] || 20;
+  const src = audioBase + entry.audioId + '.mp3';
+  narrationEl.pause();
+  narrationEl.src = src;
+  narrationEl.load();
+
+  let elapsed = 0;
+  for (let i = 0; i < slideIndex; i++) elapsed += audioDurations[slideData[i].audioId] || 20;
+
+  if (progressInterval) clearInterval(progressInterval);
+  progressInterval = setInterval(() => {
+    if (!isPlaying || !narrationEl) { clearInterval(progressInterval); return; }
+    const cur = elapsed + (narrationEl.currentTime || 0);
+    document.getElementById('progress-fill').style.width = (cur / 100) + '%';
+    const mins = Math.floor(cur / 60);
+    const secs = Math.floor(cur % 60);
+    document.getElementById('audio-time').textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+  }, 250);
+
+  narrationEl.onended = () => {
+    clearInterval(progressInterval);
+    const extraRead = Math.max(0, entry.readTime - audioDur);
+    autoplayTimer = setTimeout(() => {
+      if (!isPlaying) return;
+      if (slideIndex < totalSlides - 1) {
+        transitionEl.currentTime = 0;
+        transitionEl.play().catch(() => {});
+        autoplayTimer = setTimeout(() => { if (isPlaying) playSlideAudio(slideIndex + 1); }, 1800);
+      } else stopAudio();
+    }, (extraRead + 2) * 1000);
+  };
+
+  narrationEl.onerror = () => {
+    document.getElementById('audio-time').textContent = 'ERR';
+  };
+
+  narrationEl.oncanplay = function oncp() {
+    narrationEl.oncanplay = null;
+    narrationEl.play().then(() => {}).catch(err => {
+      document.getElementById('audio-time').textContent = 'ERR';
+      autoplayTimer = setTimeout(() => {
+        if (isPlaying && slideIndex < totalSlides - 1) playSlideAudio(slideIndex + 1);
+        else stopAudio();
+      }, (audioDur + 2) * 1000);
+    });
+  };
+
+  setTimeout(() => {
+    if (narrationEl.readyState < 2 && isPlaying) {
+      if (slideIndex < totalSlides - 1) playSlideAudio(slideIndex + 1);
+      else stopAudio();
+    }
+  }, 5000);
+}
+
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.querySelectorAll('.article-content .exec-summary, .article-content .section, .article-content .stat-card, .article-content .figure, .article-content .rec-card, .article-content .data-table').forEach(el => el.classList.add('reveal'));
+  document.querySelectorAll('.rec-grid, .stat-row').forEach(el => el.classList.add('reveal-stagger'));
+  document.querySelectorAll('.article-content h2').forEach(el => el.classList.add('reveal'));
+
+  const revealObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); revealObserver.unobserve(entry.target); } });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+  function animateCounter(el, target, suffix) {
+    const dur = 1200, start = performance.now();
+    const num = parseFloat(target.toString().replace(/[^0-9.]/g, ''));
+    function tick(now) {
+      const t = Math.min((now - start) / dur, 1);
+      const eased = 1 - Math.pow(1 - t, 4);
+      el.textContent = Math.round(eased * num) + suffix;
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  const statObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target, text = el.textContent.trim(), match = text.match(/^(\d+)(%?)$/);
+        if (match) { el.textContent = '0' + match[2]; setTimeout(() => animateCounter(el, match[1], match[2]), 200); }
+        statObserver.unobserve(el);
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.article-content .stat-card .number').forEach(el => statObserver.observe(el));
+}
+</script>
+</body>
+</html>
