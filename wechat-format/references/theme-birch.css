@@ -86,7 +86,6 @@
 #output p {
   margin: 0 8px;
   color: rgb(44, 44, 42);
-  text-indent: 2em;
 }
 #output p + p {
   margin-top: 12px;

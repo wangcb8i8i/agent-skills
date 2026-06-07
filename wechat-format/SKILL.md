@@ -295,7 +295,7 @@ When the user provides or you infer preferences:
 | Font | sans-serif / serif / monospace (see font stacks below) |
 | Font size | 14px / 15px / 16px / 17px / 18px |
 | Primary color | 12 presets: classic blue `#0F4C81`, emerald `#009874`, orange `#FA5151`, yellow `#FECE00`, lavender `#92617E`, sky blue `#55C9EA`, rose gold `#B76E79`, olive `#556B2F`, graphite `#333333`, smoke `#A9A9A9`, sakura pink `#FFB7C5` |
-| Paragraph indent | `text-indent: 2em` on `#output p` (boolean, default: true) |
+| Paragraph indent | `text-indent: 2em` on `#output p` (boolean) |
 | Text justify | `text-align: justify` on `#output p` (boolean) |
 | Line numbers | On code blocks (boolean) |
 | Code block theme | Any highlight.js theme (e.g., `github`, `monokai-sublime`, `atom-one-dark`) |

@@ -67,7 +67,6 @@
   margin: 1.5em 8px;
   letter-spacing: 0.1em;
   color: hsl(var(--foreground));
-  text-indent: 2em;
 }
 #output p + p {
   margin-top: 12px;
