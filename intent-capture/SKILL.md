@@ -195,6 +195,23 @@ Capture, clarify, and confirm the user's real intent through guided conversation
       </example output>
     </move>
 
+    <move n="1.5" name="Counterfactual Test" mandatory="true">
+      <action>
+        Ask the user to imagine the desired change is fully realized,
+        then test whether that outcome genuinely resolves the underlying need.
+      </action>
+      <example output>
+        "Let me pressure-test this. Suppose we achieve [the stated outcome].
+        Would that actually solve the deeper need we identified,
+        or is there still something unsatisfying about the situation?"
+      </example output>
+      <fallback>
+        If the user hesitates or says "not really":
+        identify what part of the need would remain unmet,
+        then return to EXTRACT or SHAPE depending on the gap type.
+      </fallback>
+    </move>
+
     <move n="2" name="Surface Miss" optional="true">
       <trigger>User says the restatement is off, or the agent detects a clear contradiction, ambiguity, or boundary error.</trigger>
       <action>Name the miss precisely and return to the smallest earlier phase needed to repair it.</action>
@@ -239,6 +256,7 @@ Capture, clarify, and confirm the user's real intent through guided conversation
 
     <exit_criteria>
       <required>User confirms the calibrated statement captures what they really mean, even if some implementation details remain unknown.</required>
+      <required>User has passed the counterfactual test — they can articulate that achieving the stated outcome would genuinely resolve the underlying need.</required>
       <required>Any important miss, contradiction, or ambiguity has been resolved or explicitly marked open.</required>
     </exit_criteria>
 
