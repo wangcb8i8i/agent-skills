@@ -13,7 +13,7 @@
 - 当目标模型未指定时，默认采用模型无关、语义优先的自然语言描述。
 - 当图中文字策略与某种类型的默认习惯冲突时，以图中文字策略为准。
 - 需要选择抽象隐喻时，优先参考 `references/metaphor-guide.md`。
-- 需要默认语义色板或稳定状态色时，优先参考 `references/tag-quick-reference.md`。
+- 需要默认语义色板或稳定状态色时，优先参考 `references/color-science.md`。
 - 各节不再重复展开这两份 reference 的使用规则，默认适用上述约束。
 
 ## 概念示意图
