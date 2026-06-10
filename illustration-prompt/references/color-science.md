@@ -17,7 +17,7 @@
 | 温暖教程风 | tutorial-warm | ↓ |
 | 高对比分析风 | analysis-contrast | ↓ |
 | 产品文档风 | product-doc | ↓ |
-| 冷静报告风 | report-calm | ↓ |
+| 灰度结构风 | grayscale-structural | ↓ |
 | 手记博客风 | blog-handdrawn | ↓ |
 | 技术手绘风 | tech-handdrawn | ↓ |
 
@@ -95,21 +95,21 @@
 
 ---
 
-### report-calm — 冷静报告风
+### grayscale-structural — 灰度结构风
 
 | 角色 | 色值 | HSL | 用途 |
 |------|------|-----|------|
-| 主色 | `#546E7A` | hsl(200, 18%, 41%) | Primary entity fill |
-| 强调色 | `#7CB342` | hsl(88, 48%, 48%) | Accent / data highlight |
-| 背景色 | `#ECEFF1` | hsl(200, 12%, 91%) | Canvas background |
-| 第二背景 | `#CFD8DC` | hsl(195, 13%, 84%) | Card / panel |
-| 成功/确认 | `#43A047` | hsl(123, 41%, 45%) | Confirmation / complete |
-| 警告/注意 | `#FDD835` | hsl(48, 98%, 60%) | Warning / pending |
-| 错误/拒绝 | `#E53935` | hsl(0, 77%, 55%) | Error / denied |
-| 中性/次要 | `#90A4AE` | hsl(200, 16%, 62%) | Secondary entity |
-| 文字/标签 | `#263238` | hsl(200, 19%, 18%) | Label / text |
+| 主色 | `#4A5568` | hsl(215, 20%, 35%) | Primary entity fill |
+| 强调色 | `#1A202C` | hsl(215, 30%, 14%) | Accent / key boundary |
+| 背景色 | `#F8F9FA` | hsl(210, 20%, 98%) | Canvas background |
+| 第二背景 | `#EDF2F7` | hsl(210, 40%, 95%) | Card / panel |
+| 成功/确认 | `#5A7A60` | hsl(130, 15%, 42%) | Confirmation — subtle green cast |
+| 警告/注意 | `#8A7A50` | hsl(42, 25%, 43%) | Warning — subtle amber cast |
+| 错误/拒绝 | `#7A5050` | hsl(0, 25%, 40%) | Error — subtle red cast |
+| 中性/次要 | `#A0AEC0` | hsl(215, 20%, 69%) | Secondary entity |
+| 文字/标签 | `#2D3748` | hsl(215, 25%, 23%) | Label / text |
 
-**氛围印象**: 中立 · 严谨 · 报告感
+**氛围印象**: 克制 · 结构 · 工程感
 
 ---
 
