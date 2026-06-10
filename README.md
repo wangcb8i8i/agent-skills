@@ -5,13 +5,17 @@ Works with Claude Code, Codex, OpenCode, and other AI coding agents.
 
 ## Skills
 
-| Skill | Description |
-|---|---|
-| **code-explain** | Build mental models from code with terminal-native ASCII diagrams, flow charts, and state machines. Two modes: quick scan for small features, map-then-navigate for large codebases. |
-| **doc-explain** | Same mental-model approach applied to proposals, specs, decision records, and reports. Classifies by document type and question category. |
-| **revise-markdown** | Structured review-comment loop — find, analyze, revise, resolve, repeat until approval. Every comment accounted for. |
-| **research-plan-driven** | Research → plan → todo → implement pipeline with explicit approval gates at each phase. Advances only on user sign-off. |
-| **intent-capture** | Three-phase guided conversation (explore, challenge, capture) to turn vague requests into structured intent briefs. |
+| Skill | Description | Trigger |
+|---|---|---|---|
+| **article-retelling** | Deconstruct and rebuild source text (URL/file/paste) into a publishable article in the user's own voice. Full pipeline: ingestion, analysis, structure proposal, narrative reconstruction, output. | `#retelling` |
+| **code-explain** | Build mental models from code with terminal-native ASCII diagrams, flow charts, and state machines. Quick scan for small features, map-then-navigate for large codebases. | Explicit code explanation request |
+| **doc-explain** | Same mental-model approach applied to proposals, specs, decision records, guides, and reports. Classifies by document type and question category. | Explicit document explanation request |
+| **illustration-prompt** | Auto-detect illustration opportunities in content, infer visual style, generate detailed prompts ready for image generation models. Outputs `.prompt` files. | `#illustration` |
+| **intent-capture** | Multi-phase guided conversation to turn vague ideas, complaints, or optimization goals into structured intent briefs with success criteria. | Vague / incomplete ideas |
+| **research-plan-driven** | Research → plan → todo → implement → verification pipeline with explicit approval gates at each phase. Advances only on user sign-off. | "plan driven", "research and plan" |
+| **research-report** | Automated deep research engine. Give a direction, get conclusions — fully automatic after scope confirmation. Support 10+ analysis lenses. | `/research [topic]` |
+| **revise-markdown** | Structured review-comment loop — find, analyze, revise, resolve inline `COMMENT:` markers, repeat until explicit approval. Every comment accounted for. | "revise the doc", "address the comments" |
+| **wechat-format** | Convert Markdown to WeChat Official Account (公众号) HTML+CSS with themes, semantic components (callouts, info grids, badges), and WeChat-compatible rendering. | WeChat article / 公众号 |
 
 ## Design
 
