@@ -1,7 +1,7 @@
 ---
 name: research-report
 description: 自动化的深度研究引擎。给方向，拿结论——Scope 确认后全自动执行，只在起点和终点需要你。
-version: 2.1.0
+version: 2.2.0
 ---
 
 <objective>
@@ -9,7 +9,9 @@ version: 2.1.0
 </objective>
 
 <triggers>
-  <trigger>用户显式调用 /research [主题]</trigger>
+  <trigger>用户显式调用 /research [主题]（默认 Single Pass 模式）</trigger>
+  <trigger>用户显式调用 /research --deep [主题]（强制 Deep 模式）</trigger>
+  <trigger>用户说「深入调研/深入研究/深度分析/搞透 [主题]」时，自动选择 Deep 模式</trigger>
   <never>绝不自动触发。用户不召唤则不出场。</never>
 </triggers>
 
@@ -38,6 +40,11 @@ version: 2.1.0
       </action>
       <action>如果用户输入已经具体，确认即可，不强行追问</action>
       <action>识别研究类型（投资判断/技术趋势/产品决策/行业调研/生活经验/知识储备），后续流程据此自适应</action>
+      <action condition="mode-not-yet-decided">检测用户语言中的深度信号：
+        - 包含「深入调研」「深入研究」「深度分析」「搞透」等 → 自动选择 Deep 模式
+        - 显式使用 `/research --deep` → 强制 Deep 模式
+        - 其余 → 默认 Single Pass，在 Step 4.5 让用户选择
+      </action>
     </step>
     
     <step n="2" name="锚定点确认">
@@ -82,6 +89,16 @@ version: 2.1.0
       <principle>格式只影响呈现方式，不影响研究深度——无论选哪种，研究阶段都按全深度执行。</principle>
     </step>
     
+    <step n="4.5" name="模式选择" condition="deep-not-auto-triggered">
+      <principle>研究模式决定搜索是单次完成还是多轮递归收敛。Deep 模式适合边界模糊、需要层层深入的议题。</principle>
+      <question>研究模式偏好？</question>
+      <options>
+        <option id="single">Single Pass（默认）—— 单次搜索+综合，信息缺口在报告中标注。适合边界清晰的决策问题，追求速度。</option>
+        <option id="deep">Deep —— 多轮递归搜索（默认最多 3 轮），直到信息饱和或达到轮次上限。适合开放式深层问题，追求完整度。</option>
+      </options>
+      <default>Single Pass</default>
+    </step>
+
     <step n="5" name="Scope 确认">
       <output>
         ## 研究任务确认
@@ -91,6 +108,7 @@ version: 2.1.0
         **锚定点**: {用户指定的约束条件}
         **范围**: 时间={} / 地域={} / 排除={}
         **格式**: {Full Report / Executive Brief / Slide Deck / Mind Map}
+        **模式**: {Single Pass / Deep (最多 3 轮)}
         **已有材料**: {有，共 N 份 / 无}
     
         确认以上方向无误？确认后我将自动执行研究，完成后给你完整报告。
@@ -208,6 +226,47 @@ version: 2.1.0
           <step>仍无法获取 → 标注「语言壁垒：{语言}信息未充分覆盖」，不影响已有语言的结论质量</step>
         </degradation>
       </scenario>
+    </subphase>
+
+    <!-- 6. 递归循环（仅 Deep 模式） -->
+    <subphase id="recursive-loop" title="递归循环">
+      <condition>仅 Deep 模式激活。Single Pass 模式跳过此阶段，直接进入 Phase 3。</condition>
+      <principle>单次模式到此结束。Deep 模式继续评估覆盖度，未饱和则自动发起补搜，递归收敛至信息饱和或达到轮次上限。</principle>
+
+      <step n="1" name="覆盖度评估">
+        <action>对照锚定点的每个维度，评估覆盖度：全面 / 部分 / 空白</action>
+        <action>识别置信度偏低（< 70%）的核心主张清单</action>
+        <action>计算饱和度指标：本轮新增核心发现数 / 累计总核心发现数 × 100%</action>
+        <action>记录当前递归轮次 N</action>
+      </step>
+
+      <step n="2" name="关闭标准检查">
+        <principle>同时满足 C1~C3 则正常关闭。触发 C4 则强制关闭并在报告中标注缺口。</principle>
+        <criterion id="c1">C1: 无空白维度（所有锚定维度至少「部分覆盖」）</criterion>
+        <criterion id="c2">C2: 置信度 < 70% 的核心主张 ≤ 2 个</criterion>
+        <criterion id="c3">C3: 连续 2 轮饱和度 ≤ 10%</criterion>
+        <criterion id="c4">C4: 已达最大轮次上限（默认 3）</criterion>
+        <decision>
+          C1 + C2 + C3 满足 → 进入 Phase 3 REPORT
+          C4 满足 → 进入 Phase 3，报告标注「已达最大轮次，以下维度未充分覆盖」
+          否则 → 进入 Step 3
+        </decision>
+      </step>
+
+      <step n="3" name="生成补搜策略">
+        <principle>补搜不重新展开全部分析维度，只针对缺口做定向窄化深挖。</principle>
+        <action>空白维度 → 生成 2-3 组扩展搜索词（放宽时间/地域约束、同义扩展、上探一级概念）</action>
+        <action>置信度不足的主张 → 搜索验证性或反驳性证据</action>
+        <action>未裁决的矛盾点 → 搜索能裁决矛盾的第三方信源（学术文献、官方数据）</action>
+        <action>跨维度关联 → 如发现多维度间有因果关联，生成综合搜索词一次覆盖</action>
+      </step>
+
+      <step n="4" name="执行补搜">
+        <action>将补搜策略送入 Subphase 1（搜索），搜索范围限定为补搜项，不重新展开全部分析维度</action>
+        <action>Subphase 1→2→3 窄化执行 → 增量合并到已有发现池，不覆盖原内容</action>
+        <action>重新执行 Subphase 4（综合）的交叉验证和建议生成，基于增量后的完整发现池</action>
+        <action>回到 Step 1 重新评估覆盖度</action>
+      </step>
     </subphase>
   </phase>
 
@@ -438,6 +497,13 @@ version: 2.1.0
     <check>信息缺口已诚实标注</check>
     <check>报告结构由问题本质驱动，而非固定模板</check>
   </gate>
+
+  <gate phase="recursive" condition="deep-mode">
+    <check>所有锚定维度已覆盖（无空白）或已标注未覆盖原因</check>
+    <check>饱和度指标已记录在案</check>
+    <check>关闭标准（C1~C4）评估过程可追溯</check>
+    <check>递归轮次已达关闭条件，非人为中断</check>
+  </gate>
 </quality_gates>
 
 <output_artifacts>
@@ -466,8 +532,8 @@ version: 2.1.0
   <principle id="6" name="输出语言">
     用户用中文提问 → 中文输出。用户用英文提问 → 英文输出。
   </principle>
-  <principle id="7" name="缺省不补搜">
-    除非信息严重不足以致无法形成任何结论，否则不自动发起第二轮搜索。缺口在报告中标注，而不是无限迭代。
+  <principle id="7" name="模式决定搜索策略">
+    根据研究模式决定搜索深度。Single Pass：除非信息严重不足以致无法形成结论，否则不自动发起第二轮搜索。Deep：递归搜索直到信息饱和或达到轮次上限，缺口在报告中标注。
   </principle>
 </operating_principles>
 
@@ -478,4 +544,5 @@ version: 2.1.0
   <criterion>建议具体可执行，且回应了锚定约束</criterion>
   <criterion>不同类型研究的报告结构差异明显——不是同一模板换标题</criterion>
   <criterion>信息缺口已诚实标注，不假装确定</criterion>
+  <criterion condition="deep-mode">递归过程自动收敛（C1~C3满足或C4触发），无需用户判定"够不够深"</criterion>
 </success_criteria>
