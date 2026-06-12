@@ -13,12 +13,27 @@ When several patterns could work, prefer the one that resolves the dominant conf
 
 Use patterns as tools, not fixed answers.
 
-> 本文件按场景分为两组模式集。解释时根据自动判定的场景选择对应的部分。
-> 紧凑表（Compact Table）在两类场景中均有出现，但适用条件不同，分别列在各自章节中。
+---
+
+## 按问题类型选择
+
+| 问题类型 | 推荐模式 | 备选模式 |
+|----------|----------|----------|
+| 识别型 | 无图（纯文字） | Hierarchy / Tree（有嵌套结构时） |
+| 流程型 | Call flow | Sequence / State/Transform / Pipeline/DAG |
+| 结构型 | Structure | Hierarchy / Tree / Compact table |
+| 理由型 | Decision table | Reasoning chain |
+| 对比型 | Compact table | Options-compared table |
+| 追问型 | 由缺口实质决定初始回答的对应类型 | — |
+
+如果两个模式都能用，选最能消除用户当下困惑的那个。
+如果两个问题同样重要，先解决主导的那个，再视需要补第二个模式。
+
+视觉之后，只配最少文字——引导视线、标出边界、提示易误读点。
 
 ---
 
-# Code Patterns
+# 视觉模式
 
 ## 1. Call flow pattern
 
@@ -165,6 +180,8 @@ API payload
 - several objects or parameters have distinct roles
 - state fields matter more than call order
 - branch differences are easier to compare side by side
+- several entities, roles, or concepts have distinct definitions
+- a flat comparison is easier to scan than prose
 
 ### Goal
 Compress key distinctions into a small readable table.
@@ -410,32 +427,7 @@ Show parallelism boundaries and merge points without over-specifying ordering.
 
 ---
 
-### Code pattern selection shortcut
-
-- "What runs in what order?" → call flow
-- "What talks to what over time?" → sequence
-- "What is responsible for what?" → structure
-- "How is this organized?" → structure or hierarchy / tree
-- "How does this relate to surrounding code?" → structure or sequence
-- "What owns what, and what gets delegated?" → structure or compact table
-- "Where should I start reading?" → hierarchy / tree or structure with an entry-point anchor
-- "How does the data change?" → state / transform
-- "What are the important roles or differences?" → compact table
-- "What contains what?" → hierarchy / tree
-- "What states exist and how can they change?" → state machine
-- "Who can run when, and is there a race?" → concurrency / interleaving
-- "What runs in parallel and where do results merge?" → pipeline / DAG
-- "What is easy to misread?" → compact table, or the dominant structural / flow pattern with a short contrast callout
-
-If two questions matter equally, pick the dominant one first and add a second pattern only if it genuinely improves clarity.
-
-After the visual, add only the minimum prose needed to orient the reader, highlight the governing boundary, and call out likely misreads.
-
----
-
-# Doc Patterns
-
-## 1. Reasoning chain pattern
+## 10. Reasoning chain pattern
 
 ### Use when
 - the argument structure matters
@@ -476,7 +468,7 @@ Show how premises chain into conclusions, and where the chain weakens.
 
 ---
 
-## 2. Skeleton map pattern
+## 11. Skeleton map pattern
 
 ### Use when
 - section organization and responsibility matter
@@ -522,7 +514,7 @@ ADR-0042-auth-migration.md/
 
 ---
 
-## 3. Decision table pattern
+## 12. Decision table pattern
 
 ### Use when
 - the document records one or more decisions
@@ -561,7 +553,7 @@ Compress decision records into a scannable table.
 
 ---
 
-## 4. Cross-reference graph pattern
+## 13. Cross-reference graph pattern
 
 ### Use when
 - the document depends on or is referenced by other documents
@@ -603,7 +595,7 @@ Show inbound and outbound references with relationship types.
 
 ---
 
-## 5. Gap matrix pattern
+## 14. Gap matrix pattern
 
 ### Use when
 - the document's omissions matter as much as its content
@@ -644,7 +636,7 @@ Surface mismatches between scope claims and actual coverage, plus unstated assum
 
 ---
 
-## 6. Timeline pattern
+## 15. Timeline pattern
 
 ### Use when
 - the document narrates events, versions, or decisions over time
@@ -688,7 +680,7 @@ Q1                  Q2                    Q3
 
 ---
 
-## 7. Options-compared table pattern
+## 16. Options-compared table pattern
 
 ### Use when
 - the document evaluates multiple alternatives
@@ -728,59 +720,29 @@ Show alternatives side by side with the criteria that drove selection.
 
 ---
 
-## 8. Compact table pattern
+## 选择速查
 
-### Use when
-- several entities, roles, or concepts have distinct definitions
-- a flat comparison is easier to scan than prose
-- the document is a reference or glossary
+### 按问题类型
 
-### Goal
-Compress key distinctions into a small readable table.
+- "这是什么？" → 纯文字，或 Hierarchy（有嵌套结构时）
+- "怎么运作？/流程是什么？/数据怎么流？" → Call flow
+- "由什么组成？/什么结构？/各部分什么关系？" → Structure 或 Hierarchy
+- "为什么这样设计？/为什么选这个？" → Decision table 或 Reasoning chain
+- "A 和 B 有什么区别？/优缺点？" → Compact table 或 Options-compared table
+- "谁发给谁？什么顺序？" → Sequence
+- "数据经过什么变化？/输入到输出中间怎么变的？" → State/Transform
+- "有哪些状态？什么条件下切换？" → State machine
+- "并发/并行？谁在同时跑？" → Concurrency / Interleaving
+- "哪些并行分支最后合并？" → Pipeline / DAG
+- "文档怎么组织的？/各章节负责什么？" → Skeleton map
+- "前提是什么？论证链怎么走的？" → Reasoning chain
+- "和别的文档什么关系？" → Cross-reference graph
+- "文档缺了什么？/什么没讲？" → Gap matrix
+- "事件时间线？/先后顺序？" → Timeline
+- "角色/参数区别？/关键差异？" → Compact table
 
-### Output shape
+### 通用指导
 
-```
-| Item       | Definition | Scope / Boundary | Why it matters |
-|------------|------------|------------------|----------------|
-| ...        | ...        | ...              | ...            |
-```
-
-### What to emphasize
-- only the terms or entities needed to read the document correctly
-- the contrast the reader is most likely to miss
-- stable, narrow columns that scan quickly in a terminal
-
-### Example
-
-```
-| Term       | Definition                              | Boundary                     |
-|------------|-----------------------------------------|------------------------------|
-| workspace  | a tenant-isolated project container     | 1 workspace = 1 billing unit |
-| project    | a git repo + config + collaborators     | lives inside a workspace     |
-| deployment | a running instance of a project branch  | tied to a single environment |
-```
-
-### Common misuse
-- Do not build wide tables that wrap badly in terminal output.
-- Do not include entries that are not necessary for understanding.
-- Do not use a table when sequence or argument is the real mental model.
-
----
-
-### Doc pattern selection shortcut
-
-- "What does this doc claim?" → reasoning chain
-- "How is the argument built?" → reasoning chain
-- "How is this document organized?" → skeleton map
-- "What was decided and why?" → decision table
-- "How does this relate to other docs?" → cross-reference graph
-- "What's missing or assumed?" → gap matrix
-- "What happened in what order?" → timeline
-- "What were the alternatives?" → options-compared table
-- "What do these terms mean?" → compact table
-- "What is easy to misread?" → gap matrix, or the dominant pattern with a short contrast callout
-
-If two questions matter equally, pick the dominant one first and add a second pattern only if it genuinely improves clarity.
-
-After the visual, add only the minimum prose needed to orient the reader, highlight the governing boundary, and call out likely misreads.
+- 两个模式都能用时，选最能消除用户当下困惑的那个
+- 两个问题同等重要时，先解决主导的那个，再视需要补第二个
+- 视觉后只配最少文字——引导视线、标出边界、提示易误读点
