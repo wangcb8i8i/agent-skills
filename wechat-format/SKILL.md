@@ -36,7 +36,7 @@ Converts Markdown into a self-contained HTML file styled for WeChat Official Acc
 
 3. Render Markdown → HTML, mapping each identified semantic unit to the appropriate component. Keep ordinary prose as standard GFM elements (`<p>`, heading, list, etc.). Do not wrap every paragraph in a component — components are only for key information nodes.
 
-4. Load theme CSS from references/, resolve CSS variables with user's config
+4. Load theme CSS from references/, resolve CSS variables with user's config. **Extract the resolved background color (e.g. `#FAF9F5`) and record it for use in the output template — it must be applied to both `body` and `#output` to prevent margin collapse from revealing white body background.**
 
 5. Assemble into self-contained HTML using the output template:
    5.1 Run WeChat compatibility transforms on the rendered content (details in [WeChat Compatibility Transforms](#wechat-compatibility-transforms)):
@@ -260,7 +260,7 @@ After step 1 (theme selected), analyze the Markdown body to identify key semanti
 - **Ordinary narrative stays as `<p>`**: Only elevate the 2–5 most critical information nodes in the entire article.
 - **Flow list for numbered sequences only**: Use `.flow-list` when the Markdown has an ordered list that represents sequential steps, not arbitrary numbered items.
 - **Insight list for takeaways only**: Use at the end of an article or a major section to list key conclusions.
-- **Never nest components** inside each other._
+- **Never nest components** inside each other.
 
 ### Heading Style Overrides
 
@@ -392,6 +392,8 @@ Examples:
 <style>
 /* ===== Base & Theme CSS ===== */
 /* resolved from theme file + user config */
+/* body background MUST match #output background to prevent margin collapse revealing white body bg */
+body { background: {resolved-theme-bg-color}; }
 /* heading style overrides if any */
 /* custom CSS if any */
 </style>
@@ -425,6 +427,28 @@ Examples:
   ...
 </p>
 ```
+
+### color-mix Resolution
+
+Since WeChat X5 Blink kernel does not support CSS `color-mix()`, each `color-mix()` call must be pre-computed to `rgba()` before output.
+
+**Calculation method** for `color-mix(in srgb, color1 p1, color2 p2)`:
+
+1. Parse both color values to sRGB components `(r1, g1, b1)` and `(r2, g2, b2)` in 0–1 range
+2. Normalize percentages: `t = p1 / (p1 + p2)` (if only one percentage given, the other is `100% - p1`)
+3. Interpolate each channel: `result = c1 × t + c2 × (1 - t)`
+4. Convert back to `rgba(r, g, b, a)`, where each channel is rounded to integer 0–255
+
+**Example**:
+
+```css
+/* Source */
+--color: color-mix(in srgb, #0F4C81 10%, white);
+/* Resolved */
+--color: rgba(229, 237, 244, 1);
+```
+
+(即使主题 CSS 当前未使用 `color-mix()`，此方法适用于用户自定义配置或未来主题更新。)
 
 ## WeChat-Specific Caveats
 
