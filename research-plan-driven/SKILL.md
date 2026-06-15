@@ -60,7 +60,7 @@ Skip Research when the task is narrow, well-understood, and the user already has
 | Every review revision requires critical thought to maintain contextual and logical alignment. | Research, Planning, Todo List |
 | Do not read unrelated files under `docs/` unless the user explicitly asks | All phases |
 | Read the corresponding reference first When the user approves to proceed to the next phase | All phases |
-| Questions must focus to shapen the real requirements | Task Clarify |
+| Questions must focus to sharpen the real requirements | Task Clarify |
 | Socratic question,for each question, provide your recommended answer. | Task Clarify |
 | Proceed without stopping for approval during execution | Implementation, Verification |
 
@@ -134,8 +134,25 @@ avoid rework in subsequent work caused by prior errors.
 * Find all review comments annotated by user
 * Analyze each one and evaluate them comprehensively before responding
 * Revise the artifact to address each comment, removing resolved comments sections
+* **Before re-submission, run the self-check below** (see Before Re-submission Check)
 * Ask the user to review the updated artifact again.
 * Repeat until the user explicitly approves that artifact.
+
+#### Before Re-submission Check
+
+Before asking the user to re-review, verify all three:
+
+1. **Content anchor check.** For each resolved comment, confirm the fix exists in the artifact by reading the exact line. Do not rely on memory ("I think I fixed it").
+2. **Regression check.** Re-read the full artifact to confirm that fixes did not break consistency in other sections.
+3. **Honest unresolved.** If any comment was only partially fixed, or you are unsure if the fix is correct, state it explicitly. Do not skip or silently downgrade.
+
+#### Stuck Escalation
+
+If after 2+ rounds the user's core concern is still unresolved:
+
+1. Stop fixing individual comments
+2. Ask the user: *"What is the single core issue that still isn't right?"*
+3. Focus the next revision on that one issue only
 
 ### How to find comments
 

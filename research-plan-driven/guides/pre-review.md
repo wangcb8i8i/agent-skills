@@ -27,7 +27,6 @@ If any input artifact is missing, unreadable, or clearly insufficient for review
 ---
 
 ## Candidate Reviewer Roles
-## Reviewer Roles
 
 | Role | Strong fit signals in plan | Primary focus |
 |------|---------------------------|----------------|
@@ -54,7 +53,7 @@ Select **1-3 review roles** :
 4. do not add reviewers to increase issue count
 5. if one role clearly dominates the plan’s risk profile, use only that role
 
-**Pinciple**：If no stongly fit reviewers are available, exit the pre-preview process, return to the normal user review process.
+**Principle**: If no strongly fit reviewers are available, exit the pre-review process, return to the normal user review process.
 
 ---
 
@@ -71,6 +70,7 @@ Provide each reviewer with:
 - the shared review criteria
 - the required output format
 - the prohibition against inventing scope or rewriting the plan
+- the adversarial stance: review from the most skeptical reasonable interpretation. Assume the plan has at least two material flaws you need to find. "No issues found" is not an acceptable outcome.
 
 Each reviewer must:
 
@@ -226,6 +226,35 @@ If all reviewer outputs are unusable, pre-review fails. Inform the user.
 
 ---
 
+## Quality Gate
+
+Before synthesis, pass each reviewer output through a quality check.
+
+### Rerun conditions
+
+Rerun a reviewer (with a tighter prompt re-emphasizing the missing standards) when any of the following is true:
+
+- Critical or Important findings are majority unsupported or fail Materiality Standard
+- All findings are labeled `Confidence: low`
+- More than 3 findings lack a concrete `plan.md` anchor
+- Reviewer proposed implementation steps, rewrote the plan, or invented scope
+
+### Discard conditions
+
+Discard a reviewer output when any of the following is true:
+
+- Rerun was attempted and the output still fails the gate
+- Reviewer clearly misread the plan's core structure (indicating the role was not a strong fit)
+- Majority of findings are off-scope or outside the assigned role's concern area
+
+### Outcome
+
+- Outputs that pass → proceed to Synthesis
+- Outputs rerun but still failing → Discard (note which reviewer was discarded in the pre-review notes)
+- All outputs discarded → Pre-review fails. Inform the user and return to normal review flow.
+
+---
+
 ## Synthesis Rules
 
 When synthesizing reviewer outputs:
@@ -239,6 +268,7 @@ When synthesizing reviewer outputs:
 7. keep the highest credible severity only when the higher severity is supported by artifact evidence
 8. drop low-leverage findings that do not materially improve final review quality
 9. optimize for user review usefulness, not issue volume
+10. for each kept finding, decide whether to attach a Proposed Revision — only produce one when the coordinator can articulate a concrete, actionable revision to the plan. Findings without a clear revision (e.g. observations, questions) produce no Proposed Revision block
 
 ---
 
@@ -261,14 +291,16 @@ Write notes to `docs/<task-slug>.prereview.md` using this template:
 - note where the user should focus attention
 
 **Critical**
-- item1
-- item2
+- Finding description with plan/research anchor
+  > **Proposed Revision**: specific suggested change to the plan
 
 **Important**
-- item
+- Finding description with plan/research anchor
+  > **Proposed Revision**: specific suggested change to the plan
 
 **Minor**
-- item
+- Finding description with plan/research anchor
+  > **Proposed Revision**: specific suggested change to the plan (or "No revision needed" if the finding does not warrant a change)
 
 **Open questions for user review**
 - item

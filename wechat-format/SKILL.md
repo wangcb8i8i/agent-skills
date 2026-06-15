@@ -34,17 +34,18 @@ Converts Markdown into a self-contained HTML file styled for WeChat Official Acc
    - Sequential steps / principles → flow-list + flow-step
    - Takeaways / conclusions → insight-list
 
-3. Render Markdown → HTML, mapping each identified semantic unit to the appropriate component. The first `h1` in the rendered body (the article title) is excluded from the final output. Keep ordinary prose as standard GFM elements (`<p>`, heading, list, etc.). Do not wrap every paragraph in a component — components are only for key information nodes.
+3. Render Markdown → HTML, mapping each identified semantic unit to the appropriate component. Keep ordinary prose as standard GFM elements (`<p>`, heading, list, etc.). Do not wrap every paragraph in a component — components are only for key information nodes.
 
 4. Load theme CSS from references/, resolve CSS variables with user's config. **Extract the resolved background color (e.g. `#FAF9F5`) and record it for use in the output template — it must be applied to both `body` and `#output` to prevent margin collapse from revealing white body background.**
 
 5. Assemble into self-contained HTML using the output template:
-   5.1 Run WeChat compatibility transforms on the rendered content (details in [WeChat Compatibility Transforms](#wechat-compatibility-transforms)):
+   5.1 Strip the first `<h1>` element (the article title) from the rendered HTML — the title is managed by the WeChat editor, not pasted into the body.
+   5.2 Run WeChat compatibility transforms on the remaining content (details in [WeChat Compatibility Transforms](#wechat-compatibility-transforms)):
      - Wrap `<svg>` inside `.mermaid-diagram` with `<section>` to prevent WeChat from stripping it
      - Add `style="fill:#333333!important;color:#333333!important;stroke:none!important"` to all `<tspan>` elements to preserve diagram text color
      - Replace SVG `dominant-baseline` attribute with equivalent `dy` offset
      - Convert `img` tag `width`/`height` attributes to inline `style`
-   5.2 Fill the output template with transformed content and resolved CSS
+   5.3 Fill the output template with transformed content and resolved CSS
 
 6. Write the HTML file to `{inputDir}/web-chat-artifacts/{name}.html` (see [Output Path](#output-path)). Present the file path to the user.
 ```
