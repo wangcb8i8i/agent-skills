@@ -19,6 +19,17 @@ Create a detailed, reviewable, concrete implementation plan based on the approve
    - Can a reviewer understand the implementation without filling in gaps?
    If any answer is no, fill the gap. If deliberately skipped, note why.
 
+## Artifact organization
+
+Plan artifacts should follow a top-down reading logic. Each section answers a question the reviewer will ask:
+
+1. **Goal & approach** — Open with the goal, implementation strategy, and a workflow / data flow / architecture skeleton
+2. **Change list** — File-by-file: what changes and how
+3. **Key decisions** — Important decisions, rationale, and alternatives considered
+4. **Risks & boundaries** — Identified risks and explicit non-goals
+
+This order expresses the reading logic, not fixed headings. Skip a section if its conclusion is empty.
+
 **Once the plan artifact written:**
 
 1. Conduct a pre-review of the plan according to the  `guides/pre-review.md` （Do not read before the planned artifact is created）.

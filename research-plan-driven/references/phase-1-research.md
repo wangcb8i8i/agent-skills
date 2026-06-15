@@ -17,7 +17,20 @@ Build a deep understanding of all task-relevant information, based on both user-
    - Does it surface gotchas or constraints that materially affect planning?
    - Does it check for existing reusable functionality?
    - Does it note what was NOT found (e.g. queried but absent)?
+   - Does it contain any proposals, solutions, or recommendations that go beyond factual findings?
    If any answer is no, fill the gap. If deliberately skipped, note why.
+
+## Artifact organization
+
+Research artifacts should follow a top-down reading logic. Each section answers a question the reviewer will ask:
+
+1. **Scope alignment** — Open with the research goal and scope so the reviewer can confirm "this matches the task"
+2. **Key findings** — Follow immediately with 2–3 most critical findings (evidence anchor + confidence label). The reviewer can stop here or dive deeper
+3. **Detailed findings** — Organize by subsystem or research question, each claim traceable to source
+4. **Context** — Codebase patterns, conventions, data flows, and constraints that affect planning
+5. **Unresolved questions** — Explicitly list open items that block planning decisions
+
+This order expresses the reading logic, not fixed headings. Skip a section if its conclusion is empty.
 
 ## Research delegation
 
@@ -28,6 +41,7 @@ The prompt to each subagent must include:
 * What to investigate and why (the task context)
 * Specific files or patterns to look at
 * What kind of findings to return (actual implementations,patterns, data flows, conventions, edge cases)
+* Constraint: investigate facts only — do not propose solutions, architectures, or feature ideas
 
 A good prompt for subagent should:
 
@@ -64,6 +78,7 @@ The following do not count as completed research on their own:
 - a file list without behavioral understanding
 - grep output without synthesis
 - design proposals presented as facts
+- proposals or solutions presented as research findings
 - findings from a single source without cross-verification
 - unanswered questions that materially affect planning
 
@@ -72,6 +87,7 @@ Prefer compact tables or diagrams — they reduce scanning effort and make the a
 ## Constraints
 
 - Do not include proposed implementation decisions as research facts.
+- Do not include new feature ideas, architecture proposals, or solution suggestions in the research artifact.
 - Do not write implementation code.
 - Do not turn the research artifact into a plan.
 - Do not finalize the artifact while material research questions remain unresolved.

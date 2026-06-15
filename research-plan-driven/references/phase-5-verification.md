@@ -97,3 +97,4 @@ This phase is complete when:
 - reverse verification performed: every implementation change traced to a TODO item or surfaced as unexpected
 - any drift or mismatch has been explicitly surfaced in the fidelity report
 - the fidelity report has been presented per the template
+- the user has confirmed the fidelity report and approved workflow completion

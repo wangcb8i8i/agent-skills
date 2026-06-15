@@ -63,6 +63,7 @@ Skip Research when the task is narrow, well-understood, and the user already has
 | Questions must focus to sharpen the real requirements | Task Clarify |
 | Socratic question,for each question, provide your recommended answer. | Task Clarify |
 | Proceed without stopping for approval during execution | Implementation, Verification |
+| All output artifacts use Chinese as the primary language | All phases |
 
 ## Task Naming
 

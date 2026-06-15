@@ -29,6 +29,7 @@ When the approved artifacts no longer support correct execution:
 4. **Reload**: read the reference for the phase being rewound to
 5. **Inform the user**: state which phase you're rewinding to, why, and what artifacts were discarded
 6. **Proceed**: re-enter the workflow at the rewound phase, starting with a fresh artifact
+7. **Re-approval required**: the newly created artifact must pass the phase's review-approval cycle before advancing. Upstream (preserved) artifacts remain approved.
 
 ## Change policy
 
