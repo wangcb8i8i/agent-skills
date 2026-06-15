@@ -17,16 +17,17 @@ Create a detailed, reviewable, concrete implementation plan based on the approve
    - Does it expose key decisions with rationale and alternatives?
    - Does it surface risks, edge cases, and non-goals explicitly?
    - Can a reviewer understand the implementation without filling in gaps?
+   - Does the artifact follow reader's question order (goal → changes → decisions → risks) rather than grouped by topic (data model → config → output)?
    If any answer is no, fill the gap. If deliberately skipped, note why.
 
 ## Artifact organization
 
 Plan artifacts should follow a top-down reading logic. Each section answers a question the reviewer will ask:
 
-1. **Goal & approach** — Open with the goal, implementation strategy, and a workflow / data flow / architecture skeleton
-2. **Change list** — File-by-file: what changes and how
-3. **Key decisions** — Important decisions, rationale, and alternatives considered
-4. **Risks & boundaries** — Identified risks and explicit non-goals
+1. **Goal & approach** — The opening. The reviewer must be able to answer: "What problem does this solve, and what is the core solution?" Include a workflow / data flow / architecture skeleton as the shared mental model before any detail.
+2. **Change list** — File-by-file: what changes and how. The reviewer must be able to answer: "What exactly will be touched?"
+3. **Key decisions** — Important decisions with rationale and alternatives. The reviewer must be able to answer: "Why this way and not another?"
+4. **Risks & boundaries** — Identified risks and explicit non-goals. The reviewer must be able to answer: "What could go wrong, and what is deliberately not done?"
 
 This order expresses the reading logic, not fixed headings. Skip a section if its conclusion is empty.
 
