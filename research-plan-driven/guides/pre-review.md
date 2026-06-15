@@ -148,36 +148,24 @@ Each reviewer must return:
 - 1-3 bullets on whether the plan is review-ready from this role’s perspective
 
 **Critical issues**
-- Title:
-  - Claim:
-  - Plan anchor:
-  - Research anchor:
-  - Why material:
-  - Confidence: high | medium | low
+- **<title>**
+  - <claim + why material, 1-2 sentences>
+  - <proposal / advice>
+  - location in plan
 
 **Important issues**
-- Title:
-  - Claim:
-  - Plan anchor:
-  - Research anchor:
-  - Why material:
-  - Confidence: high | medium | low
+- **<title>**
+  - <claim + why material, 1-2 sentences>
+  - <proposal / advice>
+  - location in plan
 
 **Minor issues**
-- Title:
-  - Claim:
-  - Plan anchor:
-  - Research anchor:
-  - Why material:
-  - Confidence: high | medium | low
-
-**Strengths**
-- bullet
+- **<title>**
+  - <claim + why material, 1-2 sentences>
+  - <proposal / advice>
+  - location in plan
 
 **Open questions**
-- bullet
-
-**Suggested focus points for user review**
 - bullet
 ```
 
@@ -355,6 +343,7 @@ Do not modify the body of the plan based on reviewer findings alone.
 - Do not turn pre-review into implementation.
 - Do not replace user judgment with reviewer judgment.
 - Do not maximize issue count at the expense of signal quality.
+- Pre-review notes output artifact (`docs/<task-slug>.prereview.md`) uses Chinese as the primary language.
 
 ---
 
