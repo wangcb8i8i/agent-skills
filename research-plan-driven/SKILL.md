@@ -35,7 +35,21 @@ description: Use this skill only when the user explicitly asks for a research-pl
 │  Verification   │────► feedback final report
 └─────────────────┘
 													                
-```
+ ```
+
+## Workflow Variants
+
+### Full Pipeline (default)
+All 5 phases (Research → Planning → Todo List → Implementation → Verification) with approval gates. Use when the task involves material unknowns, cross-module changes, or significant design decisions.
+
+### Express Pipeline
+Skip Research when the task is narrow, well-understood, and the user already has sufficient context. Flow: Task Clarify → Planning → Todo List → Implementation → Verification.
+
+**Rules:**
+- Suggest Express only during Task Clarify, after understanding the task scope
+- The user must explicitly approve the shortcut
+- If Express is chosen, skip Research and proceed directly to Planning
+- If uncertainty emerges during Planning, recommend switching to Full Pipeline
 
 ## Critical Rules
 
@@ -62,15 +76,15 @@ Generate a short, stable, readable `task-slug` for the task and use it throughou
 
 - `docs/<task-slug>.plan.md`
 
-**Rule:** use the `docs` directory in Project root, create it if does not exis
+**Rule:** use the `docs` directory in Project root, create it if does not exist
 
 ## Task Clarify
 
-Turn raw task/idea into **clear, accuracy, specific** shared understanding through structured dialogue **before research begins**. 
+Turn raw task/idea into **clear, accurate, and specific** shared understanding through structured dialogue **before research begins**. 
 
 **Rules:**
 
-- Ask **one question per message**
+- Ask **1-3 questions per message**; batch related questions together
 - Prefer **multiple-choice questions** when possible
 - Use open-ended questions only when necessary
 - If a aspect of the task needs depth, split it into multiple questions

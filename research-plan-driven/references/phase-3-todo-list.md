@@ -13,7 +13,7 @@ Turn the approved plan into a concrete, reviewable execution checklist before an
 5. Include explicit validation tasks.
 6. After the todo list, append a `## Things to note` section.
 7. Ask the user to review and explicitly approve the embedded todo list before implementation begins.
-8. If the user comments on the todo list, apply `references/review-guide.md` within the todo phase until the embedded todo list is explicitly approved.
+8. If the user comments on the todo list, follow the Review-Revise Repeat workflow until the embedded todo list is explicitly approved.
 
 ## Todo structure
 

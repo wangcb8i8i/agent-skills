@@ -6,47 +6,44 @@ Create a detailed, reviewable, concrete implementation plan based on the approve
 
 ## What to do
 
-1. Base the plan on the latest approved research artifact.
+1. Base the plan on the latest approved research artifact (or on the shared understanding from Task Clarify if Express Pipeline was chosen).
 2. Define the intended implementation approach concretely enough that coding should not require inventing architecture on the fly.
 3. Name the exact files, components, interfaces, contracts, or boundaries expected to change.
 4. Record the important technical decisions and the rationale behind them.
 5. Make risks, trade-offs, scope limits, and unresolved decisions easy to review.
 6. Write implementation plan into plan artifact
-
-
+7. Verify the artifact against common coverage gaps before presenting:
+   - Does it name every file expected to change and why?
+   - Does it expose key decisions with rationale and alternatives?
+   - Does it surface risks, edge cases, and non-goals explicitly?
+   - Can a reviewer understand the implementation without filling in gaps?
+   If any answer is no, fill the gap. If deliberately skipped, note why.
 
 **Once the plan artifact written:**
 
 1. Conduct a pre-review of the plan according to the  `guides/pre-review.md` （Do not read before the planned artifact is created）.
 
-1. Ask the user to review the plan artifact, do not implementation yet, wait user explicy approval.
+1. Ask the user to review the plan artifact. Do not implement yet; wait for explicit approval.
 
-## What the artifact should contain
+## Review-friendly principles
 
-`docs/<task-slug>.plan.md` should follow a **coarse-to-fine, progressive disclosure** structure. The reader should be able to grasp the full picture at the top level, then dive into details as needed.
+The artifact must enable the reviewer to confidently answer:
+*is this plan safe to implement?*
 
-### Required structure (top-to-bottom order)
+- **Approach-clarity.** The core strategy — how pieces fit together —
+  is the first substantive section, not buried in detail.
+- **Scope-explicit.** Every file touched named with intent. Non-goals
+  stated so the reviewer can spot scope creep before it happens.
+- **Decision-visible.** Key technical decisions surfaced with rationale
+  and rejected alternatives. Implicit decisions are a review blocker.
+- **Concrete-enough.** Interfaces, contracts, data shapes, and boundary
+  conditions named. The reviewer should not need to fill in gaps.
+- **Risk-surfaced.** Risks, trade-offs, edge cases, and unresolved
+  approval points easy to locate — not buried in prose.
+- **Self-contained.** Summary-level understanding possible without
+  leaving the artifact. Research referenced but not required reading.
 
-Each section in this order, each level providing only what the previous level couldn't convey:
-
-| Level | Section | Purpose | Max length |
-|---|---|---|---|
-| 1 | **Title & Summary** | What we're building and why. Reference the research artifact. | 2-3 sentences |
-| 2 | **Change Inventory** | File paths to create/modify, and **the intent of each change**. Exclude the planning artifact itself. | Bullet list, 1-2 lines each |
-| 3 | **Top-Level Approach** | The high-level strategy — how the pieces fit together. Not pseudocode, but a conceptual architecture. | 3-5 sentences |
-| 4 | **Resulting Shape** | What the codebase looks like after this plan is executed. Use a structural diagram (tree, module map, or relationship sketch) so the reviewer can visualize the outcome at a glance. | 1 visual block + brief caption |
-| 5 | **Key Decisions** | Important technical decisions and the rationale behind them. Trade-offs considered, why this approach was chosen. | Per decision: 2-4 sentences |
-| 6 | **Detailed Approach** | Concrete implementation details organized by weight/importance. Lead with what's novel or risky; routine wiring goes later. Include code snippets (real code shapes, not pseudocode), interfaces, schemas, contracts, data-shape changes. | As needed |
-| 7 | **Scope & Risks** | Explicit non-goals, scope boundaries, risks, edge cases, unresolved approval points. Anything intentionally left out and why. | Bullet list |
-
-### Key principles
-
-- **Progressive disclosure**: Each level is a summary/abstraction of what follows. The reviewer can stop after any level and make a decision.
-- **Resulting Shape is mandatory**: This is the most commonly missing piece. Show the end state — don't make the reviewer infer it from a pile of diffs.
-- **Weight before order, not order before weight**: In Detailed Approach, lead with the most novel, risky, or consequential implementation details. Routine wiring and boilerplate go last.
-- **Navigation aids**: Use clear headings and, where helpful, cross-reference ("see §Detailed Approach for the full implementation of X").
-
-## What is not sufficient plan
+## Floor
 
 A plan needs revision before todo creation when:
 - major implementation decisions are still implicit

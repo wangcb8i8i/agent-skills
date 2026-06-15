@@ -11,6 +11,13 @@ Build a deep understanding of all task-relevant information, based on both user-
 3. Treat all delegated findings as unverified input, then review them together, resolve conflicts, and read directly only where needed to verify critical claims or close material gaps.
 4. Ask the user only for decisions, requirements, or facts that the codebase and delegated investigation cannot answer.
 5. Write a readable/reviewable research artifact that contains verified task-relevant codebase reality and constraints, and any explicitly unresolved non-repository questions.
+6. Verify the artifact against common coverage gaps before presenting:
+   - Does it describe how data moves through the affected paths?
+   - Does it document the relevant codebase patterns and conventions?
+   - Does it surface gotchas or constraints that materially affect planning?
+   - Does it check for existing reusable functionality?
+   - Does it note what was NOT found (e.g. queried but absent)?
+   If any answer is no, fill the gap. If deliberately skipped, note why.
 
 ## Research delegation
 
@@ -34,22 +41,23 @@ Do not merge conflicting claims silently, and surface unresolved ambiguity expli
 - conflicting findings
 - low-confidence or ambiguity findings
 
-## What the artifact should contain
+## Review-friendly principles
 
-- Clear and concise title
-- Overview of the relevant system/module/package
-- Key files and their responsibilities
-- Data flow (how data moves through the system), control flow, timing diagrams, etc
-- Existing patterns and conventions the codebase follows
-- Dependencies and integrations
-- Potential gotchas or constraints discovered
-- Any existing similar functionality that could be reused or extended
+The artifact must enable the reviewer to confidently answer:
+*is this research complete and accurate enough to plan against?*
 
-Each non-obvious finding should include a source citation: `[src: path:line]`. This lets reviewers verify claims without re-searching the codebase.
+- **Scope-aligned.** Every major finding traces back to the agreed task scope.
+  Off-track exploration is surfaced as supplementary, not mixed in.
+- **Scope-complete.** The reviewer can see what was investigated, what was
+  found, and what remains unanswered. Material gaps exposed, not hidden.
+- **Evidence-anchored.** Each non-obvious finding includes a source citation
+  `[src: path:line]`. Conflicting findings surfaced, not merged silently.
+- **Certainty-labeled.** Confidence labeled for non-trivial findings
+  (high / medium / low). Speculation is not research.
+- **Planning-actionable.** The artifact ends with a clear picture of what
+  is known well enough to plan, and what is not.
 
-Prefer compact tables or diagrams when they improve reviewability.
-
-## What is not sufficient research
+## Floor
 
 The following do not count as completed research on their own:
 
@@ -58,6 +66,8 @@ The following do not count as completed research on their own:
 - design proposals presented as facts
 - findings from a single source without cross-verification
 - unanswered questions that materially affect planning
+
+Prefer compact tables or diagrams — they reduce scanning effort and make the artifact easier to review.
 
 ## Constraints
 

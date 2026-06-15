@@ -16,7 +16,21 @@ Implementation follows the approved plan and approved todo list. It does not red
 3. Stop immediately if the approved artifacts no longer support correct execution.
 4. When all todo items are checked off, proceed to the verification and feedback phase.
 
-### Change policy
+#### Rewind Protocol
+
+When the approved artifacts no longer support correct execution:
+
+1. **Stop immediately**. Do not continue implementing.
+2. **Identify the earliest invalid phase**: which artifact (research, plan, or todo) is broken?
+3. **Disposition of artifacts**:
+   - Artifacts from the invalid phase and all downstream phases are discarded
+   - All upstream (previously approved) artifacts are preserved
+   - Example: plan is invalid → discard `plan.md` and its todo list; keep `research.md`
+4. **Reload**: read the reference for the phase being rewound to
+5. **Inform the user**: state which phase you're rewinding to, why, and what artifacts were discarded
+6. **Proceed**: re-enter the workflow at the rewound phase, starting with a fresh artifact
+
+## Change policy
 
 | Change type | Status |
 |---|---|
