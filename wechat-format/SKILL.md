@@ -34,7 +34,7 @@ Converts Markdown into a self-contained HTML file styled for WeChat Official Acc
    - Sequential steps / principles → flow-list + flow-step
    - Takeaways / conclusions → insight-list
 
-3. Render Markdown → HTML, mapping each identified semantic unit to the appropriate component. Keep ordinary prose as standard GFM elements (`<p>`, heading, list, etc.). Do not wrap every paragraph in a component — components are only for key information nodes.
+3. Render Markdown → HTML, mapping each identified semantic unit to the appropriate component. The first `h1` in the rendered body (the article title) is excluded from the final output. Keep ordinary prose as standard GFM elements (`<p>`, heading, list, etc.). Do not wrap every paragraph in a component — components are only for key information nodes.
 
 4. Load theme CSS from references/, resolve CSS variables with user's config. **Extract the resolved background color (e.g. `#FAF9F5`) and record it for use in the output template — it must be applied to both `body` and `#output` to prevent margin collapse from revealing white body background.**
 
@@ -402,6 +402,7 @@ body { background: {resolved-theme-bg-color}; }
 <div id="output">
   <section class="container mx-auto">
 
+    <!-- first h1 stripped: title is managed by WeChat editor, not pasted into body -->
     {rendered HTML content}
     {reading-time block if requested}
     {footnotes block if any}
