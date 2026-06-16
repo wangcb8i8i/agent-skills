@@ -1,5 +1,8 @@
 # Planning
 
+> **Language note:** All output artifacts must be written in Chinese (see Critical Rules in SKILL.md).  
+> References are in English for readability — do not treat them as a style template for artifacts.
+
 ## Purpose
 
 Create a detailed, reviewable, concrete implementation plan based on the approved research
@@ -13,21 +16,34 @@ Create a detailed, reviewable, concrete implementation plan based on the approve
 5. Make risks, trade-offs, scope limits, and unresolved decisions easy to review.
 6. Write implementation plan into plan artifact
 7. Verify the artifact against common coverage gaps before presenting:
-   - Does it name every file expected to change and why?
+   - Does the artifact open with the **target system structure** so the reviewer can see what the system looks like after the changes?
+   - Does every changed file name its **target state** (what it becomes, not just what action is taken)?
    - Does it expose key decisions with rationale and alternatives?
    - Does it surface risks, edge cases, and non-goals explicitly?
    - Can a reviewer understand the implementation without filling in gaps?
-   - Does the artifact follow reader's question order (goal → changes → decisions → risks) rather than grouped by topic (data model → config → output)?
+   - Does the artifact follow reader's question order (goal → risk profile → change list → decisions → risks) rather than grouped by topic?
    If any answer is no, fill the gap. If deliberately skipped, note why.
 
 ## Artifact organization
 
 Plan artifacts should follow a top-down reading logic. Each section answers a question the reviewer will ask:
 
-1. **Goal & approach** — The opening. The reviewer must be able to answer: "What problem does this solve, and what is the core solution?" Include a workflow / data flow / architecture skeleton as the shared mental model before any detail.
-2. **Change list** — File-by-file: what changes and how. The reviewer must be able to answer: "What exactly will be touched?"
-3. **Key decisions** — Important decisions with rationale and alternatives. The reviewer must be able to answer: "Why this way and not another?"
-4. **Risks & boundaries** — Identified risks and explicit non-goals. The reviewer must be able to answer: "What could go wrong, and what is deliberately not done?"
+1. **Goal & target state** — The opening. The reviewer must be able to answer:
+   - "What problem does this solve?"
+   - "What does the system look like after the changes?"
+   Include a workflow / data flow / architecture diagram showing the **target system structure** — this is the shared mental model before reading any file-level detail.
+
+2. **Risk profile** — 1–3 most critical risks or scope decisions the reviewer must be aware of before reading details. The reviewer can stop here if the risk profile is acceptable and no further detail is needed. Equivalent to research's Key findings section. Focus on the nature and severity of top risks — detail belongs in Risks & boundaries.
+
+3. **Change list** — File-by-file: the action and the target state after the change. For each file, specify:
+   - Path and action (create / modify / delete)
+   - Target state: what it becomes (key interfaces, new methods, changed signatures, added/removed fields, data shape changes)
+   Group changes by logical subsystem so the reviewer can evaluate groups rather than reading every file linearly.
+   The reviewer must be able to answer: "Exactly what will each file look like after implementation?"
+
+4. **Key decisions** — Important decisions with rationale and alternatives. The reviewer must be able to answer: "Why this way and not another?"
+
+5. **Risks & boundaries** — Complete list of identified risks and explicit non-goals. The reviewer must be able to answer: "What could go wrong, and what is deliberately not done?"
 
 This order expresses the reading logic, not fixed headings. Skip a section if its conclusion is empty.
 
@@ -44,8 +60,7 @@ The artifact must enable the reviewer to confidently answer:
 
 - **Approach-clarity.** The core strategy — how pieces fit together —
   is the first substantive section, not buried in detail.
-- **Scope-explicit.** Every file touched named with intent. Non-goals
-  stated so the reviewer can spot scope creep before it happens.
+- **Scope-explicit.** Every changed file named with its **target state** — what it becomes, not just what action is taken. Non-goals stated so the reviewer can spot scope creep before it happens.
 - **Decision-visible.** Key technical decisions surfaced with rationale
   and rejected alternatives. Implicit decisions are a review blocker.
 - **Concrete-enough.** Interfaces, contracts, data shapes, and boundary

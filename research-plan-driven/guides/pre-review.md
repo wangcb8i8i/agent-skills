@@ -144,39 +144,39 @@ Each reviewer must return:
 ```md
 ## <reviewer role>
 
-**Overall assessment**
-- 1-3 bullets on whether the plan is review-ready from this role’s perspective
+**总体评估**
+- 1-3 条：从该角色视角看 plan 是否可进入用户 review
 
-**Critical issues**
-- **<title>**
-  - <claim + why material, 1-2 sentences>
-  - <proposal / advice>
-  - location in plan
+**严重问题**
+- **<标题>**
+  - <问题陈述 + 为何严重, 1-2 句>
+  - <建议 / 意见>
+  - Plan 位置
 
-**Important issues**
-- **<title>**
-  - <claim + why material, 1-2 sentences>
-  - <proposal / advice>
-  - location in plan
+**重要问题**
+- **<标题>**
+  - <问题陈述 + 为何重要, 1-2 句>
+  - <建议 / 意见>
+  - Plan 位置
 
-**Minor issues**
-- **<title>**
-  - <claim + why material, 1-2 sentences>
-  - <proposal / advice>
-  - location in plan
+**次要问题**
+- **<标题>**
+  - <问题陈述, 1-2 句>
+  - <建议 / 意见>
+  - Plan 位置
 
-**Open questions**
-- bullet
+**待确认问题**
+- 逐条列出
 ```
 
-Rules for reviewer output:
+审阅者产出规则：
 
-- omit empty sections except `Overall assessment`
-- do not rewrite the plan
-- do not propose implementation steps
-- do not introduce new requirements beyond approved research or explicit user instruction
-- do not inflate severity to be “safe”
-- do not downgrade uncertainty into certainty
+- 空节可省略，但 `总体评估` 除外
+- 不要重写 plan
+- 不要提出实现步骤
+- 不要引入超出已批准 research 或用户明确指令的新需求
+- 不要为了提高安全系数而虚报严重性
+- 不要将不确定性降级为确定性
 
 ---
 
@@ -254,51 +254,60 @@ When synthesizing reviewer outputs:
 5. preserve meaningful disagreement or uncertainty
 6. attribute issues by role when perspective matters
 7. keep the highest credible severity only when the higher severity is supported by artifact evidence
-8. drop low-leverage findings that do not materially improve final review quality
+8. drop low-leverage findings that do not materially improve final review quality. Minor-severity findings from reviewers are not included in the prereview output — only critical and important issues are reported.
 9. optimize for user review usefulness, not issue volume
-10. for each kept finding, decide whether to attach a Proposed Revision — only produce one when the coordinator can articulate a concrete, actionable revision to the plan. Findings without a clear revision (e.g. observations, questions) produce no Proposed Revision block
+10. for each kept finding, decide whether to attach a Proposed Revision — only produce one when the coordinator can articulate a concrete, actionable revision to the plan. Findings without a clear revision (e.g. observations, questions) produce no Proposed Revision block. Proposed Revision is a **suggestion** — the plan is not modified during pre-review.
+11. **For every plan anchor reference**, append a brief section summary in parentheses so the reviewer can assess relevance without jumping to plan.md:
+    - ✔ `§三 3.2（generate_curation_guide 参数说明）`
+    - ✘ `§三 3.2`
 
 ---
 
 ## Pre-Review Notes Template
 
-Write notes to `docs/<task-slug>.prereview.md` using this template:
+Write notes to `docs/<task-slug>.prereview.md` using this template. All content must be in Chinese (see Constraints).
 
 ```md
-# Pre-Review: <task-slug>.plan.md 
+# Pre-Review: <task-slug>.plan.md
 
 ## Pre-Review Notes
 
-**Reviewer**
-- role 1
-- role 2
-- role 3
+**审阅人**
+- <角色 1>
+- <角色 2>
 
-**Overall assessment**
-- short summary of whether the plan appears ready for final user review
-- note where the user should focus attention
+**总体评估**
+- <plan 是否 ready、主要偏差>
+- <用户应重点关注什么>
+- **审阅建议**: <建议直接进入用户 review / 建议审阅后再决定 / 不建议进入 review，需先修订>
 
-**Critical**
-- Finding description with plan/research anchor
-  > **Proposed Revision**: specific suggested change to the plan
+### 发现的问题
 
-**Important**
-- Finding description with plan/research anchor
-  > **Proposed Revision**: specific suggested change to the plan
+**严重**
+- **<问题标题>**
+  - <问题描述 + 为何严重, 1-2 句>
+  - Plan 位置：<节名（节大意）>；Research 依据：<位置>
+  > **修订建议**: <具体的修改建议>
 
-**Minor**
-- Finding description with plan/research anchor
-  > **Proposed Revision**: specific suggested change to the plan (or "No revision needed" if the finding does not warrant a change)
+**重要**
+- **<问题标题>**
+  - <问题描述 + 为何重要, 1-2 句>
+  - Plan 位置：<节名（节大意）>；Research 依据：<位置>
+  > **修订建议**: <具体的修改建议>
 
-**Open questions for user review**
-- item
+### 待决策问题
+
+每个问题需说明用户需要做何决策。
+
+- **<问题标题>**
+  - 背景：<问题背景、现状>
+  - 影响：<不决策的影响 / 依赖此决策的事项>
+  - **需要决策**: <用户需要决定什么>
 ```
 
 If a section has no items, omit it except:
-- `Reviewer roles`
-- `Overall assessment`
-
-Do not modify the body of the plan based on reviewer findings alone.
+- `审阅人`
+- `总体评估`
 
 ---
 

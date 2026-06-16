@@ -1,5 +1,8 @@
 # Implementation
 
+> **Language note:** All output artifacts must be written in Chinese (see Critical Rules in SKILL.md).  
+> References are in English for readability — do not treat them as a style template for artifacts.
+
 ## Purpose
 
 Execute the approved todo list exactly enough to preserve the approval-gated workflow.

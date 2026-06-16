@@ -1,5 +1,8 @@
 # Verification & Feedback
 
+> **Language note:** All output artifacts must be written in Chinese (see Critical Rules in SKILL.md).  
+> References are in English for readability — do not treat them as a style template for artifacts.
+
 ## Purpose
 
 Audit the implementation's **TODO fidelity**: whether every file change or operation in the implementation phase matches its corresponding TODO item — no false positives (marked done but not done), no false negatives (done but not marked), and no unexpected changes outside the approved list.
@@ -48,19 +51,21 @@ After completing forward verification, reverse verification, and consistency che
 
 If drift is found, classify it with evidence in the report:
 
-| Drift type | Example | Report label |
+| 漂移类型 | 示例 | 报告标记 |
 |---|---|---|
-| Implementation-level: work done but doesn't match TODO | Script exists but outputs wrong column order | `implementation mismatch` |
-| Plan-level: TODO list insufficient | TODO missed creating a ZIP step | `plan gap` |
-| Research-level: plan was correct but research was wrong | Research claimed 4 interfaces but there are 5 | `research error` |
+| 实现级：工作完成但与 TODO 描述不符 | 脚本存在但输出列顺序错误 | `implementation mismatch` |
+| 计划级：TODO 清单不完整 | TODO 遗漏了 ZIP 压缩步骤 | `plan gap` |
+| 调研级：计划正确但 research 有误 | Research 声称 4 个接口但实际有 5 个 | `research error` |
 
-### Fidelity report template
+### 验收报告模板
 
 ```
-## Fidelity Report
-A sentence or two summary
-###Issues###
-[none / itemized list with evidence and drift type]
+## 验收报告
+
+<总体说明，1-2 句>
+
+### 问题
+[无问题 / 逐条列出问题及证据和漂移类型]
 ```
 
 Then ask: does the user want follow-up refinement?

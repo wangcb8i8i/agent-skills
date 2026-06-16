@@ -65,6 +65,21 @@ Skip Research when the task is narrow, well-understood, and the user already has
 | Proceed without stopping for approval during execution | Implementation, Verification |
 | All output artifacts use Chinese as the primary language | All phases |
 
+## Approval standard
+
+Explicit approval is required before advancing to the next phase.
+
+**Counts as approval:**
+- "approved" / "approve" / "可以" / "同意" / "批准"
+- Any clear statement that the artifact is ready to proceed
+
+**Does not count as approval:**
+- Vague one-word confirmations ("好", "OK", "嗯", "LGTM", "looks good") without an explicit signal to proceed
+- Silence or absence of objections
+- Comments that request changes or raise concerns
+
+If the response is ambiguous — ask. Phrase as: *"确认一下：上面的算 approve 吗？还是需要再改一轮？"*
+
 ## Task Naming
 
 Generate a short, stable, readable `task-slug` for the task and use it throughout the workflow.

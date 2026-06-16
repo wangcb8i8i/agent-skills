@@ -1,5 +1,8 @@
 # Research
 
+> **Language note:** All output artifacts must be written in Chinese (see Critical Rules in SKILL.md).  
+> References are in English for readability — do not treat them as a style template for artifacts.
+
 ## Purpose
 
 Build a deep understanding of all task-relevant information, based on both user-provided materials and the task-relevant parts of the codebase, so that later phases can proceed with comprehensive, reliable context.
@@ -17,18 +20,43 @@ Build a deep understanding of all task-relevant information, based on both user-
    - Does it surface gotchas or constraints that materially affect planning?
    - Does it check for existing reusable functionality?
    - Does it note what was NOT found (e.g. queried but absent)?
-   - Does it contain any proposals, solutions, or recommendations that go beyond factual findings?
+   - Identify any section that recommends, designs, or plans what should be built (see Research boundary). If found, remove or mark as Supplementary with an explicit note that it belongs in planning.
+   - Does every finding describe something that already exists rather than what should be built?
    If any answer is no, fill the gap. If deliberately skipped, note why.
+
+## Research boundary
+
+Research describes what exists. The test: "does this describe something that already exists?"
+
+### Belongs in research
+- Current codebase structure, data flows, and behavior
+- Available options with their characteristics (capabilities, costs, limitations)
+- Existing patterns, conventions, and constraints
+- Known issues, gaps, and their consequences
+- Verifiable facts with source citations
+
+### Not belongs in research
+- Recommendations or decisions (e.g. "use source X", "choose approach Y")
+- Architecture or pipeline redesigns
+- Pseudo-code, code snippets, or type definitions for new functionality
+- Implementation phases, roadmaps, or step-by-step plans
+- Decision tables that recommend a choice (as opposed to comparing existing options)
+
+### Boundary test
+
+When in doubt, ask: "Does this describe something that already exists?"
+- Yes → research
+- No → not research
 
 ## Artifact organization
 
 Research artifacts should follow a top-down reading logic. Each section answers a question the reviewer will ask:
 
-1. **Scope alignment** — Open with the research goal and scope so the reviewer can confirm "this matches the task"
-2. **Key findings** — Follow immediately with 2–3 most critical findings (evidence anchor + confidence label). The reviewer can stop here or dive deeper
-3. **Detailed findings** — Organize by subsystem or research question, each claim traceable to source
-4. **Context** — Codebase patterns, conventions, data flows, and constraints that affect planning
-5. **Unresolved questions** — Explicitly list open items that block planning decisions
+1. **Scope alignment（范围对齐）** — Open with the research goal and scope so the reviewer can confirm "this matches the task"
+2. **Key findings（关键发现）** — Follow immediately with 2–3 most critical findings (evidence anchor + confidence label). The reviewer can stop here or dive deeper
+3. **Detailed findings（详细发现）** — Organize by subsystem or research question, each claim traceable to source
+4. **Context（上下文）** — Codebase patterns, conventions, data flows, and constraints that affect planning
+5. **Unresolved questions（未解决问题）** — Explicitly list open items that block planning decisions
 
 This order expresses the reading logic, not fixed headings. Skip a section if its conclusion is empty.
 
@@ -100,4 +128,5 @@ Leave this phase only when:
 - the artifact is grounded in repository evidence
 - material ambiguities affecting planning have been resolved or surfaced
 - all current research review comments have been handled
+- **the artifact passes a pre-submission self-check: every section has content, every claim has a source anchor, every unresolved question is listed explicitly**
 - the user has explicitly approved the research artifact for planning

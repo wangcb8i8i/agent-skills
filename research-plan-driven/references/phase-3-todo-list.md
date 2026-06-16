@@ -1,5 +1,8 @@
 # Todo List
 
+> **Language note:** All output artifacts must be written in Chinese (see Critical Rules in SKILL.md).  
+> References are in English for readability — do not treat them as a style template for artifacts.
+
 ## Purpose
 
 Turn the approved plan into a concrete, reviewable execution checklist before any implementation begins.
@@ -26,43 +29,43 @@ The todo list must:
 
 Use checkbox-based markdown items inside a `## Todo List` section in `docs/<task-slug>.plan.md`. 
 
-**Todo example**
+**Todo 示例**
 
 ```markdown
 ## Todo List
 
-### 1. Entry Points <!-- ref§Core Logic -->
-- [ ] Add the new route registration in `src/api/notifications/routes.ts`
-- [ ] Add the request handler in `src/api/notifications/controller.ts`
-### 2. Core Behavior <!-- ref § SectionB-->
-- [ ] Add the service method for listing notifications for the current user in `src/api/notifications/controller.ts`
-- [ ] Add the repository query with the approved pagination and sort behavior in `src/api/notifications/controller.ts`
-- [ ] Return the response in the existing API response shape
-### 3. Safety and Edge Cases <!-- ref  § SectionC-->
-- [ ] Reject unauthenticated requests using the existing auth flow 
-- [ ] Handle invalid pagination input according to existing conventions
-- [ ] Return an empty list correctly when the user has no notifications
-### 4. Validation <!-- ref  § Approach C -->
-- [ ] Add or update API tests for the happy path
-- [ ] Add or update tests for auth failure and user isolation
-- [ ] Run typecheck
-- [ ] Run lint
-- [ ] Run the relevant test suite
+### 1. 入口点 <!-- ref§Core Logic -->
+- [ ] 在 `src/api/notifications/routes.ts` 中新增路由注册
+- [ ] 在 `src/api/notifications/controller.ts` 中新增请求处理器
+### 2. 核心逻辑 <!-- ref § SectionB-->
+- [ ] 在 `src/api/notifications/controller.ts` 中新增查询当前用户通知的服务方法
+- [ ] 在仓库查询中加入已批准的分页和排序逻辑
+- [ ] 按照现有 API 响应格式返回
+### 3. 安全和边界情况 <!-- ref  § SectionC-->
+- [ ] 使用现有认证流程拒绝未认证请求
+- [ ] 按照现有惯例处理无效的分页输入
+- [ ] 用户无通知时正确返回空列表
+### 4. 验证 <!-- ref  § Approach C -->
+- [ ] 为正常路径新增或更新 API 测试
+- [ ] 为认证失败和用户隔离新增或更新测试
+- [ ] 运行类型检查
+- [ ] 运行 lint
+- [ ] 运行相关测试套件
 ```
 
-## Things to note
+## 注意事项
 
-After the todo list, append a `## Things to note` section.
+待办清单后追加 `## 注意事项` 节。
 
-This section must answer these questions for the current task:
+该节需回答当前任务的以下问题：
 
-* In the implementation phase of current workflow, what constraints or specifications must/should be concerned with
+* 本实现阶段需要关注哪些约束或规范？
 
-Use this structure:
+使用以下结构：
 
 ```markdown
-## Things to note
-<The organized answers of questions above here>
+## 注意事项
+<上述问题的整理答案>
 ```
 
 ## Constraints
