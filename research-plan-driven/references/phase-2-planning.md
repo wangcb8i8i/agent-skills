@@ -28,22 +28,22 @@ Create a detailed, reviewable, concrete implementation plan based on the approve
 
 Plan artifacts should follow a top-down reading logic. Each section answers a question the reviewer will ask:
 
-1. **Goal & target state** — The opening. The reviewer must be able to answer:
+1. **目标与最终状态** — The opening. The reviewer must be able to answer:
    - "What problem does this solve?"
    - "What does the system look like after the changes?"
    Include a workflow / data flow / architecture diagram showing the **target system structure** — this is the shared mental model before reading any file-level detail.
 
-2. **Risk profile** — 1–3 most critical risks or scope decisions the reviewer must be aware of before reading details. The reviewer can stop here if the risk profile is acceptable and no further detail is needed. Equivalent to research's Key findings section. Focus on the nature and severity of top risks — detail belongs in Risks & boundaries.
+2. **风险概况** — 1–3 most critical risks or scope decisions the reviewer must be aware of before reading details. The reviewer can stop here if the risk profile is acceptable and no further detail is needed. Equivalent to research's Key findings section. Focus on the nature and severity of top risks — detail belongs in Risks & boundaries.
 
-3. **Change list** — File-by-file: the action and the target state after the change. For each file, specify:
+3. **变更清单** — File-by-file: the action and the target state after the change. For each file, specify:
    - Path and action (create / modify / delete)
    - Target state: what it becomes (key interfaces, new methods, changed signatures, added/removed fields, data shape changes)
    Group changes by logical subsystem so the reviewer can evaluate groups rather than reading every file linearly.
    The reviewer must be able to answer: "Exactly what will each file look like after implementation?"
 
-4. **Key decisions** — Important decisions with rationale and alternatives. The reviewer must be able to answer: "Why this way and not another?"
+4. **关键决策** — Important decisions with rationale and alternatives. The reviewer must be able to answer: "Why this way and not another?"
 
-5. **Risks & boundaries** — Complete list of identified risks and explicit non-goals. The reviewer must be able to answer: "What could go wrong, and what is deliberately not done?"
+5. **风险与边界** — Complete list of identified risks and explicit non-goals. The reviewer must be able to answer: "What could go wrong, and what is deliberately not done?"
 
 This order expresses the reading logic, not fixed headings. Skip a section if its conclusion is empty.
 

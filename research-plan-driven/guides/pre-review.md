@@ -254,7 +254,7 @@ When synthesizing reviewer outputs:
 5. preserve meaningful disagreement or uncertainty
 6. attribute issues by role when perspective matters
 7. keep the highest credible severity only when the higher severity is supported by artifact evidence
-8. drop low-leverage findings that do not materially improve final review quality. Minor-severity findings from reviewers are not included in the prereview output — only critical and important issues are reported.
+8. drop low-leverage findings that do not materially improve final review quality. Minor-severity findings from reviewers are not included in the pre-review output — only critical and important issues are reported.
 9. optimize for user review usefulness, not issue volume
 10. for each kept finding, decide whether to attach a Proposed Revision — only produce one when the coordinator can articulate a concrete, actionable revision to the plan. Findings without a clear revision (e.g. observations, questions) produce no Proposed Revision block. Proposed Revision is a **suggestion** — the plan is not modified during pre-review.
 11. **For every plan anchor reference**, append a brief section summary in parentheses so the reviewer can assess relevance without jumping to plan.md:
@@ -263,51 +263,52 @@ When synthesizing reviewer outputs:
 
 ---
 
-## Pre-Review Notes Template
+## 模板
 
-Write notes to `docs/<task-slug>.prereview.md` using this template. All content must be in Chinese (see Constraints).
+写入 `docs/<task-slug>.pre-review.md`，所有内容使用中文。
 
 ```md
-# Pre-Review: <task-slug>.plan.md
+# 预审：<task-slug>
 
-## Pre-Review Notes
+## 审阅人
+<角色 1>、<角色 2>
 
-**审阅人**
-- <角色 1>
-- <角色 2>
+## 总体评估
+<plan 是否 ready、主要偏差>
 
-**总体评估**
-- <plan 是否 ready、主要偏差>
-- <用户应重点关注什么>
-- **审阅建议**: <建议直接进入用户 review / 建议审阅后再决定 / 不建议进入 review，需先修订>
+<用户应重点关注什么>
 
-### 发现的问题
+**审阅建议**: <建议直接进入用户 review / 建议审阅后再决定 / 不建议进入 review，需先修订>
 
-**严重**
-- **<问题标题>**
-  - <问题描述 + 为何严重, 1-2 句>
-  - Plan 位置：<节名（节大意）>；Research 依据：<位置>
-  > **修订建议**: <具体的修改建议>
+## 严重问题
 
-**重要**
-- **<问题标题>**
-  - <问题描述 + 为何重要, 1-2 句>
-  - Plan 位置：<节名（节大意）>；Research 依据：<位置>
-  > **修订建议**: <具体的修改建议>
+> <问题描述 + 为何严重>
 
-### 待决策问题
+- **Plan 位置**：<节名>
+- **修订建议**：<具体建议>
 
-每个问题需说明用户需要做何决策。
+---
 
-- **<问题标题>**
-  - 背景：<问题背景、现状>
-  - 影响：<不决策的影响 / 依赖此决策的事项>
-  - **需要决策**: <用户需要决定什么>
+> <下一个问题描述>
+
+- **Plan 位置**：<节名>
+- **修订建议**：<具体建议>
+
+## 重要问题
+
+> <问题描述 + 为何重要>
+
+- **Plan 位置**：<节名>
+- **修订建议**：<具体建议>
+
+## 待决策问题
+
+- **背景**：<问题背景、现状>
+- **影响**：<不决策的影响 / 依赖此决策的事项>
+- **需要决策**：<用户需要决定什么>
 ```
 
-If a section has no items, omit it except:
-- `审阅人`
-- `总体评估`
+空节可省略，`审阅人` 和 `总体评估` 除外。
 
 ---
 
@@ -352,7 +353,7 @@ If a section has no items, omit it except:
 - Do not turn pre-review into implementation.
 - Do not replace user judgment with reviewer judgment.
 - Do not maximize issue count at the expense of signal quality.
-- Pre-review notes output artifact (`docs/<task-slug>.prereview.md`) uses Chinese as the primary language.
+- Pre-review notes output artifact (`docs/<task-slug>.pre-review.md`) uses Chinese as the primary language.
 
 ---
 
