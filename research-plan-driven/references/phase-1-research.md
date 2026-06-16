@@ -1,132 +1,128 @@
-# Research
+# 调研
 
-> **Language note:** All output artifacts must be written in Chinese (see Critical Rules in SKILL.md).  
-> References are in English for readability — do not treat them as a style template for artifacts.
+## 目的
 
-## Purpose
+基于用户提供的材料和代码库中与任务相关的部分，建立对所有任务相关信息的深度理解，以便后续阶段在全面、可靠的上下文基础上推进。
 
-Build a deep understanding of all task-relevant information, based on both user-provided materials and the task-relevant parts of the codebase, so that later phases can proceed with comprehensive, reliable context.
+## 执行步骤
 
-## What to do
+1. 以具体的、可调研的术语定义任务，并将调查拆分为聚焦的问题或子系统，确保各方向不重叠。
+2. 倒推规划所需信息，界定调研范围：
+   - 想清楚规划这个任务需要确认哪些代码库现状。问自己：*"这个任务涉及的特定文件或模块是什么？"*、*"影响规划决策的关键未知因素有哪些？"*、*"哪些方面用户已明确提供上下文，无需调研？"*
+   - 只调研必要项——已知的、不直接影响决策的维度可以跳过。
+   - 够用即止：当调研产物足以支撑安全规划时，停止深入。
+   - 如果刻意跳过了某个常见维度（如数据流转、可复用性检查），在产物中注明原因及判断依据。
+3. 默认将代码库探索或调查委派给子 agent 处理，仅当明确判断"自行检查比委派更窄更快"时才亲自处理。
+4. 将所有委派结果视为未经验证的输入，然后合起来审查，解决冲突，仅在需要验证关键声明或填补重大缺口时亲自阅读代码。
+5. 仅当代码库和委派调查都无法回答时，才向用户询问决策、需求或事实。
+6. 编写可读/可审的调研产物，包含经过验证的、与任务相关的代码库现状和约束，以及任何明确的未解决的代码库外问题。
+7. 在提交前，根据任务实际信息需求选择相关维度检查产物，无关维度可跳过但需注明原因：
+   - 是否描述了数据在受影响路径中的流转方式？
+   - 是否记录了相关的代码库模式和约定？
+   - 是否暴露了会实质影响规划的陷阱或约束？
+   - 是否检查了已有的可复用功能？
+   - 是否说明了未发现什么（例如已查询但不存在的内容）？
+   - 识别任何推荐、设计或规划"应该构建什么"的章节（见调研边界）。如果发现，将其移除，或标记为补充内容并明确注明其属于规划阶段。
+   - 每项发现是否描述的是已存在的内容，而非应该构建的内容？
+   如果任何答案为"否"，补上缺口。如果故意跳过某个检查，注明原因。
 
-1. Define the task in concrete, researchable terms and split the investigation into focused questions or subsystems that can be researched without overlap.
-2. Delegate codebase explore or investigate for those focused areas by default, and handle a check directly only when it is clearly narrower and faster than delegating it.
-3. Treat all delegated findings as unverified input, then review them together, resolve conflicts, and read directly only where needed to verify critical claims or close material gaps.
-4. Ask the user only for decisions, requirements, or facts that the codebase and delegated investigation cannot answer.
-5. Write a readable/reviewable research artifact that contains verified task-relevant codebase reality and constraints, and any explicitly unresolved non-repository questions.
-6. Verify the artifact against common coverage gaps before presenting:
-   - Does it describe how data moves through the affected paths?
-   - Does it document the relevant codebase patterns and conventions?
-   - Does it surface gotchas or constraints that materially affect planning?
-   - Does it check for existing reusable functionality?
-   - Does it note what was NOT found (e.g. queried but absent)?
-   - Identify any section that recommends, designs, or plans what should be built (see Research boundary). If found, remove or mark as Supplementary with an explicit note that it belongs in planning.
-   - Does every finding describe something that already exists rather than what should be built?
-   If any answer is no, fill the gap. If deliberately skipped, note why.
+## 调研边界
 
-## Research boundary
+调研描述已经存在的内容。检验标准："这条描述的是已经存在的东西吗？"
 
-Research describes what exists. The test: "does this describe something that already exists?"
+### 属于调研范畴
+- 当前代码库结构、数据流和行为
+- 可用选项及其特征（能力、成本、局限）
+- 现有模式、约定和约束
+- 已知问题、缺口及其后果
+- 可验证的事实，附带来源引用
 
-### Belongs in research
-- Current codebase structure, data flows, and behavior
-- Available options with their characteristics (capabilities, costs, limitations)
-- Existing patterns, conventions, and constraints
-- Known issues, gaps, and their consequences
-- Verifiable facts with source citations
+### 不属于调研范畴
+- 推荐或决策（如"使用源 X"、"选择方法 Y"）
+- 架构或流程重新设计
+- 新功能的伪代码、代码片段或类型定义
+- 实施阶段、路线图或分步计划
+- 推荐某一选择的决策表（相对于比较现有选项）
 
-### Not belongs in research
-- Recommendations or decisions (e.g. "use source X", "choose approach Y")
-- Architecture or pipeline redesigns
-- Pseudo-code, code snippets, or type definitions for new functionality
-- Implementation phases, roadmaps, or step-by-step plans
-- Decision tables that recommend a choice (as opposed to comparing existing options)
+### 边界判断
 
-### Boundary test
+不确定时，问："这条描述的是已经存在的东西吗？"
+- 是 → 属于调研
+- 否 → 不属于调研
 
-When in doubt, ask: "Does this describe something that already exists?"
-- Yes → research
-- No → not research
+## 产物组织
 
-## Artifact organization
+调研产物应遵循自上而下的阅读逻辑。每个章节回答审查者会提出的问题：
 
-Research artifacts should follow a top-down reading logic. Each section answers a question the reviewer will ask:
+1. **范围对齐（Scope alignment）** — 以调研目标和范围开篇，让审查者确认"这与任务匹配"
+2. **关键发现（Key findings）** — 紧随其后，列出 2-3 个最关键发现（含证据锚点和置信度标记）。审查者可以止步于此，也可以深入阅读
+3. **详细发现（Detailed findings）** — 按子系统或调研问题组织，每项声明可追溯至来源
+4. **上下文（Context）** — 影响规划的代码库模式、约定、数据流和约束
+5. **未解决问题（Unresolved questions）** — 明确列出阻碍规划决策的未决项
 
-1. **Scope alignment（范围对齐）** — Open with the research goal and scope so the reviewer can confirm "this matches the task"
-2. **Key findings（关键发现）** — Follow immediately with 2–3 most critical findings (evidence anchor + confidence label). The reviewer can stop here or dive deeper
-3. **Detailed findings（详细发现）** — Organize by subsystem or research question, each claim traceable to source
-4. **Context（上下文）** — Codebase patterns, conventions, data flows, and constraints that affect planning
-5. **Unresolved questions（未解决问题）** — Explicitly list open items that block planning decisions
+此顺序表达阅读逻辑，非固定标题。如果某章节的结论为空，跳过该章节。
 
-This order expresses the reading logic, not fixed headings. Skip a section if its conclusion is empty.
+## 调研委派
 
-## Research delegation
+当委托可以提高覆盖率或速度时，并行启动 1-3 个聚焦的子 agent。按聚焦的问题或子系统拆分工作，避免任务重叠。
 
-Launch 1-3 focused subagents in parallel when that improves coverage or speed. Split work by focused question or subsystem, and avoid overlapping tasks.
+给每个子 agent 的 prompt 必须包含：
 
-The prompt to each subagent must include:
+* 调查什么以及为什么（任务上下文）
+* 需要查看的特定文件或模式
+* 需要返回什么样的发现（实际的实现、模式、数据流、约定、边界情况）
+* 约束：仅调查事实——不提议解决方案、架构或功能想法
 
-* What to investigate and why (the task context)
-* Specific files or patterns to look at
-* What kind of findings to return (actual implementations,patterns, data flows, conventions, edge cases)
-* Constraint: investigate facts only — do not propose solutions, architectures, or feature ideas
+一个好的子 agent prompt 应该：
 
-A good prompt for subagent should:
+* 要求全面、结构化地追踪代码，专注于理解抽象、架构和控制流（理解事物如何工作）
+* 明确约束和边界
+* 提供足够的上下文，使 agent 能做出判断，而非仅遵循狭窄指令
 
-* Tell trace through the code or file comprehensively and focus on getting a comprehensive understanding of abstractions, architecture and flow of control (understand how things work)
-* Tell clear constraints and boundaries
-* Give enough context about the surrounding problem that the agent can make judgment calls rather than just following a narrow instruction.
+协调者审查子 agent 的发现，填补重要缺口，从代码库证据中解决冲突，并综合生成 `docs/<task-slug>.research.md`。
 
-The coordinator reviews subagent findings, fills important gaps, resolves gaps and conflicts from repository evidence, and synthesizes `docs/<task-slug>.research.md`. 
+不要静默合并冲突主张。明确暴露未解决的歧义。始终验证：
+- 冲突的发现
+- 低置信度或模糊的发现
 
-Do not merge conflicting claims silently, and surface unresolved ambiguity explicitly. Always verify:
-- conflicting findings
-- low-confidence or ambiguity findings
+## 审查原则
 
-## Review-friendly principles
+产物必须能让审查者自信地回答：*这份调研是否足够完整和准确，可以基于它进行规划？*
 
-The artifact must enable the reviewer to confidently answer:
-*is this research complete and accurate enough to plan against?*
+- **范围对齐。** 每个重要发现都能追溯到已同意的任务范围。偏离轨道的探索以补充内容形式呈现，而非混入正文。
+- **范围完整。** 审查者能看到调查了什么、发现了什么、还有哪些未回答。重大缺口暴露而非隐藏。
+- **证据锚定。** 每个非显而易见的发现都包含来源引用 `[src: path:line]`。冲突发现暴露而非静默合并。
+- **置信度标记。** 对非平凡的发现标记置信度（high / medium / low）。推测不是调研。
+- **规划可操作。** 产物的结尾应清晰说明什么是已知到足以规划的，什么是未知的。
 
-- **Scope-aligned.** Every major finding traces back to the agreed task scope.
-  Off-track exploration is surfaced as supplementary, not mixed in.
-- **Scope-complete.** The reviewer can see what was investigated, what was
-  found, and what remains unanswered. Material gaps exposed, not hidden.
-- **Evidence-anchored.** Each non-obvious finding includes a source citation
-  `[src: path:line]`. Conflicting findings surfaced, not merged silently.
-- **Certainty-labeled.** Confidence labeled for non-trivial findings
-  (high / medium / low). Speculation is not research.
-- **Planning-actionable.** The artifact ends with a clear picture of what
-  is known well enough to plan, and what is not.
+## 最低标准
 
-## Floor
+以下内容单独不能算作完成调研：
 
-The following do not count as completed research on their own:
+- 仅有文件列表，没有行为理解
+- 仅有 grep 输出，没有综合
+- 将设计方案当作事实呈现
+- 将提议或解决方案作为调研发现呈现
+- 来自单一来源的发现，未经交叉验证
+- 未回答的对规划有实质影响的问题
 
-- a file list without behavioral understanding
-- grep output without synthesis
-- design proposals presented as facts
-- proposals or solutions presented as research findings
-- findings from a single source without cross-verification
-- unanswered questions that materially affect planning
+优先使用紧凑的表格或图表——它们减少阅读成本，使产物更容易审查。
 
-Prefer compact tables or diagrams — they reduce scanning effort and make the artifact easier to review.
+## 约束
 
-## Constraints
+- 不要在调研产物中包含已决定的实现方案作为调研事实。
+- 不要在调研产物中包含新功能想法、架构提议或解决方案建议。
+- 不要写实现代码。
+- 不要将调研产物变成规划。
+- 在有实质性调研问题未解决时，不要最终确定产物。
 
-- Do not include proposed implementation decisions as research facts.
-- Do not include new feature ideas, architecture proposals, or solution suggestions in the research artifact.
-- Do not write implementation code.
-- Do not turn the research artifact into a plan.
-- Do not finalize the artifact while material research questions remain unresolved.
+## 完成标准
 
-## Completion criteria
+仅在以下条件满足时才能离开此阶段：
 
-Leave this phase only when:
-
-- `docs/<task-slug>.research.md` exists
-- the artifact is grounded in repository evidence
-- material ambiguities affecting planning have been resolved or surfaced
-- all current research review comments have been handled
-- **the artifact passes a pre-submission self-check: every section has content, every claim has a source anchor, every unresolved question is listed explicitly**
-- the user has explicitly approved the research artifact for planning
+- `docs/<task-slug>.research.md` 已存在
+- 产物基于代码库证据
+- 影响规划的实质性歧义已被解决或暴露
+- 所有当前调研审查评论已被处理
+- **产物通过提交前自检：每个章节都有内容，每个声明都有来源锚点，每个未解决问题都已明确列出**
+- 用户已明确批准调研产物可用于规划

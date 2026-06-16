@@ -1,194 +1,188 @@
 ---
 name: research-plan-driven
-description: Use this skill only when the user explicitly asks for a research-plan-driven workflow. Trigger only for explicit requests such as phrases like “plan driven”, “research and plan”, or “research-plan”.
+description: 仅当用户明确要求"research-plan-driven"工作流时使用。触发词：如 "plan driven"、"research and plan"、"research-plan" 等明确表达。
 ---
 
 # Research-Plan-Driven
 
-## Workflow
+## 工作流
 
 ```
-   Task Clarify
+   任务澄清
         │
         ▼
 ┌─────────────────┐
-│    Research     │──<<review-revise Repeat>>──► until approved
+│     调研        │──<<审查-修订 循环>>──► 直到批准
 └───────┬─────────┘
-        │ approved
+        │ 批准
         ▼
 ┌─────────────────┐
-│    Planning     │──<<review-revise Repeat>>──► until approved
+│     规划        │──<<审查-修订 循环>>──► 直到批准
 └───────┬─────────┘
-        │ approved
+        │ 批准
         ▼
 ┌─────────────────┐
-│   Todo List     │──<<review-revise Repeat>>──► until approved
+│   待办清单      │──<<审查-修订 循环>>──► 直到批准
 └───────┬─────────┘
-        │ approved
+        │ 批准
         ▼
 ┌─────────────────┐
-│  Implementation │
+│     实现        │
 └───────┬─────────┘
         │
         ▼
 ┌─────────────────┐
-│  Verification   │────► feedback final report
+│     验证        │────► 反馈验收报告
 └─────────────────┘
-													                
- ```
+```
 
-## Workflow Variants
+## 工作流变体
 
-### Full Pipeline (default)
-All 5 phases (Research → Planning → Todo List → Implementation → Verification) with approval gates. Use when the task involves material unknowns, cross-module changes, or significant design decisions.
+### 完整流程（默认）
+所有 5 个阶段（调研 → 规划 → 待办清单 → 实现 → 验证），含审批关口。适用于任务涉及重大未知、跨模块变更或重要设计决策时。
 
-### Express Pipeline
-Skip Research when the task is narrow, well-understood, and the user already has sufficient context. Flow: Task Clarify → Planning → Todo List → Implementation → Verification.
+### 快捷流程
+跳过调研阶段，适用于任务范围狭窄、理解充分、用户已有足够上下文。流程：任务澄清 → 规划 → 待办清单 → 实现 → 验证。
 
-**Rules:**
-- Suggest Express only during Task Clarify, after understanding the task scope
-- The user must explicitly approve the shortcut
-- If Express is chosen, skip Research and proceed directly to Planning
-- If uncertainty emerges during Planning, recommend switching to Full Pipeline
+**规则：**
+- 仅在任务澄清阶段、理解了任务范围后，才建议使用快捷流程
+- 用户必须明确批准跳过调研
+- 如果选择快捷流程，跳过调研直接进入规划
+- 如果在规划阶段出现不确定性，建议切换回完整流程
 
-## Critical Rules
+## 关键规则
 
-| Non-Negotiable-Rule | Applies to phases |
+| 不可协商规则 | 适用阶段 |
 | ---- | ----------------- |
-| Require explicit approval before advancing to the next phase | Research , Planning , Todo List |
-| Treat each approved artifact as the contract for the next phase | Research , Planning , Todo List |
-| Every review revision requires critical thought to maintain contextual and logical alignment. | Research, Planning, Todo List |
-| Do not read unrelated files under `docs/` unless the user explicitly asks | All phases |
-| Read the corresponding reference first When the user approves to proceed to the next phase | All phases |
-| Questions must focus to sharpen the real requirements | Task Clarify |
-| Socratic question,for each question, provide your recommended answer. | Task Clarify |
-| Proceed without stopping for approval during execution | Implementation, Verification |
-| All output artifacts use Chinese as the primary language | All phases |
+| 推进到下一阶段前需获得明确批准 | 调研, 规划, 待办清单 |
+| 将每个已批准的产物视为下一阶段的契约 | 调研, 规划, 待办清单 |
+| 每次审查修订都需进行批判性思考，保持上下文和逻辑一致性 | 调研, 规划, 待办清单 |
+| 除非用户明确要求，不读取 `docs/` 下无关文件 | 所有阶段 |
+| 用户批准进入下一阶段后，先阅读对应的参考文件 | 所有阶段 |
+| 问题必须聚焦于精确化真实需求 | 任务澄清 |
+| 苏格拉底式提问，每个问题附带你的推荐答案 | 任务澄清 |
+| 执行阶段无需停下等待批准 | 实现, 验证 |
 
-## Approval standard
+## 批准标准
 
-Explicit approval is required before advancing to the next phase.
+推进到下一阶段前必须获得明确批准。
 
-**Counts as approval:**
+**算作批准：**
 - "approved" / "approve" / "可以" / "同意" / "批准"
-- Any clear statement that the artifact is ready to proceed
+- 任何明确表明产物可以继续推进的表述
 
-**Does not count as approval:**
-- Vague one-word confirmations ("好", "OK", "嗯", "LGTM", "looks good") without an explicit signal to proceed
-- Silence or absence of objections
-- Comments that request changes or raise concerns
+**不算作批准：**
+- 模糊的一词确认（"好"、"OK"、"嗯"、"LGTM"、"looks good"），未附带明确的推进信号
+- 沉默或未提出反对意见
+- 提出修改或质疑的评论
 
-If the response is ambiguous — ask. Phrase as: *"确认一下：上面的算 approve 吗？还是需要再改一轮？"*
+如果回复有歧义——请确认。措辞：*"确认一下：上面的算 approve 吗？还是需要再改一轮？"*
 
-## Task Naming
+## 任务命名
 
-Generate a short, stable, readable `task-slug` for the task and use it throughout the workflow.
+为任务生成一个简短、稳定、可读的 `task-slug`，并在整个流程中使用。
 
-> If resuming from an artifact the user provided, reuse its `task-slug`.
+> 如果从用户提供的产物恢复，复用其 `task-slug`。
 
-`task-slug` is used for name the required artifacts:
+`task-slug` 用于命名必要的产物：
 
-- `docs/<task-slug>.research.md`  
+- `docs/<task-slug>.research.md`
 
 - `docs/<task-slug>.plan.md`
 
-**Rule:** use the `docs` directory in Project root, create it if does not exist
+**规则：** 使用项目根目录下的 `docs` 目录，不存在则创建
 
-## Task Clarify
+## 任务澄清
 
-Turn raw task/idea into **clear, accurate, and specific** shared understanding through structured dialogue **before research begins**. 
+在调研开始之前，通过结构化对话将原始任务/想法转化为**清晰、准确、具体**的共同理解。
 
-**Rules:**
+**规则：**
 
-- Ask **1-3 questions per message**; batch related questions together
-- Prefer **multiple-choice questions** when possible
-- Use open-ended questions only when necessary
-- If a aspect of the task needs depth, split it into multiple questions
+- 每条消息提 **1-3 个问题**；将相关问题分组
+- 尽可能使用**多选题**
+- 仅在必要时才使用开放性问题
+- 如果任务的某个方面需要深入，拆分为多个问题
 
-**Focus on understanding:**
+**聚焦于理解：**
 
-- purpose  
-- concrete deliverables or success criteria
-- constraints 
-- Boundaries
-- explicit non-goals 
+- 目的
+- 具体的交付物或成功标准
+- 约束
+- 边界
+- 明确的非目标
 
-This step is meaningful and crucial for the quality of subsequent research and planning.
+这一步对后续调研和规划的质量至关重要。
 
-## Resume rules
+## 恢复规则
 
-Resume only from an artifact the user explicitly identifies.
+仅从用户明确标识的产物恢复。
 
-| Artifact provided | Resume phase |
+| 提供的产物 | 恢复阶段 |
 |---|---|
-| `<task-slug>.research.md` | Research |
-| `<task-slug>.plan.md` without `## Todo List` | Planning |
-| `<task-slug>.plan.md` with `## Todo List` | Todo list |
+| `<task-slug>.research.md` | 调研 |
+| 不含 `## Todo List` 的 `<task-slug>.plan.md` | 规划 |
+| 含 `## Todo List` 的 `<task-slug>.plan.md` | 待办清单 |
 
-**Important**: Before resuming, read all predecessor artifacts back to the identified one. If any predecessor is missing or insufficient, return to the earliest invalid phase instead of guessing.
+**重要：** 恢复前，读取从当前产物回溯的所有前置产物。如果任一前置产物缺失或不足，回到最早无效的阶段，而非猜测。
 
-## Phase references
+## 阶段参考文件
 
-**Note**: Read on demand
+**注意：** 按需阅读
 
-| File | Read when |
+| 文件 | 阅读时机 |
 |---|---|
-| `references/phase-1-research.md` | When Research becomes the active phase. |
-| `references/phase-2-planning.md` | When Planning becomes the active phase. |
-| `references/phase-3-todo-list.md` | When Todo list becomes the active phase. |
-| `references/phase-4-implementation.md` | When Implementation becomes the active phase. |
-| `references/phase-5-verification.md` | When Final verification becomes the active phase. |
+| `references/phase-1-research.md` | 进入调研阶段时 |
+| `references/phase-2-planning.md` | 进入规划阶段时 |
+| `references/phase-3-todo-list.md` | 进入待办清单阶段时 |
+| `references/phase-4-implementation.md` | 进入实现阶段时 |
+| `references/phase-5-verification.md` | 进入最终验证阶段时 |
 
-## Review-Revise Repeat
+## 审查-修订 循环
 
-**Purpose**: Through multiple rounds of review and revision, ensure the artifact achieves a shared understanding and is sufficiently correct to 
+**目的**：通过多轮审查和修订，确保产物达成共识且足够正确，以避免因前期错误导致后续返工。
 
-avoid rework in subsequent work caused by prior errors.
+### 执行步骤
 
-### What to do
+* 找出用户标注的所有审查评论
+* 逐一分析每条评论，综合评估后再回应
+* 修订产物以处理每条评论，移除已解决的评论区块
+* **在重新提交前，执行自检**（见重新提交前检查）
+* 请用户再次审查更新后的产物
+* 重复此过程，直到用户明确批准该产物
 
-* Find all review comments annotated by user
-* Analyze each one and evaluate them comprehensively before responding
-* Revise the artifact to address each comment, removing resolved comments sections
-* **Before re-submission, run the self-check below** (see Before Re-submission Check)
-* Ask the user to review the updated artifact again.
-* Repeat until the user explicitly approves that artifact.
+#### 重新提交前检查
 
-#### Before Re-submission Check
+在请用户重新审查前，验证以下三项：
 
-Before asking the user to re-review, verify all three:
+1. **内容锚点检查。** 针对每条已解决的评论，通过读取精确行号确认修复已存在于产物中。不要依赖记忆（"我觉得我修好了"）。
+2. **回归检查。** 重新阅读完整产物，确认修复未破坏其他章节的一致性。
+3. **诚实的不完全解决。** 如果任何评论仅被部分修复，或不确定修复是否正确，明确说明。不要跳过或悄悄降低处理程度。
 
-1. **Content anchor check.** For each resolved comment, confirm the fix exists in the artifact by reading the exact line. Do not rely on memory ("I think I fixed it").
-2. **Regression check.** Re-read the full artifact to confirm that fixes did not break consistency in other sections.
-3. **Honest unresolved.** If any comment was only partially fixed, or you are unsure if the fix is correct, state it explicitly. Do not skip or silently downgrade.
+#### 卡住升级
 
-#### Stuck Escalation
+如果经过 2+ 轮后用户的核心问题仍未解决：
 
-If after 2+ rounds the user's core concern is still unresolved:
+1. 停止逐条修复评论
+2. 询问用户：*"仍然不对的核心问题是什么？"*
+3. 下一轮修订只聚焦于这一个问题
 
-1. Stop fixing individual comments
-2. Ask the user: *"What is the single core issue that still isn't right?"*
-3. Focus the next revision on that one issue only
+### 如何寻找评论
 
-### How to find comments
+检查内联评论和文档末尾的审查区域，包括如 `COMMENT` 或 `Review Comments` 等标记。
 
-Check for inline comments and end-of-document review sections, including markers such as `COMMENT`  or `Review Comments`
-
-Comments should follow this format:
+评论应遵循以下格式：
 
 > `COMMENT: <text> [on: "<anchor text>"]`
 >
-> The `on:` field is optional and points to the specific content the comment refers to. If present, use it to locate the referenced section before revising.
+> `on:` 字段可选，指向评论所引用的具体内容。如果存在，在修订前先用它定位被引用的章节。
 
-### Constraints
+### 约束
 
-- Do not treat comments as approval.
-- Do not ignore, silently drop, or partially address a comment.
-- Don't mechanize and mindlessly resolve comments
-- Don't jump out of the repetitive process of 'review-revise' without the explicit approval
+- 不要将评论视为批准
+- 不要忽略、悄悄丢弃或部分处理一条评论
+- 不要机械化地、不经思考地解决评论
+- 未经明确批准，不要跳出 '审查-修订' 的循环
 
+## 工作流完成
 
-
-## Workflow Complete
-
-This skill is complete only when all implementations have been verified and fed back, and confirmed by the user.
+仅当所有实现均已验证、反馈并得到用户确认后，本技能才算完成。

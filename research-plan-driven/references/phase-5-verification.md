@@ -1,61 +1,58 @@
-# Verification & Feedback
+# 验证与反馈
 
-> **Language note:** All output artifacts must be written in Chinese (see Critical Rules in SKILL.md).  
-> References are in English for readability — do not treat them as a style template for artifacts.
+## 目的
 
-## Purpose
+审计实现的 **TODO 忠实度**：每个文件变更或操作是否与其对应的 TODO 项匹配——无假阳性（标记为完成但实际未完成），无假阴性（已完成但未标记），以及无已批准清单之外的意外变更。
 
-Audit the implementation's **TODO fidelity**: whether every file change or operation in the implementation phase matches its corresponding TODO item — no false positives (marked done but not done), no false negatives (done but not marked), and no unexpected changes outside the approved list.
+这是一个**忠实度审计**，而非功能或质量验证。它回答一个问题：*我们是否做了我们说过要做的事，并且只做了我们说过要做的事？*
 
-This is a **fidelity audit**, not a functional or quality validation. It answers one question: *did we do what we said we would, and only what we said we would?*
+## 执行步骤
 
-## What to do
+### 正向验证（捕获假阳性）
 
-### Forward verification (catch false positives)
+对照实际实现检查每个 TODO 项：
 
-Check each TODO item against the actual implementation:
+1. 对每个 `[x]` 项，验证：声称的交付物是否真实存在？
+2. 对每个 `[x]` 项，验证：实现是否匹配规划中的描述？
+3. 标记任何工作不完整、不正确或不存在的 `[x]` 项。
 
-1. For each `[x]` item, verify: does the claimed deliverable actually exist?
-2. For each `[x]` item, verify: does the implementation match the description in the plan?
-3. Flag any `[x]` item where the work is incomplete, incorrect, or absent.
+### 逆向验证（捕获假阴性）
 
-### Reverse verification (catch false negatives)
+交叉检查实际代码变更与 TODO 清单，查找已做但未列出的工作：
 
-Cross-check the actual code changes against the TODO list, looking for work done but not listed:
+1. 读取在实现阶段创建或修改的文件集合。
+2. 对每个变更，问："这服务于哪个 TODO 项？"
+3. 如果一个变更无法映射到任何 TODO 项（且不是微不足道的辅助代码如 imports、脚手架或空白符），则这是一个**潜在的意外变更**，需要明确披露。
+4. 如果一个变更明显实现了某个标记为 `[ ]`（未勾选）的 TODO 项，将其标记为**遗漏勾选**。
 
-1. Read the set of files created or modified during implementation.
-2. For each change, ask: "Which TODO item does this serve?"
-3. If a change cannot be mapped to any TODO item (and is not trivial supporting code such as imports, scaffolding, or whitespace), it is a **potentially unexpected change** that requires explicit disclosure.
-4. If a change clearly implements a TODO item that has `[ ]` (not checked off), mark it as **missed check-off**.
+针对步骤 3 的分类规则：
 
-Classification rules for step 3:
-
-| Change type | Classification |
+| 变更类型 | 分类 |
 |---|---|
-| Matches a specific TODO item | Expected |
-| Trivial support code (imports, function signatures called by TODO code, error handling) | Acceptable supporting change |
-| Changes behavior/functionality outside all TODO scope | **Unexpected change — report** |
-| Structures code differently than plan described (e.g., split a function when plan said one file) | **Potential scope drift — decide** |
+| 匹配某个特定的 TODO 项 | 预期 |
+| 琐碎的辅助代码（imports、被 TODO 代码调用的函数签名、错误处理） | 可接受的辅助性变更 |
+| 改变了所有 TODO 范围之外的行为/功能 | **意外变更 — 报告** |
+| 代码结构与规划描述不同（如规划说一个文件，实际拆分了一个函数） | **潜在范围漂移 — 裁定** |
 
-### Consistency check
+### 一致性检查
 
-1. Verify that the set of files changed matches the set of files the plan said would change.
-2. If the plan listed files to create but some were not created, flag them.
-3. If files were created that the plan did not mention, assess whether they are supporting files or scope creep.
+1. 验证实际变更的文件集合是否匹配规划中声称要变更的文件集合。
+2. 如果规划列出了要创建的文件但某些未创建，标记它们。
+3. 如果创建了规划未提及的文件，评估它们是辅助性文件还是范围蔓延。
 
-## Report
+## 报告
 
-After completing forward verification, reverse verification, and consistency check, produce a single fidelity report covering all findings.
+在完成正向验证、逆向验证和一致性检查后，生成一份涵盖所有发现的忠实度报告。
 
-### Drift classification
+### 偏差分类
 
-If drift is found, classify it with evidence in the report:
+如果发现偏差，在报告中附带证据分类：
 
-| 漂移类型 | 示例 | 报告标记 |
+| 偏差类型 | 示例 | 报告标记 |
 |---|---|---|
-| 实现级：工作完成但与 TODO 描述不符 | 脚本存在但输出列顺序错误 | `implementation mismatch` |
+| 实现级：工作已完成但与 TODO 描述不符 | 脚本存在但输出列顺序错误 | `implementation mismatch` |
 | 计划级：TODO 清单不完整 | TODO 遗漏了 ZIP 压缩步骤 | `plan gap` |
-| 调研级：计划正确但 research 有误 | Research 声称 4 个接口但实际有 5 个 | `research error` |
+| 调研级：规划正确但调研有误 | 调研声称 4 个接口但实际有 5 个 | `research error` |
 
 ### 验收报告模板
 
@@ -65,41 +62,41 @@ If drift is found, classify it with evidence in the report:
 <总体说明，1-2 句>
 
 ### 问题
-[无问题 / 逐条列出问题及证据和漂移类型]
+[无问题 / 逐条列出问题及证据和偏差类型]
 ```
 
-Then ask: does the user want follow-up refinement?
+然后询问：用户是否需要后续修正？
 
-## What aspects should be verified
+## 应验证的方面
 
-- `[x]` items: work actually exists and matches the TODO description
-- `[ ]` items: none left that should have been implemented (talk-through check)
-- Forward mapping: TODO → implementation — all accounted for
-- Reverse mapping: implementation → TODO — no orphan changes
-- Changed files: does the set match the plan's stated scope?
-- Any mismatches or unexpected changes explicitly disclosed
+- `[x]` 项：工作确实存在且匹配 TODO 描述
+- `[ ]` 项：没有应该实现但未勾选的项（逐项确认）
+- 正向映射：TODO → 实现——全部有对应
+- 逆向映射：实现 → TODO——无孤立变更
+- 变更的文件：集合是否匹配规划陈述的范围？
+- 任何不匹配或意外变更需明确披露
 
-## What is not sufficient verification
+## 不充分的验证
 
-A verification pass is not sufficient when any of the following is true:
-- only forward verification was performed (false negatives uncaught)
-- the implementer's summary was taken at face value without independent cross-check against actual files on disk
-- reverse mapping was attempted but code was too complex to reason about — ambiguity must be surfaced, not skipped
-- drift is discovered but not traced back to the phase where the drift was introduced
+以下情况不构成充分的验证：
+- 仅执行了正向验证（假阴性未被捕获）
+- 实现者的总结被直接采信，而未独立交叉核对磁盘上的实际文件
+- 尝试了逆向映射但代码过于复杂无法推断——歧义必须暴露，而非跳过
+- 发现偏差但未追溯到引入偏差的阶段
 
-## Constraints
+## 约束
 
-- This phase verifies and reports. It does not modify any files, artifacts, or system state.
-- Do not reopen design decisions, hide discrepancies, or imply fidelity when mismatches exist.
-- Do not execute any command or operation that produces side effects. Read-only analysis only.
-- If the user accepts work with known drift, point out the mismatch rather than silently agreeing.
+- 此阶段验证和报告。不修改任何文件、产物或系统状态。
+- 不要重新打开设计决策、隐藏差异或在存在不匹配时暗示忠实度。
+- 不要执行任何会产生副作用的命令或操作。仅限只读分析。
+- 如果用户接受了存在已知偏差的工作，指出不匹配而非默认同意。
 
-## Completion criteria
+## 完成标准
 
-This phase is complete when:
+此阶段完成的条件：
 
-- forward verification performed: every `[x]` item checked against actual implementation
-- reverse verification performed: every implementation change traced to a TODO item or surfaced as unexpected
-- any drift or mismatch has been explicitly surfaced in the fidelity report
-- the fidelity report has been presented per the template
-- the user has confirmed the fidelity report and approved workflow completion
+- 正向验证已完成：每个 `[x]` 项已对照实际实现检查
+- 逆向验证已完成：每个实现变更已追踪到某个 TODO 项，或作为意外变更暴露
+- 任何偏差或不匹配已在忠实度报告中明确暴露
+- 忠实度报告已按模板呈现
+- 用户已确认忠实度报告并批准工作流完成

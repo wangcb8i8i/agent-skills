@@ -1,97 +1,87 @@
-# Planning
+# 规划
 
-> **Language note:** All output artifacts must be written in Chinese (see Critical Rules in SKILL.md).  
-> References are in English for readability — do not treat them as a style template for artifacts.
+## 目的
 
-## Purpose
+基于已批准的调研，创建详细、可审查、具体的实现方案。
 
-Create a detailed, reviewable, concrete implementation plan based on the approved research
+## 执行步骤
 
-## What to do
+1. 基于最新批准的调研产物（如果选择了快捷流程，则基于任务澄清阶段的共同理解）。
+2. 将预期实现方案定义得足够具体，确保编码时无需临时发明架构。
+3. 明确列出预期会变更的确切文件、组件、接口、契约或边界。
+4. 记录重要的技术决策及其理由。
+5. 使风险、权衡、范围限制和未决决策易于审查。
+6. 将实现方案写入规划产物。
+7. 在提交前，对照常见覆盖缺口检查产物：
+   - 产物是否以**目标系统结构**开篇，让审查者能看到变更后系统的全貌？
+   - 每个变更文件是否标注了其**目标状态**（变为什么样，而非仅仅做了什么操作）？
+   - 是否暴露了关键决策，附有理由和备选方案？
+   - 是否明确暴露了风险、边界情况和非目标？
+   - 审查者能否在不填补信息缺口的情况下理解实现方案？
+   - 产物是否按读者提问顺序（目标 → 风险概况 → 变更列表 → 决策 → 风险）组织，而非按主题分组？
+   如果任何答案为"否"，补上缺口。如果故意跳过，注明原因。
 
-1. Base the plan on the latest approved research artifact (or on the shared understanding from Task Clarify if Express Pipeline was chosen).
-2. Define the intended implementation approach concretely enough that coding should not require inventing architecture on the fly.
-3. Name the exact files, components, interfaces, contracts, or boundaries expected to change.
-4. Record the important technical decisions and the rationale behind them.
-5. Make risks, trade-offs, scope limits, and unresolved decisions easy to review.
-6. Write implementation plan into plan artifact
-7. Verify the artifact against common coverage gaps before presenting:
-   - Does the artifact open with the **target system structure** so the reviewer can see what the system looks like after the changes?
-   - Does every changed file name its **target state** (what it becomes, not just what action is taken)?
-   - Does it expose key decisions with rationale and alternatives?
-   - Does it surface risks, edge cases, and non-goals explicitly?
-   - Can a reviewer understand the implementation without filling in gaps?
-   - Does the artifact follow reader's question order (goal → risk profile → change list → decisions → risks) rather than grouped by topic?
-   If any answer is no, fill the gap. If deliberately skipped, note why.
+## 产物组织
 
-## Artifact organization
+规划产物应遵循自上而下的阅读逻辑。每个章节回答审查者会提出的问题：
 
-Plan artifacts should follow a top-down reading logic. Each section answers a question the reviewer will ask:
+1. **目标与最终状态** — 开篇。审查者必须能回答：
+   - "这解决什么问题？"
+   - "变更后系统是什么样子？"
+   包含一个工作流/数据流/架构图，展示**目标系统结构**——这是阅读任何文件级细节前的共享心智模型。
 
-1. **目标与最终状态** — The opening. The reviewer must be able to answer:
-   - "What problem does this solve?"
-   - "What does the system look like after the changes?"
-   Include a workflow / data flow / architecture diagram showing the **target system structure** — this is the shared mental model before reading any file-level detail.
+2. **风险概况** — 审查者在阅读细节前必须了解的 1-3 个最关键风险或范围决策。如果风险概况可接受且无需更多细节，审查者可以在此停步。相当于调研产物的关键发现章节。聚焦于顶级风险的性质和严重程度——细节属于风险与边界章节。
 
-2. **风险概况** — 1–3 most critical risks or scope decisions the reviewer must be aware of before reading details. The reviewer can stop here if the risk profile is acceptable and no further detail is needed. Equivalent to research's Key findings section. Focus on the nature and severity of top risks — detail belongs in Risks & boundaries.
+3. **变更清单** — 按文件列出：操作和变更后的目标状态。对每个文件，写明：
+   - 路径和操作（create / modify / delete）
+   - 目标状态：变成什么样（关键接口、新方法、变更签名、新增/删除的字段、数据形状变化）
+   按逻辑子系统分组，使审查者能按组评估，而非逐文件线性阅读。
+   审查者必须能回答："实现后每个文件长什么样？"
 
-3. **变更清单** — File-by-file: the action and the target state after the change. For each file, specify:
-   - Path and action (create / modify / delete)
-   - Target state: what it becomes (key interfaces, new methods, changed signatures, added/removed fields, data shape changes)
-   Group changes by logical subsystem so the reviewer can evaluate groups rather than reading every file linearly.
-   The reviewer must be able to answer: "Exactly what will each file look like after implementation?"
+4. **关键决策** — 重要决策及其理由和备选方案。审查者必须能回答："为什么这样而不是另一种方式？"
 
-4. **关键决策** — Important decisions with rationale and alternatives. The reviewer must be able to answer: "Why this way and not another?"
+5. **风险与边界** — 完整列出的已识别风险和明确的非目标。审查者必须能回答："可能出什么问题？以及什么是明确不做的事？"
 
-5. **风险与边界** — Complete list of identified risks and explicit non-goals. The reviewer must be able to answer: "What could go wrong, and what is deliberately not done?"
+此顺序表达阅读逻辑，非固定标题。如果某章节的结论为空，跳过该章节。
 
-This order expresses the reading logic, not fixed headings. Skip a section if its conclusion is empty.
+**规划产物编写完成后：**
 
-**Once the plan artifact written:**
+1. 根据 `guides/pre-review.md` 对规划产物进行预审（在规划产物创建完成前不要阅读该指南）。
+2. 请用户审查规划产物。尚未开始实现；等待明确批准。
 
-1. Conduct a pre-review of the plan according to the  `guides/pre-review.md` （Do not read before the planned artifact is created）.
+## 审查原则
 
-1. Ask the user to review the plan artifact. Do not implement yet; wait for explicit approval.
+产物必须能让审查者自信地回答：*这个规划可以安全地实现吗？*
 
-## Review-friendly principles
+- **方法清晰。** 核心策略——各部件如何配合——是第一个实质性章节，而非埋没在细节中。
+- **范围明确。** 每个变更文件标注了**目标状态**——变成什么样，而非仅仅做了什么操作。非目标明确陈述，使审查者能在范围蔓延发生前发现它。
+- **决策可见。** 关键技术决策配有理由和被否定的备选方案。隐式决策是审查阻塞点。
+- **足够具体。** 接口、契约、数据形状和边界条件都已明确命名。审查者不应需要填补信息缺口。
+- **暴露风险。** 风险、权衡、边界情况和未决批准点易于定位——而非埋没在散文中。
+- **自包含。** 无需离开产物即可获得概要性理解。调研被引用但不要求阅读。
 
-The artifact must enable the reviewer to confidently answer:
-*is this plan safe to implement?*
+## 最低标准
 
-- **Approach-clarity.** The core strategy — how pieces fit together —
-  is the first substantive section, not buried in detail.
-- **Scope-explicit.** Every changed file named with its **target state** — what it becomes, not just what action is taken. Non-goals stated so the reviewer can spot scope creep before it happens.
-- **Decision-visible.** Key technical decisions surfaced with rationale
-  and rejected alternatives. Implicit decisions are a review blocker.
-- **Concrete-enough.** Interfaces, contracts, data shapes, and boundary
-  conditions named. The reviewer should not need to fill in gaps.
-- **Risk-surfaced.** Risks, trade-offs, edge cases, and unresolved
-  approval points easy to locate — not buried in prose.
-- **Self-contained.** Summary-level understanding possible without
-  leaving the artifact. Research referenced but not required reading.
+在以下情况下，规划需要在创建待办清单前进行修订：
+- 主要实现决策仍为隐式
+- 受影响文件或边界未具体命名
+- 代码变更的预期结构模糊
+- 验证方法缺失或模糊
+- 关键设计缺口需要在实现阶段临时解决
 
-## Floor
+## 约束
 
-A plan needs revision before todo creation when:
-- major implementation decisions are still implicit
-- affected files or boundaries are not named concretely
-- the intended structure of code changes is vague
-- validation approach is missing or vague
-- key design gaps would need to be solved during implementation
+- 不要写实现代码。
+- 不要在此阶段创建待办清单。
+- 不要将规划批准视为实现批准。
+- 不要添加已批准调研未证明的范围。
+- 不要留下重要的设计缺口在实现阶段临时填补。
 
-## Constraints
+## 完成标准
 
-- Do not write implementation code.
-- Do not create the todo list in this phase.
-- Do not treat plan approval as implementation approval.
-- Do not add scope not justified by approved research.
-- Do not leave important design gaps to be invented during implementation.
+仅在以下条件满足时才能离开此阶段：
 
-## Completion criteria
-
-Leave this phase only when:
-
-- `docs/<task-slug>.plan.md` exists
-- the plan is concrete and reviewable
-- all current plan review comments have been handled
-- the user has explicitly approved the plan artifact
+- `docs/<task-slug>.plan.md` 已存在
+- 规划具体且可审查
+- 所有当前规划审查评论已被处理
+- 用户已明确批准规划产物

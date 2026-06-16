@@ -1,263 +1,226 @@
-# Pre-Review
+# 预审
 
-## Purpose
+## 目的
 
-Run a focused pre-review of the planning artifact from selected reviewer roles.
+从选定的审查角色视角，对规划产物进行聚焦的预审。
 
+预审是：
 
-
-Pre-review is:
-
-- a critique of the plan
-- grounded in the approved research
-- selective rather than exhaustive
-- evidence-based rather than preference-based
+- 对规划的批评
+- 基于已批准的调研
+- 选择性的而非穷举的
+- 基于证据的而非个人偏好的
 
 ---
 
-## Required Inputs
+## 必要输入
 
-Required artifacts:
+必要产物：
 
-- `docs/<task-slug>.research.md` — approved research artifact
-- `docs/<task-slug>.plan.md` — planning artifact to review
+- `docs/<task-slug>.research.md` — 已批准的调研产物
+- `docs/<task-slug>.plan.md` — 待审查的规划产物
 
-If any input artifact is missing, unreadable, or clearly insufficient for review, exit pre-review and inform the user.
-
----
-
-## Candidate Reviewer Roles
-
-| Role | Strong fit signals in plan | Primary focus |
-|------|---------------------------|----------------|
-| architect | new abstractions, new service boundaries, subsystem interaction changes, ownership/boundary changes | structure, boundaries, coupling, architectural fit |
-| test engineer | branching behavior, state transitions, retries, fallback logic, ordering dependencies, behavior-sensitive flows | logic, hidden cases, state correctness |
-| software engineer | helpers, wrappers, indirection layers, new abstractions, refactor-heavy structure | readability cost, local complexity, unjustified abstraction |
-| performance engineer | loops over large data, queries, caching, background work, concurrency, high-volume paths | latency, throughput, bottlenecks, scaling pressure |
-| security engineer | auth, permissions, secrets, externally reachable surfaces, user input, trust boundaries | misuse risk, exposure, authz/authn gaps, unsafe assumptions |
-| API designer | request/response shape changes, versioning strategy, idempotency, deprecation mechanism, exported interfaces, public/internal contract changes, serialization boundaries | compatibility, contract clarity, interface stability, versioning, error model consistency |
-| frontend engineer | async UI, loading/error states, DOM timing, event ordering, optimistic UI, accessibility (focus management, ARIA, keyboard navigation), interaction-sensitive behavior | race conditions, interaction failures, UI state consistency, accessibility |
-| product reviewer | user-facing behavior changes, workflow modifications, business rule adjustments, value proposition shifts | requirement alignment, user value consistency, acceptance criteria clarity |
-| documentation engineer | operational changes, migration steps, configuration updates, CLI/output changes, onboarding or maintenance procedures | output artifact completeness, upgrade clarity, runbook and user guide readiness |
-
-A review role is a **strong fit** only when both are true:
-
-1. the plan explicitly touches that role's concern area
-2. a role's perspective is likely to reveal material problems, risks, weaknesses, and uncertainties in the plan.
-
-Select **1-3 review roles** :
-
-1. prefer the smallest set that covers the plan's material risks
-2. do not include a role without a clear strong-fit signal
-3. if multiple roles overlap, prefer the role with the sharpest risk lens
-4. do not add reviewers to increase issue count
-5. if one role clearly dominates the plan’s risk profile, use only that role
-
-**Principle**: If no strongly fit reviewers are available, exit the pre-review process, return to the normal user review process.
+如果任一输入产物缺失、无法读取或明显不足以支持审查，退出预审并告知用户。
 
 ---
 
-## Reviewer Dispatch
+## 候选审查角色
 
-Dispatch selected reviewers independently and in parallel.
+| 角色 | 规划中的强匹配信号 | 主要关注点 |
+|------|-------------------|-----------|
+| 架构师（architect） | 新抽象、新服务边界、子系统交互变更、所有权/边界变更 | 结构、边界、耦合、架构适配性 |
+| 测试工程师（test engineer） | 分支行为、状态转换、重试、回退逻辑、顺序依赖、行为敏感的流程 | 逻辑、隐蔽情况、状态正确性 |
+| 软件工程师（software engineer） | helpers、wrappers、间接层、新抽象、重构较多的结构 | 可读性成本、局部复杂度、不合理的抽象 |
+| 性能工程师（performance engineer） | 大数据量循环、查询、缓存、后台工作、并发、高吞吐路径 | 延迟、吞吐量、瓶颈、扩展压力 |
+| 安全工程师（security engineer） | auth、权限、secrets、外部可达的表面、用户输入、信任边界 | 误用风险、暴露、authz/authn 缺口、不安全假设 |
+| API 设计师（API designer） | request/response 形状变更、版本策略、幂等性、弃用机制、导出接口、公开/内部契约变更、序列化边界 | 兼容性、契约清晰度、接口稳定性、版本化、错误模型一致性 |
+| 前端工程师（frontend engineer） | 异步 UI、loading/error 状态、DOM 时序、事件顺序、乐观 UI、无障碍（focus 管理、ARIA、键盘导航）、交互敏感行为 | 竞态条件、交互失败、UI 状态一致性、无障碍 |
+| 产品审查者（product reviewer） | 面向用户的行为变更、工作流修改、业务规则调整、价值主张变化 | 需求对齐、用户价值一致性、验收标准清晰度 |
+| 文档工程师（documentation engineer） | 运维变更、迁移步骤、配置更新、CLI/输出变更、上线或维护流程 | 输出产物完整性、升级清晰度、runbook 和用户指南就绪度 |
 
-Provide each reviewer with:
+一个审查角色是**强匹配**仅当以下两点同时成立：
 
-- the assigned reviewer role
-- the role-specific perspective and concern area
-- the instruction that this is a plan critique, not implementation work
-- the exact artifact paths to read directly
-- the shared review criteria
-- the required output format
-- the prohibition against inventing scope or rewriting the plan
-- the adversarial stance: review from the most skeptical reasonable interpretation. Assume the plan has at least two material flaws you need to find. "No issues found" is not an acceptable outcome.
+1. 规划明确涉及该角色的关注领域
+2. 该角色的视角很可能揭示出规划中的实质性缺陷、风险、弱点或不确定性
 
-Each reviewer must:
+选择 **1-3 个审查角色**：
 
-1. read `docs/<task-slug>.research.md` as grounding context
-2. read `docs/<task-slug>.plan.md` as the review target
-3. review only from the assigned role’s perspective
-4. produce only evidence-supported findings
-5. avoid implementation work, plan rewriting, and requirement invention
+1. 优先选择能覆盖规划实质性风险的最小角色集合
+2. 如果没有明确的强匹配信号，不要包含该角色
+3. 如果多个角色重叠，优先选择视角最精准的
+4. 不要为了增加问题数量而添加审查角色
+5. 如果某个角色明显主导了规划的风险特征，仅使用该角色
 
----
-
-## Shared Review Criteria
-
-Every reviewer must evaluate whether:
-
-1. the plan is supported by the approved research
-2. key implementation decisions are explicit enough to review
-3. affected files, interfaces, boundaries, and contracts are concrete enough
-4. validation and verification approach is concrete
-5. known repository constraints are respected
-6. existing reuse opportunities are used where appropriate
-7. major risks and edge cases are surfaced before implementation
-8. scope is controlled and complexity is justified
-9. the plan leaves the user able to make an informed approval decision
+**原则**：如果没有强匹配的审查角色可用，退出预审流程，回到正常的用户审查流程。
 
 ---
 
-## Materiality Standard
+## 审查派发
 
-A finding is valid only if it is material.
+独立并行派发已选审查角色。
 
-A finding is **material** if its presence would meaningfully affect at least one of:
+为每个审查角色提供：
 
-- implementation reliability
-- validation clarity
-- architectural safety
-- compatibility confidence
-- user approval confidence
-- revision priority
+- 分配的角色
+- 该角色的特定视角和关注领域
+- 说明这是规划批评，而非实现工作
+- 需要直接读取的确切产物路径
+- 共享审查标准
+- 要求的输出格式
+- 禁止发明范围或重写规划
+- 对抗性立场：以最严格的合理解读进行审查。假设规划至少存在两个需找到的实质性缺陷。"未发现问题"是不可接受的输出。
 
-Do not report findings that are merely:
+每个审查角色必须：
 
-- stylistic preference
-- speculative future concern without plan evidence
-- implementation detail requests that do not affect plan review quality
-- low-leverage nitpicks
-- generic best-practice statements without artifact support
-- Subjective suggestions or proposals
-
----
-
-## Evidence Standard
-
-Every reported issue must be anchored in the artifacts.
-
-Each issue must include:
-
-- a clear claim
-- a direct anchor in `plan.md`
-- a direct anchor in `research.md`, or a statement that the research is silent where that silence matters
-- a short explanation of why the issue is material from the assigned role’s perspective
-
-If an issue cannot be anchored, do not report it.
+1. 阅读 `docs/<task-slug>.research.md` 作为背景上下文
+2. 阅读 `docs/<task-slug>.plan.md` 作为审查目标
+3. 仅从所分配角色的视角进行审查
+4. 仅产出有证据支持的发现
+5. 避免实现工作、重写规划和发明需求
 
 ---
 
-## Required Reviewer Output Format
+## 共享审查标准
 
-Each reviewer must return:
+每个审查角色必须评估以下几点：
 
-```md
-## <reviewer role>
-
-**总体评估**
-- 1-3 条：从该角色视角看 plan 是否可进入用户 review
-
-**严重问题**
-- **<标题>**
-  - <问题陈述 + 为何严重, 1-2 句>
-  - <建议 / 意见>
-  - Plan 位置
-
-**重要问题**
-- **<标题>**
-  - <问题陈述 + 为何重要, 1-2 句>
-  - <建议 / 意见>
-  - Plan 位置
-
-**次要问题**
-- **<标题>**
-  - <问题陈述, 1-2 句>
-  - <建议 / 意见>
-  - Plan 位置
-
-**待确认问题**
-- 逐条列出
-```
-
-审阅者产出规则：
-
-- 空节可省略，但 `总体评估` 除外
-- 不要重写 plan
-- 不要提出实现步骤
-- 不要引入超出已批准 research 或用户明确指令的新需求
-- 不要为了提高安全系数而虚报严重性
-- 不要将不确定性降级为确定性
+1. 规划是否得到已批准调研的支持
+2. 关键实现决策是否明确到足以审查
+3. 受影响的文件、接口、边界和契约是否足够具体
+4. 验证和确认方法是否具体
+5. 已知的代码库约束是否得到尊重
+6. 已有的复用机会是否被适当利用
+7. 重大风险和边界情况是否在实现前暴露
+8. 范围是否受控，复杂度是否合理
+9. 规划是否能让用户做出知情批准决定
 
 ---
 
-## Severity Definitions
+## 重要性标准
 
-Use these severity levels:
+一个发现有效的前提是它是**实质性的**。
 
-### Critical
-A gap or flaw that is likely to cause major execution failure, invalid validation, broken compatibility, serious security exposure,Or those decisions that lead to deviations between objectives and implementation.
+一个发现是**实质性**的，如果其存在会实质性地影响以下至少一项：
 
-### Important
-A meaningful weakness that may cause rework, ambiguity, incorrect execution choices, or reduced confidence, but is not yet a likely catastrophic blocker.
+- 实现可靠性
+- 验证清晰度
+- 架构安全性
+- 兼容性信心
+- 用户批准信心
+- 修订优先级
 
-### Minor
-A lower-leverage issue that improves plan implementation quality, without materially changing the implementation path of the plan
+不要报告以下类型的发现：
 
----
-
-## Unusable Reviewer Output
-
-Discard a finding if any of the following is true:
-
-- it has no concrete plan anchor
-- it has no research anchor and does not explain why research silence is material
-- it invents scope or requirements
-- it critiques implementation details that the plan does not need to specify
-- it is merely a style preference
-- it duplicates a stronger finding without adding meaning
-- it is unsupported, vague, or generic
-- it is outside the assigned reviewer role's concern area
-
-If an entire reviewer output is mostly unsupported or off-scope, discard that reviewer output.
-
-If all reviewer outputs are unusable, pre-review fails. Inform the user.
+- 风格偏好
+- 缺乏规划证据的推测性未来问题
+- 不影响规划审查质量的实现细节要求
+- 低价值的吹毛求疵
+- 缺乏产物支撑的泛泛最佳实践陈述
+- 主观建议或提议
 
 ---
 
-## Quality Gate
+## 证据标准
 
-Before synthesis, pass each reviewer output through a quality check.
+每个报告的问题必须锚定在产物中。
 
-### Rerun conditions
+每个问题必须包含：
 
-Rerun a reviewer (with a tighter prompt re-emphasizing the missing standards) when any of the following is true:
+- 清晰的主张
+- 在 `plan.md` 中的直接锚点
+- 在 `research.md` 中的直接锚点，或说明调研在该处沉默且沉默具有实质性的理由
+- 简要说明从所分配角色的视角看，该问题为何具有实质性
 
-- Critical or Important findings are majority unsupported or fail Materiality Standard
-- All findings are labeled `Confidence: low`
-- More than 3 findings lack a concrete `plan.md` anchor
-- Reviewer proposed implementation steps, rewrote the plan, or invented scope
-
-### Discard conditions
-
-Discard a reviewer output when any of the following is true:
-
-- Rerun was attempted and the output still fails the gate
-- Reviewer clearly misread the plan's core structure (indicating the role was not a strong fit)
-- Majority of findings are off-scope or outside the assigned role's concern area
-
-### Outcome
-
-- Outputs that pass → proceed to Synthesis
-- Outputs rerun but still failing → Discard (note which reviewer was discarded in the pre-review notes)
-- All outputs discarded → Pre-review fails. Inform the user and return to normal review flow.
+如果一个问题无法锚定，不要报告。
 
 ---
 
-## Synthesis Rules
+## 审查输出要求
 
-When synthesizing reviewer outputs:
+每个审查角色必须返回按严重级别分类的发现（严重 / 重要），每个附带 Plan 位置和具体的修订建议。格式由协调者自行决定。
 
-1. do not accept reviewer claims mechanically
-2. verify every kept issue against the artifacts
-3. deduplicate overlapping issues
-4. keep the strongest evidence-backed framing
-5. preserve meaningful disagreement or uncertainty
-6. attribute issues by role when perspective matters
-7. keep the highest credible severity only when the higher severity is supported by artifact evidence
-8. drop low-leverage findings that do not materially improve final review quality. Minor-severity findings from reviewers are not included in the pre-review output — only critical and important issues are reported.
-9. optimize for user review usefulness, not issue volume
-10. for each kept finding, decide whether to attach a Proposed Revision — only produce one when the coordinator can articulate a concrete, actionable revision to the plan. Findings without a clear revision (e.g. observations, questions) produce no Proposed Revision block. Proposed Revision is a **suggestion** — the plan is not modified during pre-review.
-11. **For every plan anchor reference**, append a brief section summary in parentheses so the reviewer can assess relevance without jumping to plan.md:
+空章节可省略，`总体评估` 除外。
+
+审查角色不得重写规划、提出实现步骤、引入已批准调研之外的范围、夸大严重性或把不确定性降级为确定性。
+
+---
+
+## 严重级别定义
+
+### 严重（Critical）
+可能导致重大执行失败、无效验证、破坏兼容性、严重安全暴露的缺口或缺陷，或使目标与实现之间产生偏差的决策。
+
+### 重要（Important）
+可能导致返工、歧义、错误执行选择或信心降低的有意义的弱点，但尚不构成可能的灾难性阻塞。
+
+### 次要（Minor）
+改善规划实现质量但不会实质性地改变规划实现路径的低杠杆问题。
+
+---
+
+## 不可用的审查输出
+
+在以下任一情况下，丢弃一个发现：
+
+- 没有具体的 plan 锚点
+- 没有 research 锚点且未说明为什么 research 沉默具有实质性
+- 发明了范围或需求
+- 批评了规划无需指定的实现细节
+- 仅是风格偏好
+- 与更有力的发现重复且未增加有意义的内容
+- 缺乏支持、模糊或泛泛
+- 超出所分配审查角色的关注领域
+
+如果某个审查角色的输出大部分缺乏支持或偏离范围，丢弃该角色的输出。
+
+如果所有审查角色的输出都不可用，预审失败。告知用户。
+
+---
+
+## 质量控制
+
+在综合之前，对每个审查角色的输出进行质量检查。
+
+### 重跑条件
+
+在以下任一情况下，重跑审查角色（使用更严格的 prompt 重新强调缺失的标准）：
+
+- 大多数严重（Critical）或重要（Important）发现缺乏支持或未通过重要性标准
+- 所有发现均标记为 `Confidence: low`
+- 超过 3 个发现缺少具体的 `plan.md` 锚点
+- 审查角色提出了实现步骤、重写了规划或发明了范围
+
+### 丢弃条件
+
+在以下任一情况下，丢弃某个审查角色的输出：
+
+- 已经尝试重跑但输出仍未通过质量控制
+- 审查角色明显误读了规划的核心结构（表明该角色并非强匹配）
+- 大多数发现偏离范围或超出所分配角色的关注领域
+
+### 结果
+
+- 通过的输出 → 进入综合环节
+- 已重跑但仍失败的输出 → 丢弃（在预审备注中注明哪个角色被丢弃）
+- 所有输出均被丢弃 → 预审失败。告知用户，回到正常审查流程。
+
+---
+
+## 综合规则
+
+在综合审查角色的输出时：
+
+1. 不要机械接受审查角色的主张
+2. 对照产物验证每个保留的问题
+3. 去重重叠的问题
+4. 保留证据最强的问题表述
+5. 保留有意义的分歧或不确定性
+6. 在视角重要时按角色标注问题归属
+7. 仅在更高严重级别得到产物证据支持时才保留最高可信的严重级别
+8. 丢弃不会实质性改善最终审查质量的低杠杆发现。审查角色的次要（Minor）发现不包含在预审输出中——仅报告严重（Critical）和重要（Important）问题。
+9. 以对用户审查有用性而非问题数量为目标进行优化
+10. 对每个保留的发现，决定是否附带修订建议——仅在协调者能给出具体、可操作的规划修订时才提供。没有清晰修订建议的发现（如观察、疑问）不生成修订建议块。修订建议是**建议**——预审期间不修改规划。
+11. **对每个 plan 锚点引用**，在其后附加括号简注章节摘要，使审查者无需跳转到 plan.md 即可评估相关性：
     - ✔ `§三 3.2（generate_curation_guide 参数说明）`
     - ✘ `§三 3.2`
 
@@ -265,7 +228,7 @@ When synthesizing reviewer outputs:
 
 ## 模板
 
-写入 `docs/<task-slug>.pre-review.md`，所有内容使用中文。
+写入 `docs/<task-slug>.pre-review.md`。
 
 ```md
 # 预审：<task-slug>
@@ -308,62 +271,41 @@ When synthesizing reviewer outputs:
 - **需要决策**：<用户需要决定什么>
 ```
 
-空节可省略，`审阅人` 和 `总体评估` 除外。
+空章节可省略，`审阅人` 和 `总体评估` 除外。
 
 ---
 
-## Review Workflow
+## 审查流程
 
-1. Check whether the artifacts are sufficient to support pre-review.
-   - If not sufficient, exit pre-review and return to normal review flow.
-
-2. Choose 1-3 stronly fit reviewer roles.
-   1. If no reviewer roles are strong fits, exit pre-review and return to normal review flow.
-3. Dispatch the reviewers independently and in parallel.
-
-4. Collect and evaluate each reviewer output against:
-
-   - the approved research
-
-   - the plan
-
-   - the shared review criteria
-
-   - the materiality standard
-
-   - the evidence standard
-
-5. Synthesize the usable findings from all reviewers into a single pre-review critique. 
-
-   * Discard unusable findings.
-
-6. Write the synthesized pre-review notes into the pre-review artifact
-
-7. Inform the user and return to normal review flow.
+1. 检查必要输入是否足以支持预审（见"必要输入"）。如果不足，退出。
+2. 选择 1-3 个强匹配的审查角色（见"候选审查角色"）。如果没有，退出。
+3. 独立并行派发审查角色（见"审查派发"）。
+4. 收集并评估每个审查角色的输出（对照"共享审查标准"、"重要性标准"、"证据标准"）。
+5. 通过质量控制（见"质量控制"）后，综合可用发现（见"综合规则"），丢弃不可用的。
+6. 将综合后的预审备注写入预审产物（按"模板"格式）。
+7. 告知用户，回到正常审查流程。
 
 ---
 
-## Constraints
+## 约束
 
-- Do not run pre-review when no reviewer role is a strong fit.
-- Do not automatically modify the plan artifact based on reviewer findings alone.
-- Do not treat pre-review notes as approval to move to Todo List.
-- Do not invent new requirements or scope beyond approved research or explicit user instruction.
-- Do not force the user to accept reviewer findings.
-- Do not turn pre-review into implementation.
-- Do not replace user judgment with reviewer judgment.
-- Do not maximize issue count at the expense of signal quality.
-- Pre-review notes output artifact (`docs/<task-slug>.pre-review.md`) uses Chinese as the primary language.
+- 在没有强匹配的审查角色时，不要运行预审。
+- 不要仅基于审查角色的发现自动修改规划产物。
+- 不要将预审备注视为推进到待办清单的批准。
+- 不要强迫用户接受审查角色的发现。
+- 不要将预审变成实现。
+- 不要用审查角色的判断取代用户判断。
+- 不要以信号质量为代价追求问题数量最大化。
 
 ---
 
-## Exit Condition
+## 退出条件
 
-Pre-review ends when exactly one of the following is true:
+当以下条件之一成立时，预审结束：
 
-1. input artifacts are insufficient to support pre-review
-2. no reviewer role is a strong fit
-3. reviewer outputs were synthesized written to artifact
-4. all reviewer outputs failed and pre-review cannot produce a usable critique
+1. 输入产物不足以支持预审
+2. 没有强匹配的审查角色
+3. 审查角色的输出已综合并写入产物
+4. 所有审查角色输出均失败，预审无法产生可用的批评
 
-After exiting pre-review, return to the normal review flow and ask the user to review the plan artifact.
+退出预审后，回到正常审查流程，请用户审查规划产物。

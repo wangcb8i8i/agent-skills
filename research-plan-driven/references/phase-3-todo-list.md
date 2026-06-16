@@ -1,51 +1,38 @@
-# Todo List
+# 待办清单
 
-> **Language note:** All output artifacts must be written in Chinese (see Critical Rules in SKILL.md).  
-> References are in English for readability — do not treat them as a style template for artifacts.
+## 目的
 
-## Purpose
+在开始实现之前，将已批准的规划转化为具体的、可审查的执行检查清单。
 
-Turn the approved plan into a concrete, reviewable execution checklist before any implementation begins.
+## 执行步骤
 
-## What to do
+1. 从最新批准的 `docs/<task-slug>.plan.md` 开始。
+2. 在 `## Todo List` 章节中使用基于 checkbox 的 markdown 项来组织待办清单。
+3. 确保待办清单完整覆盖已批准的实施工作。
+4. 将已批准的工作拆分为具体的、可客观完成的步骤。
+5. 按真实的执行顺序和依赖关系排列待办项。
+6. 包含明确的验证任务。
+7. 在待办清单后追加 `## 注意事项` 章节。
+8. 请用户审查并明确批准嵌入的待办清单，然后才开始实现。
+9. 如果用户在待办清单上提出意见，遵循审查-修订循环流程，直到嵌入的待办清单被明确批准。
 
-1. Start from the latest approved version of `docs/<task-slug>.plan.md`.
-2. Append a `## Todo List` section to the same file.
-3. Break the approved work into concrete, objectively completable steps.
-4. Order the todo items by real execution order and dependencies.
-5. Include explicit validation tasks.
-6. After the todo list, append a `## Things to note` section.
-7. Ask the user to review and explicitly approve the embedded todo list before implementation begins.
-8. If the user comments on the todo list, follow the Review-Revise Repeat workflow until the embedded todo list is explicitly approved.
-
-## Todo structure
-
-The todo list must:
-
-- fully cover the approved implementation work
-- break work into concrete, objectively completable steps
-- reflect real execution order and dependencies
-- include explicit validation tasks 
-
-Use checkbox-based markdown items inside a `## Todo List` section in `docs/<task-slug>.plan.md`. 
-
-**Todo 示例**
+**待办清单示例**
 
 ```markdown
 ## Todo List
 
-### 1. 入口点 <!-- ref§Core Logic -->
+### 1. 入口点 <!-- ref: 核心逻辑 -->
 - [ ] 在 `src/api/notifications/routes.ts` 中新增路由注册
 - [ ] 在 `src/api/notifications/controller.ts` 中新增请求处理器
-### 2. 核心逻辑 <!-- ref § SectionB-->
+### 2. 核心逻辑 <!-- ref: § SectionB -->
 - [ ] 在 `src/api/notifications/controller.ts` 中新增查询当前用户通知的服务方法
 - [ ] 在仓库查询中加入已批准的分页和排序逻辑
 - [ ] 按照现有 API 响应格式返回
-### 3. 安全和边界情况 <!-- ref  § SectionC-->
+### 3. 安全和边界情况 <!-- ref: § SectionC -->
 - [ ] 使用现有认证流程拒绝未认证请求
 - [ ] 按照现有惯例处理无效的分页输入
 - [ ] 用户无通知时正确返回空列表
-### 4. 验证 <!-- ref  § Approach C -->
+### 4. 验证 <!-- ref: § Approach C -->
 - [ ] 为正常路径新增或更新 API 测试
 - [ ] 为认证失败和用户隔离新增或更新测试
 - [ ] 运行类型检查
@@ -55,9 +42,9 @@ Use checkbox-based markdown items inside a `## Todo List` section in `docs/<task
 
 ## 注意事项
 
-待办清单后追加 `## 注意事项` 节。
+在待办清单后追加 `## 注意事项` 章节。
 
-该节需回答当前任务的以下问题：
+该章节需回答当前任务的以下问题：
 
 * 本实现阶段需要关注哪些约束或规范？
 
@@ -68,17 +55,17 @@ Use checkbox-based markdown items inside a `## Todo List` section in `docs/<task
 <上述问题的整理答案>
 ```
 
-## Constraints
+## 约束
 
-- Do not write implementation code in this phase.
-- Do not create the todo list until the plan is explicitly approved.
-- Keep the todo list practical and easy to execute mechanically.
+- 不要在此阶段写实现代码。
+- 在规划被明确批准前，不要创建待办清单。
+- 保持待办清单实用且易于机械执行。
 
-## Completion criteria
+## 完成标准
 
-Leave this phase only when:
+仅在以下条件满足时才能离开此阶段：
 
-- the embedded todo list has been added into `docs/<task-slug>.plan.md`
-- the `## Things to note` section has been added after the todo list
-- no unresolved review comments left in artifact
-- the embedded todo list has been explicitly approved
+- 嵌入的待办清单已被添加到 `docs/<task-slug>.plan.md` 中
+- `## 注意事项` 章节已添加在待办清单之后
+- 产物中没有未解决的审查评论
+- 嵌入的待办清单已被明确批准

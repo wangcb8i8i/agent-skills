@@ -1,61 +1,58 @@
-# Implementation
+# 实现
 
-> **Language note:** All output artifacts must be written in Chinese (see Critical Rules in SKILL.md).  
-> References are in English for readability — do not treat them as a style template for artifacts.
+## 目的
 
-## Purpose
+精确执行已批准的待办清单，以保持审批关口工作流的完整性。
 
-Execute the approved todo list exactly enough to preserve the approval-gated workflow.
+实现遵循已批准的规划和已批准的待办清单。它不重新定义它们。
 
-Implementation follows the approved plan and approved todo list. It does not redefine them.
+## 执行步骤
 
-## What to do
+1. 重新读取 `docs/<task-slug>.plan.md` 中已批准的规划和已批准的待办清单。
+2. 按顺序执行已批准的待办项，从头到尾。对每个项：
+   - 完成所述工作。
+   - 当工作真正完成时，更新 checkbox：`- [ ]` 变为 `- [x]`。
+   - 待办清单已包含验证项（如运行测试、检查输出）。在执行序列中一并完成它们。
+3. 如果已批准的产物不再支持正确的执行，立即停止。
+4. 当所有待办项都被勾选后，进入验证和反馈阶段。
 
-1. Re-read the approved plan and approved todo list in `docs/<task-slug>.plan.md`.
-2. Execute the approved todo items in order, from first to last. For each item:
-   - Do the work described.
-   - When the work is truly complete, update the checkbox: `- [ ]` becomes `- [x]`.
-   - The todo list already includes validation items (e.g. run tests, check output). Execute them as part of this sequence.
-3. Stop immediately if the approved artifacts no longer support correct execution.
-4. When all todo items are checked off, proceed to the verification and feedback phase.
+#### 回退协议
 
-#### Rewind Protocol
+当已批准的产物不再支持正确的执行时：
 
-When the approved artifacts no longer support correct execution:
+1. **立即停止**。不要继续实现。
+2. **识别最早无效的阶段**：哪个产物（调研、规划或待办清单）出了问题？
+3. **产物处置**：
+   - 无效阶段及其所有下游阶段的产物被丢弃
+   - 所有上游（之前已批准的）产物保留
+   - 示例：规划无效 → 丢弃 `plan.md` 及其待办清单；保留 `research.md`
+4. **重新加载**：阅读回退到的阶段的参考文件
+5. **告知用户**：说明回退到哪个阶段、原因、以及丢弃了哪些产物
+6. **继续**：重新进入回退阶段的工作流，从全新的产物开始
+7. **重新批准**：新创建的产物必须通过该阶段的审查-批准循环才能继续推进。上游（保留的）产物仍保持已批准状态。
 
-1. **Stop immediately**. Do not continue implementing.
-2. **Identify the earliest invalid phase**: which artifact (research, plan, or todo) is broken?
-3. **Disposition of artifacts**:
-   - Artifacts from the invalid phase and all downstream phases are discarded
-   - All upstream (previously approved) artifacts are preserved
-   - Example: plan is invalid → discard `plan.md` and its todo list; keep `research.md`
-4. **Reload**: read the reference for the phase being rewound to
-5. **Inform the user**: state which phase you're rewinding to, why, and what artifacts were discarded
-6. **Proceed**: re-enter the workflow at the rewound phase, starting with a fresh artifact
-7. **Re-approval required**: the newly created artifact must pass the phase's review-approval cycle before advancing. Upstream (preserved) artifacts remain approved.
+## 变更策略
 
-## Change policy
-
-| Change type | Status |
+| 变更类型 | 处理方式 |
 |---|---|
-| Small wiring, imports, test adjustments, minor support edits | OK without reopening earlier phases |
-| New scope, unapproved behavior changes, silent redesign, opportunistic refactors | Rewind to earliest invalid phase |
-| Approved plan no longer fits the real codebase | Rewind |
-| Newly discovered requirement that changes scope or design | Rewind |
+| 小型接线、imports、测试调整、次要支持性修改 | 无需重开前期阶段 |
+| 新范围、未批准的变更行为、静默重新设计、机会性重构 | 回退到最早无效阶段 |
+| 已批准规划不再符合实际代码库 | 回退 |
+| 新发现的改变范围或设计的需求 | 回退 |
 
-If a necessary step is missing from the approved todo list, stop and return to the earliest invalid phase. Do not keep coding once the plan is invalidated.
+如果已批准的待办清单缺少必要步骤，停下来回到最早无效阶段。一旦规划失效，不要继续编码。
 
-## Constraints
+## 约束
 
-- Do not add scope, behavior changes, or architecture changes beyond approved work.
-- Do not implement work not represented by the approved todo list.
-- Do not mark unfinished tasks as completed.
-- Do not make new design decisions that should have been captured in approved artifacts.
+- 不要在已批准的工作之外增加范围、行为变更或架构变更。
+- 不要实现未包含在已批准待办清单中的工作。
+- 不要将未完成的任务标记为完成。
+- 不要做出本应在已批准产物中捕获的新设计决策。
 
-## Completion criteria
+## 完成标准
 
-Leave this phase only when:
+仅在以下条件满足时才能离开此阶段：
 
-- every approved todo item is marked as complete (`- [ ]` changed to `- [x]`)
-- implementation remains within approved scope
-- no unresolved blocker requires rewinding to an earlier phase
+- 每个已批准的待办项都已标记为完成（`- [ ]` 已改为 `- [x]`）
+- 实现保持在已批准范围内
+- 没有需要回退到更早阶段的未解决的阻塞点
