@@ -1,0 +1,76 @@
+{
+  "calm-analysis": {
+    "label": "冷静分析型",
+    "signals": [
+      "从问题/现象切入，逐步分析原因和结论",
+      "引用数据事实支撑论点",
+      "理性克制，不情绪化",
+      "段落清晰，一段一论点"
+    ],
+    "contrast": "靠论证说服 (vs 观点型靠立场)",
+    "files": [
+      "articles-calm-analysis/calm-01-ruanyifeng-weekly-395.md",
+      "articles-calm-analysis/calm-02-meituan-multithread.md",
+      "articles-calm-analysis/calm-03-coolshell-exceed-most.md"
+    ]
+  },
+  "sharp-opinion": {
+    "label": "犀利观点型",
+    "signals": [
+      "开篇即亮明立场",
+      "语言直接，不回避争议",
+      "有个人经历或内部视角",
+      "语气强硬，逻辑清晰"
+    ],
+    "contrast": "靠立场说服 (vs 冷静型靠论证)",
+    "files": [
+      "articles-sharp-opinion/opinion-01-caoz-tech-value.md",
+      "articles-sharp-opinion/opinion-02-huoju-rms-fsf.md"
+    ]
+  },
+  "tutorial": {
+    "label": "干货教程型",
+    "signals": [
+      "从实际问题出发引出知识点",
+      "Step-by-step 讲解节奏",
+      "有代码示例或实操步骤",
+      "语言平实易懂"
+    ],
+    "contrast": "教你做 (vs 分析型讨论问题)",
+    "files": [
+      "articles-tutorial/tutorial-01-meituan-threadpool.md",
+      "articles-tutorial/tutorial-02-ruanyifeng-docker-tutorial.md",
+      "articles-tutorial/tutorial-03-wangyin-interpreter.md"
+    ]
+  },
+  "narrative": {
+    "label": "叙事论述型",
+    "signals": [
+      "有时间线推进，且时间线驱动了认知或状态的转变（不仅是按时间罗列事件）",
+      "第一人称个人视角",
+      "论述镶嵌在故事中",
+      "语言生动有文学性"
+    ],
+    "contrast": "用故事表达观点 (vs 分析型用逻辑)",
+    "files": [
+      "articles-narrative/narrative-01-mactalk-ai-competition.md",
+      "articles-narrative/narrative-02-huangdongxu-2025-database.md",
+      "articles-narrative/narrative-03-mactalk-goodbye-geektime.md"
+    ]
+  },
+  "essay": {
+    "label": "技术随笔型",
+    "signals": [
+      "以个人经历或日常观察切入",
+      "结构松散但主题集中",
+      "语气亲切像聊天",
+      "重在分享启发"
+    ],
+    "contrast": "向内看自省分享 (vs 观点型向外批判)",
+    "files": [
+      "articles-essay/essay-01-wangyin-programming-wisdom.md",
+      "articles-essay/essay-02-chenhao-covid-experience.md",
+      "articles-essay/essay-03-fenng-selfmedia-7yr.md"
+    ]
+  }
+}
