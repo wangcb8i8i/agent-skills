@@ -2,53 +2,190 @@
 name: wechat-format
 description: >
   Convert Markdown to WeChat Official Account (微信公众号) formatted HTML+CSS.
-  Trigger when the user wants to publish a WeChat article, format Markdown for WeChat,
-  create a WeChat-friendly styled article, or any content that will be pasted into
-  the WeChat Official Account editor. Also trigger when the user mentions mp.weixin.qq.com,
-  WeChat排版, or wants "公众号风格" formatting. Use this whenever the output is destined
-  for WeChat MP (公众号) — the formatting rules are very different from web or email HTML.
+  Supports illustration embedding via --preview (local preview) or --publish (with
+  publish script trigger). Trigger when the user wants to publish a WeChat article,
+  format Markdown for WeChat, create a WeChat-friendly styled article, or any
+  content that will be pasted into the WeChat Official Account editor. Also trigger
+  when the user mentions mp.weixin.qq.com, 微信排版, or wants "公众号风格" formatting.
+  Use this whenever the output is destined for WeChat MP (公众号) — the formatting
+  rules are very different from web or email HTML.
 ---
 
 # WeChat Format (微信排版)
 
-Converts Markdown into a self-contained HTML file styled for WeChat Official Account articles.
+Converts Markdown into a self-contained HTML file styled for WeChat Official Account articles, with optional illustration embedding.
 
 ## Input / Output
 
 | | |
 |---|---|
 | **Input** | Markdown text (standard + extensions below) |
+| **Parameters** | `--preview` (default): local file paths + open browser. `--publish`: trigger `scripts/publish.py`. |
 | **Output** | Single `.html` file, CSS embedded in `<style>`, ready to paste into 微信公众号编辑器. Written to `web-chat-artifacts/<name>.html` (see [Output Path](#output-path)). |
-| **Theme** | Recommended automatically based on content, then confirmed with user. Options: `default`, `grace`, `simple`, `birch` |
 
 ## Workflow
 
+共 5 个阶段，7 个步骤，按顺序执行。
+
 ```
-1. Read the user's content, understand its tone (formal/casual/creative/technical) and genre (analysis/tutorial/essay/announcement). Recommend the best-fitting theme with a one-sentence rationale, then briefly list the other options so the user can confirm or override. Never silently pick a theme without showing the choice.
-
-2. Analyze content structure → identify semantic units.
-   Scan the Markdown for:
-   - Core thesis / key question → callout
-   - Critical warnings / danger points → danger card
-   - Key quotes / insights → filled quote card
-   - Sequential steps / principles → flow-list + flow-step
-   - Takeaways / conclusions → insight-list
-
-3. Render Markdown → HTML, mapping each identified semantic unit to the appropriate component. Keep ordinary prose as standard GFM elements (`<p>`, heading, list, etc.). Do not wrap every paragraph in a component — components are only for key information nodes.
-
-4. Load theme CSS from references/, resolve CSS variables with user's config. **Extract the resolved background color (e.g. `#FAF9F5`) and record it for use in the output template — it must be applied to both `body` and `#output` to prevent margin collapse from revealing white body background.**
-
-5. Assemble into self-contained HTML using the output template:
-   5.1 Strip the first `<h1>` element (the article title) from the rendered HTML — the title is managed by the WeChat editor, not pasted into the body.
-   5.2 Run WeChat compatibility transforms on the remaining content (details in [WeChat Compatibility Transforms](#wechat-compatibility-transforms)):
-     - Wrap `<svg>` inside `.mermaid-diagram` with `<section>` to prevent WeChat from stripping it
-     - Add `style="fill:#333333!important;color:#333333!important;stroke:none!important"` to all `<tspan>` elements to preserve diagram text color
-     - Replace SVG `dominant-baseline` attribute with equivalent `dy` offset
-     - Convert `img` tag `width`/`height` attributes to inline `style`
-   5.3 Fill the output template with transformed content and resolved CSS
-
-6. Write the HTML file to `{inputDir}/web-chat-artifacts/{name}.html` (see [Output Path](#output-path)). Present the file path to the user.
+Phase 1 ─  Target Recognition (参数解析)
+              ↓
+Phase 2 ─  Illustration Matching (可能跳过)
+              ↓
+Phase 3 ─  Generate HTML (保留现有 wechat-format 核心逻辑)
+              ↓
+Phase 4 ─  Illustration Embedding (可能跳过)
+              ↓
+Phase 5 ─  Consume (preview / publish)
 ```
+
+### Phase 1 — Target Recognition (目标识别)
+
+根据传入参数确定消费模式：
+
+| 参数 | 模式 | 行为 |
+|------|------|------|
+| `--preview` | 预览 | 图片用本地绝对路径；保存 HTML 后自动 `open` 浏览器 |
+| `--publish` | 发布 | 图片用本地绝对路径；保存 HTML 后调用 `scripts/publish.py` |
+| 无参数 | 默认预览 | 等同 `--preview` |
+
+参数在 skill 调用时传入，例如 `/wechat-format --publish`。
+
+### Phase 2 — Illustration Matching (插图匹配)
+
+#### 2a. 询问是否需要配图
+
+向用户确认是否需为文章配图：
+
+- **需要配图** → 用户指定插图信息目录路径，进入 2b
+- **无需配图** → 标记跳过，直接进入 Phase 3
+
+#### 2b. 半自动映射
+
+扫描用户指定的插图信息目录，读取两类文件：
+
+| 文件类型 | 用途 |
+|---------|------|
+| `.prompt` 文件 | 提取 `diagram-slug` 列表（来自 illustration-prompt 产出） |
+| 图片文件 (png/jpg/webp/…) | 待插入的配图文件 |
+
+映射流程：
+
+```
+Step 1: 解析 .prompt 文件 → 提取 slugs
+               ↓
+Step 2: 扫描图片文件 → 提取文件名（不含扩展名）
+               ↓
+Step 3: 自动绑定文件名 == slug 的匹配
+        ✓ leader-election.png → leader-election
+               ↓
+Step 4: 展示未匹配的图片，逐张询问对应 slug
+        ❓ "architecture.png" 对应哪个 slug？
+           [1] leader-election
+           [2] log-replication
+           [3] pre-vote-compare
+           [s] 跳过此图
+```
+
+#### 2c. 构建映射表
+
+产出配图映射表，供 Phase 4 使用：
+
+```json
+[
+  {
+    "slug": "leader-election",
+    "img_path": "/absolute/path/to/leader-election.png",
+    "prompt_location": "第 2 节 · Leader Election 首次出现段落后"
+  }
+]
+```
+
+其中 `prompt_location` 直接从 `.prompt` 文件的 `Context` 区块中的"所处位置"字段读取。
+
+#### 2d. 封面图识别
+
+构建映射表后，自动尝试识别封面图：
+
+1. 检查配图目录是否包含独立封面图（以 `cover` 命名的文件，如 `cover.png`、`cover.jpg`）
+2. 如无独立封面，将映射表**第一张图片**标记为封面候选
+3. 展示给用户确认/替换封面，确认后记录到映射表
+
+此信息将在 Phase 3 以 `<!--wechat-cover:...-->` 标记写入 HTML，供 publish.py 读取。
+
+### Phase 3 — Generate HTML (HTML 生成)
+
+沿用现有 wechat-format 核心逻辑，不做改动：
+
+1. 理解内容语气、类型 → 推荐主题（用户确认）
+2. 分析内容结构 → 识别语义单元（callout、danger card、flow-list 等）
+3. 渲染 Markdown → HTML
+4. 加载主题 CSS，解析 CSS 变量
+5. 执行微信兼容性转换
+
+此阶段产出的 HTML **不含图片**，但需在 `<head>` 中注入 publish 标记：
+
+```html
+<!--wechat-title:文章标题-->
+<!--wechat-digest:文章摘要（正文前 120 字）-->
+<!--wechat-cover:/absolute/path/to/cover.png--><!--如 Phase 2d 识别到封面-->
+```
+
+- **标题**: 取 Markdown 的第一个 `# `（最多 64 字）
+- **摘要**: 取正文前 120 字（去除 Markdown 标记）
+- **封面**: 仅当 Phase 2d 识别到封面候选时注入，否则不生成此标记
+
+publish.py 会在上传图片和创建草稿前提取并移除这些标记，最终提交给 draft API 的内容不含这些标记。
+
+### Phase 4 — Illustration Embedding (配图嵌入)
+
+仅在 Phase 2 用户指定了配图时执行，否则跳过。
+
+#### 4a. LLM 推断插入位置
+
+基于映射表 + HTML 完整结构，由 LLM 自行推断每张图的插入位置：
+
+```
+输入:
+  - 完整 HTML（不含图的结构化内容）
+  - 映射表 [{slug, img_path, prompt_location}, ...]
+
+过程:
+  1. 读取 .prompt 中每张图的位置预设（自然语言描述）
+  2. 对照 HTML 中各标题/段落/列表结构
+  3. 推断每张图应插入在哪个元素之后
+
+约束:
+  - 不修改原文文字内容
+  - 每张图生成 <figure><img src="本地路径"></figure>
+  - src 使用本地绝对路径（file:/// 或绝对路径均可）
+```
+
+#### 4b. 展示确认
+
+展示合并结果供用户确认：
+
+```
+📄 已为 3 张配图定位并插入 HTML：
+
+  ✓ leader-election   → 插入在「## Leader Election」段落后
+  ✓ log-replication   → 插入在「## Log Replication」段落后
+  ✓ pre-vote-compare  → 插入在「Pre-Vote 与基础选主对比」段落后
+
+请确认或调整：
+  - 位置不对 → 描述需要如何调整
+  - 跳过某张 → 移除该图
+  - 全部确认 → 进入消费阶段
+```
+
+### Phase 5 — Consume (消费产出)
+
+| 模式 | 行为 |
+|------|------|
+| `--preview` | 1. 保存 HTML 到 `web-chat-artifacts/<name>.html`<br>2. 自动调用 `open` 命令打开浏览器预览 |
+| `--publish` | 1. 保存 HTML 到 `web-chat-artifacts/<name>.html`<br>2. 调用 `scripts/publish.py <html_path>`<br>3. publish.py 上传配图 → 创建草稿 → **删除 HTML 文件** |
+
+两种模式下图片 URL 均使用本地绝对路径。publish 模式下由 `publish.py` 完成图片上传、草稿创建和产物清理。
 
 ## Syntax Reference
 
@@ -237,13 +374,9 @@ Match content type to theme when recommending:
 
 Always explain your recommendation in one sentence, then briefly list alternatives so the user can confirm or override.
 
-Examples of good recommendation wording:
-- _"I'd recommend the **birch** theme — the serif headings and warm background give this essay a print-magazine feel. Alternatives: default (more formal), simple (minimal)."_
-- _"This technical deep-dive works well with **simple** — clean headings reduce visual noise. Alternatives: default (structured), birch (warmer tone)."_
-
 ## Content Structuring Guide
 
-After step 1 (theme selected), analyze the Markdown body to identify key semantic units that deserve visual emphasis beyond standard GFM.
+After theme selected, analyze the Markdown body to identify key semantic units that deserve visual emphasis beyond standard GFM.
 
 ### Component Mapping Table
 
@@ -308,7 +441,7 @@ Font stacks:
 
 ## WeChat Compatibility Transforms
 
-Applied during step 5.1. Each transform is a lossless equivalence — browser rendering is unchanged.
+Applied during Phase 3. Each transform is a lossless equivalence — browser rendering is unchanged.
 
 ### Mermaid SVG Wrap
 
@@ -390,6 +523,9 @@ Examples:
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{article title}</title>
+<!--wechat-title:{文章标题}--><!-- Phase 3 注入，publish.py 提取后移除 -->
+<!--wechat-digest:{文章摘要}-->
+<!--wechat-cover:{封面图本地路径}--><!-- 仅当 Phase 2d 识别到封面时注入 -->
 <style>
 /* ===== Base & Theme CSS ===== */
 /* resolved from theme file + user config */
@@ -481,3 +617,45 @@ These are critical — WeChat's rendering engine (X5 Blink) has unique behaviors
 10. **Dark mode**: Each theme should provide dark mode styles via `prefers-color-scheme: dark`. The component system uses CSS variables with light fallbacks — dark mode overrides these.
 
 11. **`color-mix()` not supported**: WeChat X5 Blink kernel does not support CSS `color-mix()`. When resolving the theme CSS for final output, replace every `color-mix()` call with a pre-computed `rgba()` value. See the [color-mix Resolution](#color-mix-resolution) section above for the calculation method.
+
+## Scripts
+
+### publish.py
+
+位于 `scripts/publish.py`，通过微信公众号 API 上传配图并替换 HTML 中的本地路径为远程 URL。
+
+```
+$ python scripts/publish.py <html_path>              # 覆盖原文件
+$ python scripts/publish.py <html_path> -o out.html  # 输出到新文件
+$ python scripts/publish.py <html_path> --dry-run    # 仅预览，不上传
+```
+
+工作流：
+1. 从 `.env` 读取 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET`
+2. 扫描 HTML 中 `<img src="本地路径">` 的图片
+3. 自动压缩图片至 ≤1MB（`/cgi-bin/media/uploadimg` 的规格限制）
+4. 调用微信 API 上传，获取 `https://mmbiz.qpic.cn/...` URL
+5. 替换 HTML 中的 src 并写出
+
+依赖：`httpx`（必需）、`Pillow`（可选，自动压缩）、`python-dotenv`（可选）
+
+### .env
+
+位于 `scripts/.env`，`.gitignore` 忽略。用于存储微信公众号 API 凭证：
+
+```
+WECHAT_APP_ID=wx_xxx
+WECHAT_APP_SECRET=xxx
+WECHAT_AUTHOR=作者名
+```
+
+`scripts/.env.example` 为模板文件，不含真实密钥。
+
+## Anti-Patterns
+
+- ❌ Prompt 块包含说明文字（如"你可以这样使用"、"以下是提示词"）—— 只有提示词本身
+- ❌ Prompt 块用中文写（英文提示词对图像模型理解更好）
+- ❌ 不经过风格确认直接生成提示词
+- ❌ 配图嵌入阶段修改了原文文字内容
+- ❌ 配图嵌入阶段将多张图插入到同一个位置
+- ❌ 配图映射表中未匹配的图片被自动跳过而不通知用户
