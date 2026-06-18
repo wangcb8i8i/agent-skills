@@ -1,0 +1,35 @@
+#!/bin/bash
+set -euo pipefail
+
+SKILLS_DIR="$HOME/.agents/skills"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+changed_skills=()
+
+while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    dir="${file%%/*}"
+    if [ -f "$REPO_ROOT/$dir/SKILL.md" ]; then
+        changed_skills+=("$dir")
+    fi
+done < <(git diff --cached --name-only)
+
+# deduplicate
+if [ ${#changed_skills[@]} -gt 0 ]; then
+    changed_skills=($(printf '%s\n' "${changed_skills[@]}" | sort -u))
+fi
+
+if [ ${#changed_skills[@]} -eq 0 ]; then
+    echo "[skill-sync] No skill changes, skipping."
+    exit 0
+fi
+
+echo "[skill-sync] Syncing ${#changed_skills[@]} skill(s) to $SKILLS_DIR: ${changed_skills[*]}"
+mkdir -p "$SKILLS_DIR"
+for skill in "${changed_skills[@]}"; do
+    rm -rf "$SKILLS_DIR/$skill"
+    cp -R "$REPO_ROOT/$skill" "$SKILLS_DIR/$skill"
+    echo "  → $SKILLS_DIR/$skill"
+done
+echo "[skill-sync] Done."
+exit 0
