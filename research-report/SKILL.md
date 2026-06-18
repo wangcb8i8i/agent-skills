@@ -1,12 +1,17 @@
 ---
 name: research-report
 description: 自动化的深度研究引擎。给方向，拿结论——Scope 确认后全自动执行，只在起点和终点需要你。
-version: 2.2.0
+version: 3.0.0
 ---
 
 <objective>
 把「一个问题」变成「一份可拍板的结论」——不只是描述事实，而是穿透到因果层、支撑具体决策。全程无需用户介入中间过程。不是协作式研究助手——是委托式研究引擎：你定方向，我做研究，你拿结果。
 </objective>
+
+<root_value>
+  这技能存在的唯一理由是：让用户拿到报告后能直接做决策——不管是「投」还是「不投」还是「再等一个信号」。
+  所有内部设计决策，当两条原则冲突时，由这条裁决：哪条让最终决策更可靠？
+</root_value>
 
 <triggers>
   <trigger>用户显式调用 /research [主题]（默认 Single Pass 模式）</trigger>
@@ -22,8 +27,10 @@ version: 2.2.0
   <mandate>不伪造信息。不确定就是不确定。</mandate>
   <mandate>分析保持中立。有反对证据就呈现反对证据。</mandate>
   <mandate>因果链追问贯穿始终：每个关键发现追问 Why 直到触及结构动因或底层约束。</mandate>
+  <mandate>每个关键发现同时回答：这个发现如果为真/为假，改变什么决策？</mandate>
   <mandate>用分析原则引导判断，而非步骤清单约束——理解为什么做，不只是做什么。</mandate>
   <mandate>输出语言与用户输入语言一致（中文输入→中文输出）</mandate>
+  <mandate>如果某维度的置信度不足以支撑决策且无法补搜 → 输出「无法形成可行动结论」并列出什么信息能翻盘，不凑一份报告</mandate>
 </llm>
 
 <flow>
@@ -37,6 +44,7 @@ version: 2.2.0
       <action>如果用户输入是短语（如"AI 应用落地场景"），引导明确：
         - 想问的具体是什么？（市场格局？投资机会？技术成熟度？）
         - 从哪个视角？（创业者/投资人/企业采购/研究者？）
+        - 这个研究最终要支持什么决策？（选型决策 A vs B / 判断决策 做不做 / 理解决策 了解全景 / 监控决策 关注什么信号）
       </action>
       <action>如果用户输入已经具体，确认即可，不强行追问</action>
       <action>识别研究类型（投资判断/技术趋势/产品决策/行业调研/生活经验/知识储备），后续流程据此自适应</action>
@@ -62,6 +70,10 @@ version: 2.2.0
         - 地域范围（全球/中国/特定市场）
         - 排除项（哪些子话题不需要涉及）
       </action>
+      <action>确认决策约束条件：
+        - 什么时间窗口内需要做这个决策？（紧迫性影响搜索深度）
+        - 做错和被误导相比，哪种代价更高？（决定置信度门槛）
+      </action>
     </step>
     
     <step n="3" name="已有知识注入" optional="true">
@@ -84,9 +96,10 @@ version: 2.2.0
         <option id="brief">Executive Brief —— 1 页简报（核心结论 + 建议）</option>
         <option id="slides">Slide Deck —— 逐页要点（Mermaid 提纲）</option>
         <option id="mindmap">Mind Map —— Mermaid 思维导图</option>
+        <option id="decision-memo">Decision Memo —— 1 页，含：推荐结论 / 关键证据（3条） / 关键不确定性 / 什么新信息会反转本推荐</option>
       </options>
       <default>Full Report</default>
-      <principle>格式只影响呈现方式，不影响研究深度——无论选哪种，研究阶段都按全深度执行。</principle>
+      <principle>格式反映决策场景差异，反向影响研究侧重。Decision Memo → 优先确认 3 条关键证据的置信度；Slide Deck → 优先确保 5-7 个核心 claim 个个站得住；Executive Brief → 深度优先于广度，聚焦 1 个核心判断。</principle>
     </step>
     
     <step n="4.5" name="模式选择" condition="deep-not-auto-triggered">
@@ -105,6 +118,8 @@ version: 2.2.0
     
         **研究问题**: {一句话核心问题}
         **研究类型**: {投资判断/技术趋势/产品决策/行业调研/生活经验/知识储备}
+        **决策类型**: {选型/判断/理解/监控}
+        **决策约束**: {时间窗口 / 错误代价方向 / 排除决策}
         **锚定点**: {用户指定的约束条件}
         **范围**: 时间={} / 地域={} / 排除={}
         **格式**: {Full Report / Executive Brief / Slide Deck / Mind Map}
@@ -123,7 +138,7 @@ version: 2.2.0
     <principle>
       <mandate>中间不询问用户意见。遇到缺口、矛盾、不确定，自主决策并记录，在报告中呈现。</mandate>
       <mandate>每完成一个内部步骤，用 1 句话非中断式更新进度（如「正在搜索…」「正在分析信息…」）。</mandate>
-      <mandate>如果搜索结果为 0 或信息严重不足，继续往下做——在报告中标注信息缺口，而不是卡住问用户。</mandate>
+      <mandate>信息不足时先尝试降级策略补搜。严重不足且无法补搜 → 区分场景：核心决策维度缺信息 → 输出「无法形成结论」；次要维度缺信息 → 继续，标注缺口。</mandate>
       <mandate>锚定点是硬约束——搜索、筛选、分析、建议的全过程都受锚定点限制，不得偏离。</mandate>
       <mandate>因果链追问不是单独的步骤，而是贯穿每个分析环节的思维习惯——每看到一个事实，问「为什么」直到触及结构动因或底层约束。</mandate>
       <mandate>研究不追求速度，追求每层结论的可靠性。搜索覆盖不足就补搜，分析不够深就继续挖。</mandate>
@@ -134,14 +149,19 @@ version: 2.2.0
       <principle>搜索的目的是覆盖核心问题的所有关键角度，而不是凑够数量。锚定点直接映射为搜索约束。</principle>
       <action>根据核心问题和锚定点，生成多组搜索关键词，确保每个锚定维度至少被一组关键词覆盖</action>
       <action>确保信源多元化：行业报告 + 一手信息 + 新闻报道 + 社区讨论 + 学术/技术文献，至少覆盖 3 类</action>
+      <action>对每个搜索维度标注"对最终决策的影响程度"：高/中/低。影响程度高的维度优先搜索、优先分配搜索预算（关键词数量和尝试次数）</action>
       <action>去重后保留核心材料（至少 5 篇以上优质材料），每份生成 passport（标题/来源/日期/标签/摘要/可信度初评）</action>
       <action>主动检查信息缺口——对照锚定点的每个维度，如果某个关键角度没有覆盖到，补搜</action>
     </subphase>
     
     <!-- 2. 筛选 -->
     <subphase id="auto-filter" title="筛选">
-      <principle>信息质量比数量重要。筛选的核心是回答「这个信息值得信任吗？」和「和我的核心问题有关吗？」</principle>
-      <action>对每份材料做相关性分级：★★★ 直接相关 / ★★ 间接相关 / ★ 弱相关</action>
+      <principle>信息质量比数量重要。筛选的核心是回答「这个信息值得信任吗？」「和我的核心问题有关吗？」「它会改变决策吗？」</principle>
+      <action>对每份材料做二维评分：
+        - 相关度：★★★ 直接相关 / ★★ 间接相关 / ★ 弱相关
+        - 决策影响力：◉ 会改变推荐 / ◎ 支撑现有推荐 / ○ 不改变推荐
+      </action>
+      <action>双高材料（★★★ + ◉）是核心——优先深度阅读。高相关低影响力 → 摘要即可。</action>
       <action>锚定点作为相关性判断的加权条件——满足锚定点约束的材料提升优先级</action>
       <action>对 ★★★ 和 ★★ 材料做四维可信度评估：来源权威性 / 数据可验证性 / 时效性 / 潜在偏见</action>
       <action>标注来源间的矛盾点，留到分析阶段处理</action>
@@ -165,6 +185,7 @@ version: 2.2.0
           </mapping>
         </action>
         <action>锚定点调整分析侧重——「对比」→ 强化多维度对比如 ANGLE，「风险」→ 强化挑战与反面证据，「怎么做」→ 强化行动转化，「为什么」→ 强化因果链深挖</action>
+        <action>/CHALLENGE（挑战与反面证据）自动激活——无论选择哪些其他 Lens，对顶部 3 个核心主张执行压力测试：定位主张 → 反向搜索 → 压力测试 → 立场审计</action>
       </step>
     
       <step name="逐角度分析">
@@ -182,6 +203,7 @@ version: 2.2.0
       <action>对矛盾点给出裁决或保留双方立场</action>
       <action>按「置信度 × 对决策的影响力」排序所有发现，锚定点指向的维度给予更高权重</action>
       <action>生成可执行建议（3-8 条），每条包含：行动 + 预期效果 + 主要风险 + 前置条件</action>
+      <action>每条建议标注「反转条件」——什么新发现会让本推荐不成立（1-2 句）</action>
       <action>每条建议标注回应了哪个锚定约束</action>
     </subphase>
     
@@ -226,6 +248,18 @@ version: 2.2.0
           <step>仍无法获取 → 标注「语言壁垒：{语言}信息未充分覆盖」，不影响已有语言的结论质量</step>
         </degradation>
       </scenario>
+
+      <scenario id="decision-gate" name="无法形成可行动结论">
+        <trigger>核心决策维度经过降级策略后，置信度仍 < 50%</trigger>
+        <degradation>
+          <step>输出不是报告，而是「针对你的问题，现有信息不足以形成可行动结论」</step>
+          <step>附上如果能获取以下信息可以翻盘：
+            - 具体缺什么信息
+            - 什么渠道可能找到
+            - 找到后预期会如何影响决策</step>
+          <step>建议用户决定：继续等 / 换角度 / 基于现有信息但接受更高不确定性</step>
+        </degradation>
+      </scenario>
     </subphase>
 
     <!-- 6. 递归循环（仅 Deep 模式） -->
@@ -242,9 +276,9 @@ version: 2.2.0
 
       <step n="2" name="关闭标准检查">
         <principle>同时满足 C1~C3 则正常关闭。触发 C4 则强制关闭并在报告中标注缺口。</principle>
-        <criterion id="c1">C1: 无空白维度（所有锚定维度至少「部分覆盖」）</criterion>
-        <criterion id="c2">C2: 置信度 < 70% 的核心主张 ≤ 2 个</criterion>
-        <criterion id="c3">C3: 连续 2 轮饱和度 ≤ 10%</criterion>
+        <criterion id="c1">C1: 所有决策关键维度至少「部分覆盖」（非决策关键维度允许空白）</criterion>
+        <criterion id="c2">C2: 顶部 3 个决策因子的置信度 ≥ 70%</criterion>
+        <criterion id="c3">C3: 连续 2 轮未改变推荐结论</criterion>
         <criterion id="c4">C4: 已达最大轮次上限（默认 3）</criterion>
         <decision>
           C1 + C2 + C3 满足 → 进入 Phase 3 REPORT
@@ -307,6 +341,14 @@ version: 2.2.0
         无论哪种结构，内容递进应遵循读者认知的自然顺序：背景/现状 → 核心发现 → 深层分析 → 含义/行动。但不作为固定模板——根据研究的具体内容决定最自然的叙事顺序。
       </principle>
 
+      <principle name="决策类型驱动终端结构">
+        研究收尾方式由决策类型决定：
+        - 选型决策 → 前置对比框架 + 推荐 + 为什么不选其他选项
+        - 判断决策 → 前置阈值 + 证据 + 置信度
+        - 理解决策 → 全景 → 关键脉络 → 路标（下一步关注什么）
+        - 监控决策 → 信号清单 + 阈值 + 响应策略
+      </principle>
+
       <principle name="分析方法不暴露">
         所有内部方法、分析框架、工具代号（如 /DEEP、/ANGLE）一律不出现报告中。读者只看到结论性内容，不需要知道分析过程的方法论。</principle>
     </step>
@@ -314,9 +356,14 @@ version: 2.2.0
     <step n="2" name="撰写报告章节">
       <principle>以下章节是报告的常用组件，但不是必须全部使用——根据叙事结构选择最合适的组合。</principle>
 
-      <section id="executive_summary" recommended="always">
-        <name>摘要</name>
-        <content>核心结论（2-3 句）+ 关键建议/判断（1 句）+ 主要不确定性提示（1 句）</content>
+      <section id="decision_summary" recommended="always">
+        <name>决策摘要</name>
+        <content>
+          - 推荐结论（1 句）
+          - 支撑推荐的关键证据（3 条以内，每条标注置信度和来源）
+          - 如果只能记得一件事——the one thing that should influence the decision
+          - 主要逆转条件——什么新信息会推翻推荐
+        </content>
       </section>
 
       <section id="body" recommended="always">
@@ -340,8 +387,13 @@ version: 2.2.0
       </section>
 
       <section id="uncertainties" recommended="always">
-        <name>不确定性</name>
-        <content>关键不确定性 + 什么条件下结论可能改变</content>
+        <name>不确定性评估</name>
+        <content>
+          - 关键不确定性清单
+          - 每条标注：如果这个不确定性被消除，是否改变推荐？
+            - 会改变 → 高优先级（建议用户优先查证）
+            - 不会改变 → 低优先级（可以接受存在）
+        </content>
       </section>
 
       <section id="sources" recommended="always">
@@ -354,6 +406,7 @@ version: 2.2.0
       <principle>报告输出后默认自动保存。用户可对任意发现聚焦深挖，无需重新发起完整研究。</principle>
       <mechanism>
         <step>基于已有研究上下文，生成 2-3 组定向搜索关键词</step>
+        <step>优先搜索可能证明被追问发现错误的证据（决策反转搜索）</step>
         <step>仅对追问点做窄化深挖，不展开全部分析维度</step>
         <step>增量输出至已有报告末尾，不覆盖原文</step>
       </mechanism>
@@ -362,7 +415,9 @@ version: 2.2.0
 </flow>
 
 <lens_catalog>
-  <description>分析视角工具箱。每个 Lens 是一种特定的问题拆解方式。这份目录是参考而非约束——它是常见分析模式的总结，但议题需要特定拆解方式时，自由创建新的 Lens。关键是覆盖核心问题的各个关键维度，不在于用了几个 Lens。</description>
+  <description>分析视角工具箱。每个 Lens 是一种特定的问题拆解方式。这份目录是参考而非约束——它是常见分析模式的总结，但议题需要特定拆解方式时，自由创建新的 Lens。关键是覆盖核心问题的各个关键维度，不在于用了几个 Lens。
+  
+  /CHALLENGE 在每次研究中对顶部 3 个核心主张自动激活（在分析阶段由流程强制执行），不视为可选 Lens。其余 Lens 按需选择。</description>
 
   <lens id="deep" name="/DEEP" title="深度因果挖掘">
     <goal>穿透表象，理解本质。对一个主题进行分层深挖，每一层追问 Why 直到触及结构动因或底层约束。</goal>
@@ -487,6 +542,8 @@ version: 2.2.0
     <check>核心问题可操作——不是兴趣短语，而是可回答的问题</check>
     <check>锚定点明确——知道查什么，也知道不查什么</check>
     <check>研究类型已识别，分析框架可确定</check>
+    <check>决策类型已识别（选型/判断/理解/监控）</check>
+    <check>用户知道"得到答案后要做什么"</check>
   </gate>
 
   <gate phase="report">
@@ -494,12 +551,14 @@ version: 2.2.0
     <check>结论有置信度标注</check>
     <check>因果链有传递深度——不只是第一层解释</check>
     <check>建议可执行——不是「要关注 XX」而是「做 XX，因为 YY，风险是 ZZ」</check>
+    <check>每条关键推荐标注了反转条件</check>
+    <check>不确定性章节区分了「值得查证」和「可以接受」</check>
     <check>信息缺口已诚实标注</check>
     <check>报告结构由问题本质驱动，而非固定模板</check>
   </gate>
 
   <gate phase="recursive" condition="deep-mode">
-    <check>所有锚定维度已覆盖（无空白）或已标注未覆盖原因</check>
+    <check>所有决策关键维度已覆盖（无空白）或已标注未覆盖原因</check>
     <check>饱和度指标已记录在案</check>
     <check>关闭标准（C1~C4）评估过程可追溯</check>
     <check>递归轮次已达关闭条件，非人为中断</check>
@@ -520,8 +579,9 @@ version: 2.2.0
   <principle id="2" name="来源必追溯">
     每个关键主张（非常识）标注出处。无法确认的标「假设」或「待验证」。
   </principle>
-  <principle id="3" name="不确定就说">
+  <principle id="3" name="不确定就说，且标注决策影响">
     不确定的数据、矛盾的来源、推断的局限——诚实呈现。比假装确定更有价值。
+    同时标注：这个不确定如果被消除，是否会改变推荐结论。
   </principle>
   <principle id="4" name="因果链必追问">
     每个关键发现至少追问两层 Why。区分近因和根因，在报告中呈现因果深度，而非停留在表面解释。
@@ -533,7 +593,7 @@ version: 2.2.0
     用户用中文提问 → 中文输出。用户用英文提问 → 英文输出。
   </principle>
   <principle id="7" name="模式决定搜索策略">
-    根据研究模式决定搜索深度。Single Pass：除非信息严重不足以致无法形成结论，否则不自动发起第二轮搜索。Deep：递归搜索直到信息饱和或达到轮次上限，缺口在报告中标注。
+    根据研究模式决定搜索深度。Single Pass：除非信息严重不足以致无法形成结论，否则不自动发起第二轮搜索。Single Pass 模式下如果核心决策维度置信度 < 50%，自动升至 Deep 模式。Deep：递归搜索直到信息饱和或达到轮次上限，缺口在报告中标注。
   </principle>
 </operating_principles>
 
@@ -542,6 +602,9 @@ version: 2.2.0
   <criterion>结论有置信度标注和来源追溯</criterion>
   <criterion>因果链清晰传递——读者能理解「为什么」，不只知道「是什么」</criterion>
   <criterion>建议具体可执行，且回应了锚定约束</criterion>
+  <criterion>每条关键推荐标注了反转条件——用户知道什么情况下本推荐应被推翻</criterion>
+  <criterion>不确定性评估不是陈列——而是告诉用户哪些不确定性值得跟进</criterion>
+  <criterion>用户拿到报告后能直接做出一个决策（哪怕决策是"再等一个信号"）</criterion>
   <criterion>不同类型研究的报告结构差异明显——不是同一模板换标题</criterion>
   <criterion>信息缺口已诚实标注，不假装确定</criterion>
   <criterion condition="deep-mode">递归过程自动收敛（C1~C3满足或C4触发），无需用户判定"够不够深"</criterion>
