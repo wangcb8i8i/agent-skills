@@ -1,97 +1,67 @@
 ---
 name: intent-capture
-description: Capture user intent through guided conversation when the user is starting something new, expressing ideas incompletely, or cannot yet define the problem clearly.
-version: 4.0.0
+description: 帮用户理清说不清的问题——当用户描述模糊、跳方案、或只感觉"哪儿不对"时用。
+disable-model-invocation: true
+version: 6.0.0
 ---
 
-<objective>
-Clarify the user's real intent through concise conversation — without turning it into a procedure.
-</objective>
+你的工作是建立用户问题空间的**模型**，然后验证并修正它。不是做笔记，不是填表格。
 
-<triggers>
-  - User starts something new but the shape is fuzzy
-  - User expresses ideas as fragments, examples, or complaints
-  - User says "optimize" / "improve" / "fix" but cannot explain how
-  - User knows the object but not the goal, boundary, or success condition
-</triggers>
+## 收 — 接收原始材料
 
-<degrees_of_freedom>
-  **HIGH** — Exploratory phase. The skill is a toolkit, not a railway.
-</degrees_of_freedom>
+开场："你想解决/搞清楚什么？"
 
-<principles>
-  0. **问题空间 ≠ 解决方案空间。** 用户说的方案是症状，问题才是你需要映射的。
-  1. **Receive first.** Do not structure, challenge, or fill gaps in the first 2 exchanges.
-  2. **One gap at a time.** Ask about the single most obvious missing dimension. Never run a survey.
-  3. **Enough is enough.** If object + symptom + desired change are clear and the user wants to act, stop.
-  4. **Repair without defending.** When the user says "that's not it", acknowledge and reroute immediately. Never ask why they think you're wrong.
-  5. **Surface intent before solution.** If the user jumps to a solution ("add an export button", "write an AI summary"), do not implement or debate it. First ask: "What problem is that solving?"
-  6. **No side effects.** Do not modify, create, or delete any files while running this skill. The only exception is the optional intent brief if the user explicitly asks for it.
-</principles>
+用户没说够一件具体事前，不追问。拿到**对象 +（症状/期望变化/时机中至少一项）** → 转验。没拿到就继续，只说"还有吗"或沉默等待。
 
-<dimensions purpose="mental model, not checklist">
-  Keep these 9 dimensions in mind to notice gaps during conversation.
-  Do not enumerate them unless the user is visibly stuck.
+## 验 — 填补模型最明显的缺口
 
-  | Dimension   | What to ask |
-  |-------------|-------------|
-  | Object      | What is the thing or area under discussion? |
-  | Symptom     | What feels wrong, painful, slow, or insufficient today? |
-  | Impact      | Who feels the problem first or most strongly? |
-  | Desired     | What should become better (faster, cheaper, clearer, stabler)? |
-  | Context     | Why is this coming up now? |
-  | Users       | Who benefits or is directly affected? |
-  | Success     | How would you know this improved enough to count? |
-  | Constraints | What boundaries shape this (technical, org, time, process)? |
-  | Unknowns    | What parts are still fuzzy even to the user? |
+先用 1-2 句重述你的理解，然后从[维度表](#维度表)中选一个缺失维度来问。
 
-  If nothing feels missing after the user speaks, ask nothing.
-</dimensions>
+- 用户说"对"/"是的" → 转确认
+- 用户说"不对"/"偏了" → **立即纠偏**
 
-<flow>
-  Three conversational moves, not phases. No gates, no exit criteria, no transition scripts.
+### 纠偏
 
-  **LISTEN**
-  - Goal: Receive raw material before structuring.
-  - Opening: "What are you trying to solve / improve / figure out?"
-  - Do not ask follow-ups until the user has said at least one concrete thing.
-  - Move on when you have object + at least one of symptom / desired change / context. Do not collect all dimensions.
+"我偏了。是对象偏了、问题偏了、还是目标偏了？" 减少最小偏差，重述。不问"为什么不对"，不辩护之前版本。
 
-  **CLARIFY**
-  - Goal: Fill the single most obvious gap.
-  - First, restate your understanding in 1-2 sentences.
-  - Then ask about exactly one missing dimension from the table above.
-  - If the user stalls, offer 2-3 options and recommend one.
-  - Move on when the user says "yes, that's right" or "close enough".
+## 确认 — 验证模型合身
 
-  **CONFIRM**
-  - Goal: Verify the captured intent matches the real need.
-  - One question: "If we solve this, does your original problem actually go away?"
-  - No counterfactual mechanics, no lens catalog, no multi-move ritual.
-  - If yes → done. Offer to write it down.
-  - If no → return to CLARIFY.
-</flow>
+"这个解决了，你原来的问题还在不在？"
 
-<repair>
-  If the user says the current understanding is wrong:
-  "I missed it. Is the object, the problem, or the goal off?"
-  Repair the smallest thing that's wrong. Restate. Ask if it's closer now.
-  Do not defend the previous version, and do not ask why the first version was wrong.
-</repair>
+- 在 → 完成。问是否需要保存意图简报。
+- 不在 → 回验。
+- 不做反事实推演、不多轮仪式。
 
-<output>
-  Do not write files by default.
-  If the user explicitly asks to save the intent, generate a brief with:
-  - Goal, Problem, Desired change, Success criteria (required)
-  - Users, Constraints, Unknowns (if captured)
+## 维度表
 
-  Path: {workspace}/docs/{intent-slug}.intention.md
-  Structure is free — optimize for clarity, not compliance.
-</output>
+按需查阅，不缺就不问。卡住时才列 2-3 个选项并推荐一个。
 
-<success>
-  - The user's surface phrasing and real intent have been distinguished
-  - User confirms the captured statement is what they mean
-  - Important unknowns are marked explicitly, not silently assumed
-  - The conversation felt natural, not procedural
-</success>
+| 维度 | 问什么 |
+|------|--------|
+| 对象 | 讨论的事/领域是什么？ |
+| 症状 | 什么感觉不对、痛苦或慢？ |
+| 影响 | 谁最先或最深感受到？ |
+| 期望 | 什么应该变得更好？ |
+| 时机 | 为什么是现在？ |
+| 受众 | 谁会受益或受影响？ |
+| 成功 | 怎么知道足够好了？ |
+| 约束 | 限制条件是什么？ |
+| 盲区 | 用户自己还模糊的部分？ |
+
+## 三条规则（单来源）
+
+1. **问题空间 ≠ 解决方案空间。** 用户说的方案是症状，不是讨论对象。方案本身不实现也不讨论，只问"这个方案要解决什么？"
+2. **一次只问一个缺口。** 不扫描问卷。
+3. **够用就停。** 对象+症状+期望变化都清晰了、用户想行动了，就停。
+
+## 输出
+
+默认不写文件。用户要求保存时：
+
+`{workspace}/docs/{意图标识}.intention.md`
+
+## 成功标志
+
+- 表层表述和真实意图被区分
+- 用户确认得到的表述就是他想说的
+- 盲区被标出，没有被默默假设
