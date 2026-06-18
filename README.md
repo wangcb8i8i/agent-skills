@@ -13,6 +13,7 @@ Works with Claude Code, Codex, OpenCode, and other AI coding agents.
 | **illustration-prompt** | Auto-detect illustration opportunities in content, infer visual style, generate detailed prompts ready for image generation models. Outputs `.prompt` files. | `#illustration` |
 | **intent-capture** | Multi-phase guided conversation to turn vague ideas, complaints, or optimization goals into structured intent briefs with success criteria. | Vague / incomplete ideas |
 | **research-plan-driven** | Research → plan → todo → implement → verification pipeline with explicit approval gates at each phase. Advances only on user sign-off. | "plan driven", "research and plan" |
+| **fund-research** | Fund verdict engine — systematic investigation of public funds/ETFs/FOFs to produce a verdict supporting investment decisions. 10 preset evidence dimensions, case-driven reporting. | `/research-fund [fund]` |
 | **research-report** | Automated deep research engine. Give a direction, get conclusions — fully automatic after scope confirmation. Support 10+ analysis lenses. | `/research [topic]` |
 | **revise-markdown** | Structured review-comment loop — find, analyze, revise, resolve inline `COMMENT:` markers, repeat until explicit approval. Every comment accounted for. | "revise the doc", "address the comments" |
 | **wechat-format** | Convert Markdown to WeChat Official Account (公众号) HTML+CSS with themes, semantic components (callouts, info grids, badges), and WeChat-compatible rendering. | WeChat article / 公众号 |
