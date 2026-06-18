@@ -647,6 +647,7 @@ $ python scripts/publish.py <html_path> --dry-run    # 仅预览，不上传
 WECHAT_APP_ID=wx_xxx
 WECHAT_APP_SECRET=xxx
 WECHAT_AUTHOR=作者名
+WECHAT_PROXY=http://127.0.0.1:7890    # 代理（可选）
 ```
 
 `scripts/.env.example` 为模板文件，不含真实密钥。

@@ -23,6 +23,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import urlparse
 
 import httpx
 
@@ -302,11 +303,21 @@ async def _create_draft(
 # ── 主流程 ────────────────────────────────────────────────────
 
 
-async def _run(html_path: Path, dry_run: bool, proxy: Optional[str]) -> None:
+async def _run(html_path: Path, dry_run: bool) -> None:
     env = _get_env()
     app_id = env.get("WECHAT_APP_ID") or env.get("APP_ID")
     app_secret = env.get("WECHAT_APP_SECRET") or env.get("APP_SECRET")
     author = env.get("WECHAT_AUTHOR") or ""
+    proxy = env.get("WECHAT_PROXY") or None
+    if proxy and urlparse(proxy).scheme == "socks5":
+        try:
+            import socksio  # noqa: F401
+        except ImportError:
+            raise PublishError(
+                "SOCKS5 代理需要安装 socksio 库:\n"
+                "  pip install httpx[socks]\n"
+                "  或切换为 HTTP 代理 http://..."
+            )
     if not app_id or not app_secret:
         raise PublishError("请在 scripts/.env 中设置 WECHAT_APP_ID 和 WECHAT_APP_SECRET")
 
@@ -439,7 +450,6 @@ def main() -> None:
         action="store_true",
         help="仅列出图片和文章信息，不上传也不创建草稿",
     )
-    parser.add_argument("--proxy", help="代理 URL, 如 http://127.0.0.1:7890")
     args = parser.parse_args()
 
     html_path = Path(args.html_path)
@@ -448,7 +458,7 @@ def main() -> None:
         sys.exit(1)
 
     try:
-        asyncio.run(_run(html_path, dry_run=args.dry_run, proxy=args.proxy))
+        asyncio.run(_run(html_path, dry_run=args.dry_run))
     except PublishError as e:
         print(f"\n错误: {e}")
         sys.exit(1)
