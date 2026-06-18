@@ -60,6 +60,17 @@ disable-model-invocation: true
     <mandate>每个维度同时回答：这个发现如果为真/为假，改变什么结论？</mandate>
   </principle>
 
+  <step name="先验锚定">
+    <principle>在看具体基金数据前，先加载该类基金的历史基率。这是默认假设，不是结论。</principle>
+    <action>根据基金类型推理基率：
+      - 同类基金过去 3 年跑赢基准的比例（约 30%）
+      - 同类基金过去 5 年持续跑赢基准的比例（约 15%）
+      - 同类基金最大回撤中位数
+    </action>
+    <action>基率是分析的起点 — 后续每个维度的证据，只在置信度足够时才应偏离这个锚。</action>
+    <completion>基率已作为先验锚。所有后续判断以此为参照。</completion>
+  </step>
+
   <step name="搜索">
     <action>优先级搜索专业数据源：天天基金 / 晨星 / Choice / 基金年报原文</action>
     <action>每维度至少 1 组定向搜索关键词。决策影响度高的维度优先。</action>
@@ -82,20 +93,32 @@ disable-model-invocation: true
     <action>四维可信度评估：来源权威性 / 数据可验证性 / 时效性 / 潜在偏见。</action>
   </step>
 
-  <step name="10 维分析">
+  <step name="全维分析">
     <action>加载 references/evidence-rules.md 获取各维度指标库和解读方法。</action>
-    <action>按决策影响度从高到低执行。每维输出：
+    <action>按决策影响度从高到低执行各维度。每维输出：
       维度名 | 核心指标 | 置信度 | 决策影响度 | 关键证据摘要 | 信息缺口</action>
+    <action>特别关注「前瞻与情景」维度：催化剂扫描 + 反方情景分析，确保结论面向未来。</action>
     <action>对顶部 3 个最影响结论的主张执行反向搜索 + 压力测试。</action>
     <action if="案由为对比">对每只基金独立执行本流程。所有基金取证完毕后，额外构建差异矩阵：关键分歧点 → 推荐方向。</action>
-    <completion>10 个维度全部覆盖。高影响维度置信度有明确标注。</completion>
+    <completion>全部维度覆盖。高影响维度置信度有明确标注。前瞻分析已完成。</completion>
   </step>
 
   <step name="证据汇总">
     <action>汇总所有维度，按「置信度 × 决策影响力」排序。</action>
     <action>识别 3 条最影响结论的关键证据。</action>
+
+    <substep name="矛盾裁决">
+      <principle>不同维度指向矛盾结论时，按以下优先级裁决：</principle>
+      <action>
+        1. 检查矛盾是否可解释（高换手+高超额→交易型风格，非矛盾）
+        2. 不可解释 → 取置信度更高的维度
+        3. 置信度相近 → 偏向不利假设（最坏情况优先）
+        4. 仍无法解决 → 标注「核心矛盾未解决」，结论降一档可信度
+      </action>
+    </substep>
+
     <action>如果核心维度置信度 < 50% → 输出「信息不足」报告，附翻盘所需信息。</action>
-    <completion>3 条关键证据已识别。或已判定证据不足。</completion>
+    <completion>3 条关键证据已识别。矛盾已裁决或已标注未解决。</completion>
   </step>
 </phase>
 
@@ -133,7 +156,7 @@ disable-model-invocation: true
   </gate>
 
   <gate phase="evidence">
-    <check>10 个维度全部覆盖，未跳过</check>
+    <check>全部分析维度覆盖，未跳过</check>
     <check>高影响维度置信度已显式标注</check>
     <check>反向搜索 + 压力测试已对 top 3 主张执行</check>
     <check>如证据不足 → 已输出「信息不足」报告而非伪造结论</check>
