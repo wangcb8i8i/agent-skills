@@ -182,7 +182,7 @@ publish.py 会在上传图片和创建草稿前提取并移除这些标记，最
 
 | 模式 | 行为 |
 |------|------|
-| `--preview` | 1. 保存 HTML 到 `web-chat-artifacts/<name>.html`<br>2. 自动调用 `open` 命令打开浏览器预览 |
+| `--preview` | 保存 HTML 到 `web-chat-artifacts/<name>.html` |
 | `--publish` | 1. 保存 HTML 到 `web-chat-artifacts/<name>.html`<br>2. 调用 `scripts/publish.py <html_path>`<br>3. publish.py 上传配图 → 创建草稿 → **删除 HTML 文件** |
 
 两种模式下图片 URL 均使用本地绝对路径。publish 模式下由 `publish.py` 完成图片上传、草稿创建和产物清理。
