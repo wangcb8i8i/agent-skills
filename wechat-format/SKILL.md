@@ -72,19 +72,28 @@ Phase 5 ─  Consume (preview / publish)
 映射流程：
 
 ```
-Step 1: 解析 .prompt 文件 → 提取 slugs
+Step 1: 解析 .prompt 文件 → 提取 slugs（保持顺序）
                ↓
-Step 2: 扫描图片文件 → 提取文件名（不含扩展名）
+Step 2: 扫描图片文件 → 提取文件名列表（按文件名排序）
                ↓
-Step 3: 自动绑定文件名 == slug 的匹配
-        ✓ leader-election.png → leader-election
+Step 3: 自动匹配 filename == slug
+        后接兜底逻辑，按结果进入三分支：
+```
+
+自动匹配后，根据匹配结果进入三分支：
+
+| 条件 | 行为 |
+|------|------|
+| **至少 1 条自动匹配** | 已匹配项保留；剩余未匹配的图片和 slug **按顺序 1:1 配对** |
+| **0 条匹配，且图片数 == slug 数** | **全部按顺序 1:1 一一对应**（完全跳过文件名匹配） |
+| **0 条匹配，且图片数 ≠ slug 数** | 回退：逐张询问每张图片对应哪个 slug |
+
+三分支汇合后统一进入 Step 4：
+
+```
                ↓
-Step 4: 展示未匹配的图片，逐张询问对应 slug
-        ❓ "architecture.png" 对应哪个 slug？
-           [1] leader-election
-           [2] log-replication
-           [3] pre-vote-compare
-           [s] 跳过此图
+Step 4: 无论哪种分支，产出完整映射表后
+        统一进入用户确认（见下文「映射表确认交互」）
 ```
 
 #### 2c. 构建映射表
@@ -96,12 +105,38 @@ Step 4: 展示未匹配的图片，逐张询问对应 slug
   {
     "slug": "leader-election",
     "img_path": "/absolute/path/to/leader-election.png",
-    "prompt_location": "第 2 节 · Leader Election 首次出现段落后"
+    "prompt_location": "第 2 节 · Leader Election 首次出现段落后",
+    "match_method": "auto"
   }
 ]
 ```
 
-其中 `prompt_location` 直接从 `.prompt` 文件的 `Context` 区块中的"所处位置"字段读取。
+其中：
+- `prompt_location` 直接从 `.prompt` 文件的 `Context` 区块中的"所处位置"字段读取
+- `match_method` 标记配对方式：`"auto"`（文件名自动匹配）或 `"paired"`（兜底顺序配对）或 `"manual"`（逐张询问回退）
+
+#### 映射表确认交互
+
+三种分支汇合后，产出完整映射表，统一展示给用户确认：
+
+```
+📄 配图映射确认（共 N 张图）
+
+  顺序 │ 图片             │ 匹配方式  │ 插入位置
+  ─────┼──────────────────┼──────────┼───────────────────────
+   1   │ leader-election  │ 自动匹配  │ 第 2 节 · Leader Election
+   2   │ log-replication  │ 序列配对  │ 第 3 节 · Log Replication
+  ...
+
+  操作：
+    Enter      → 全部确认，进入 2d
+    swap 1 3   → 交换第 1 张和第 3 张的位置
+    move 2 4   → 将第 2 张移到第 4 张之后
+    remove 3   → 移除第 3 张图（不删除文件）
+    done       → 确认并进入 2d
+```
+
+用户确认后进入 2d 封面图识别。
 
 #### 2d. 封面图识别
 
