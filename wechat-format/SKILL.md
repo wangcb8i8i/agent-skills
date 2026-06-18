@@ -258,6 +258,8 @@ publish.py 会在上传图片和创建草稿前提取并移除这些标记，最
 | Blockquote | `> text` | `blockquote` |
 | HR | `---` / `***` / `___` | `hr.hr-dash` / `hr-star` / `hr-underscore` |
 
+All `<img>` elements **must** include these inline styles: `display: block; max-width: 100%; margin: 0.1em auto 0.5em; border-radius: 6px;`. No `!important` on regular content images — reserve `!important` only for WeChat compatibility transforms (tspan colors, image dimension overrides).
+
 ### WeChat Extensions
 
 #### Text Markup
@@ -440,7 +442,8 @@ After theme selected, analyze the Markdown body to identify key semantic units t
 
 - **Do not overuse**: Each `<section>` should contain at most one special component (callout or card). If everything is emphasized, nothing is.
 - **Ordinary narrative stays as `<p>`**: Only elevate the 2–5 most critical information nodes in the entire article.
-- **Flow list for numbered sequences only**: Use `.flow-list` when the Markdown has an ordered list that represents sequential steps, not arbitrary numbered items.
+- **Flow list for numbered sequences only**: Use `.flow-list` when the Markdown has an ordered list that represents sequential steps, not arbitrary numbered items. When the list represents key principles, core capabilities, or takeaways that need step-like emphasis, prefer `.flow-list` over plain `<ol>` with custom text markers — the component's numbered badge is visually distinct from ordinary bold text.
+- **Plain ordered list**: If a numbered list does not qualify as a `.flow-list` but needs custom numbering (e.g., `<ol style="list-style:none">` with text markers), ensure the number marker has explicit visual distinction from surrounding `<strong>` elements. Apply a background badge, different font weight/color, or larger font size so readers can immediately recognize it as a list index.
 - **Insight list for takeaways only**: Use at the end of an article or a major section to list key conclusions.
 - **Never nest components** inside each other.
 
@@ -457,13 +460,15 @@ In addition to the theme, users can configure per-level heading styles:
 
 These are applied AFTER the theme CSS (higher specificity: `#output section h1`).
 
+⚠️ **Heading margin rule**: When applying heading overrides, preserve the theme's left/right margin strategy. Use `margin: {top} auto {bottom}` for centered headings, or `{top} 0 {bottom}` for left-aligned. Never use arbitrary pixel values like `8px` for left/right margins — they create an unintentional indent that doesn't align with the rest of the content.
+
 ### Typography Notes
 
 The `birch` theme and all enhanced themes share these typography improvements for a more refined reading experience:
 
 - **Serif headings** (`h1`–`h3`): Use `Georgia, "Times New Roman", "PingFang SC", serif` for a publication feel. Body text remains sans-serif for comfort on mobile.
 - **Text rendering**: `-webkit-font-smoothing: antialiased` + `text-rendering: optimizeLegibility` for sharper characters.
-- **Spacing rhythm**: Standardized vertical spacing — `h2` gets `margin-top: 32px`, `p + p` gets `12px`, creating consistent visual flow.
+- **Spacing rhythm**: Standardized vertical spacing — `h2` gets `margin-top: 32px`, each `<p>` gets `margin-bottom: 0.75em` to create visible paragraph breaks. Do NOT use `margin: 0` on body paragraphs — that collapses visual separation between blocks of text. Blockquote-internal `<p>` still uses `margin: 0`.
 - **Muted text color**: `#87867F` for figcaptions, footnotes, and secondary content — reduces visual noise.
 
 Apply these patterns even when users don't explicitly opt in — they're universal readability improvements.
@@ -582,20 +587,12 @@ Examples:
     <!-- first h1 stripped: title is managed by WeChat editor, not pasted into body -->
     <!-- 所有元素均为内联 style=""，由 Phase 3 步 4 解析主题 CSS 后直出 -->
     {rendered HTML content}
-    {reading-time block if requested}
     {footnotes block if any}
 
   </section>
 </div>
 </body>
 </html>
-```
-
-### Reading Time Block
-```html
-<blockquote class="md-blockquote">
-  <p class="md-blockquote-p">字数 {wordCount}，阅读大约需 {minutes} 分钟</p>
-</blockquote>
 ```
 
 ### Footnotes Block
@@ -692,6 +689,18 @@ WECHAT_PROXY=http://127.0.0.1:7890    # 代理（可选）
 ```
 
 `scripts/.env.example` 为模板文件，不含真实密钥。
+
+## Output Quality Checklist
+
+Before saving the final HTML, verify every item below. These are the most commonly missed issues in the generated output.
+
+- [ ] **Paragraph spacing**: Every `<p>` outside blockquote has `margin-bottom: 0.75em`. No `margin: 0` on body paragraphs.
+- [ ] **No trivial reset properties**: Inline styles omit `visibility: visible`, `display: block` on block-level elements (`p`, `h1`–`h6`), and other default browser values. Only include properties that actually change the element's appearance.
+- [ ] **Image styling**: Every `<img>` has `max-width: 100%; border-radius: 6px; display: block; margin: 0.1em auto 0.5em`. No `!important` on content images (reserve for WeChat compatibility transforms only).
+- [ ] **Heading margins**: `<h2>` uses `margin: {top} auto {bottom}` or `{top} 0 {bottom}` — never `8px` or other arbitrary values for left/right margins.
+- [ ] **List numbering**: Custom text markers (e.g., `"1"` `"2"` `"3"`) in ordered lists have a visual badge or distinct styling — they should not look identical to ordinary `<strong>` text.
+- [ ] **Cover image**: If a cover image is identified, verify `<!--wechat-cover:...-->` is injected with the correct path.
+- [ ] **Inline style completeness**: Every visible element has the necessary inline styles. Do not rely on WeChat's default rendering for key visual elements (headings, blockquotes, code).
 
 ## Anti-Patterns
 
