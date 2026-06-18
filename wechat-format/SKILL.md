@@ -115,13 +115,26 @@ Step 4: 展示未匹配的图片，逐张询问对应 slug
 
 ### Phase 3 — Generate HTML (HTML 生成)
 
-沿用现有 wechat-format 核心逻辑，不做改动：
+沿用现有 wechat-format 核心逻辑，但输出改用**内联样式**（与 rebel-lion `WeChatFormatter` 一致）：
 
 1. 理解内容语气、类型 → 推荐主题（用户确认）
 2. 分析内容结构 → 识别语义单元（callout、danger card、flow-list 等）
 3. 渲染 Markdown → HTML
-4. 加载主题 CSS，解析 CSS 变量
-5. 执行微信兼容性转换
+4. 加载主题 CSS，解析所有 CSS 变量 → 对每个元素直接输出 `style=""` 内联样式
+5. 执行微信兼容性转换（Mermaid 包装、tspan 等）
+
+关键区别：步骤 4 不再生成 `<style>` 块和 CSS 类，而是将主题样式直接写入每个元素的 `style` 属性。例如：
+
+```html
+<!-- 之前 -->
+<p class="codespan">code</p>
+<style>.codespan{padding:2px 4px;color:#333}</style>
+
+<!-- 现在 -->
+<p style="background:#F6F0E8;padding:2px 4px;color:#333;border-radius:3px;">code</p>
+```
+
+内联样式使得 HTML 可以直接通过 draft API 提交，无需额外 CSS 内联步骤（如 rebel-lion 的做法）。
 
 此阶段产出的 HTML **不含图片**，但需在 `<head>` 中注入 publish 标记：
 
@@ -189,11 +202,11 @@ publish.py 会在上传图片和创建草稿前提取并移除这些标记，最
 
 ## Syntax Reference
 
-All Markdown below converts to WeChat-compatible HTML. Each element gets a CSS class (not inline style), so themes control the visual appearance.
-
 ### Standard GFM
 
-| Element | Syntax | Output class |
+所有元素渲染为内联样式（`style=""`），无需 `<style>` 块。`Output element` 列标明哪个标签接收样式。
+
+| Element | Syntax | Output element |
 |---------|--------|-------------|
 | Heading | `#` ~ `######` | `h1` ~ `h6` |
 | Paragraph | plain text | `p` |
@@ -526,20 +539,13 @@ Examples:
 <!--wechat-title:{文章标题}--><!-- Phase 3 注入，publish.py 提取后移除 -->
 <!--wechat-digest:{文章摘要}-->
 <!--wechat-cover:{封面图本地路径}--><!-- 仅当 Phase 2d 识别到封面时注入 -->
-<style>
-/* ===== Base & Theme CSS ===== */
-/* resolved from theme file + user config */
-/* body background MUST match #output background to prevent margin collapse revealing white body bg */
-body { background: {resolved-theme-bg-color}; }
-/* heading style overrides if any */
-/* custom CSS if any */
-</style>
 </head>
-<body>
+<body style="background:{resolved-theme-bg-color};">
 <div id="output">
   <section class="container mx-auto">
 
     <!-- first h1 stripped: title is managed by WeChat editor, not pasted into body -->
+    <!-- 所有元素均为内联 style=""，由 Phase 3 步 4 解析主题 CSS 后直出 -->
     {rendered HTML content}
     {reading-time block if requested}
     {footnotes block if any}

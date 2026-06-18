@@ -20,7 +20,7 @@ import io
 import os
 import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlparse
@@ -118,26 +118,16 @@ def _remove_markers(html: str) -> str:
 
 
 def _extract_body(html: str) -> str:
-    """从完整 HTML 中提取 <div id=\"output\"> 内的内容，并嵌入 <style>。"""
-    # 提取 <style>
-    style_m = re.search(r"<style>(.*?)</style>", html, re.DOTALL)
-    style_block = (
-        f"<section><style>\n{style_m.group(1).strip()}\n</style></section>"
-        if style_m
-        else ""
-    )
-
+    """从完整 HTML 中提取 <div id=\"output\"> 内的内容。"""
     m = re.search(
         r'<div\s+id="output"[^>]*>(.*?)</section>\s*</div>\s*</body>',
         html,
         re.DOTALL,
     )
-    body = m.group(1).strip() if m else html
-
-    return f"{style_block}\n{body}" if style_block else body
+    return m.group(1).strip() if m else html
 
 
-# ── 图片扫描 ──────────────────────────────────────────────────
+# ── 自动压缩 ──────────────────────────────────────────────────
 
 
 def _scan_images(html: str) -> List[ImageEntry]:
@@ -308,7 +298,7 @@ async def _run(html_path: Path, dry_run: bool) -> None:
     app_id = env.get("WECHAT_APP_ID") or env.get("APP_ID")
     app_secret = env.get("WECHAT_APP_SECRET") or env.get("APP_SECRET")
     author = env.get("WECHAT_AUTHOR") or ""
-    proxy = env.get("WECHAT_PROXY") or None
+    proxy = env.get("WECHAT_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY") or None
     if proxy and urlparse(proxy).scheme == "socks5":
         try:
             import socksio  # noqa: F401
