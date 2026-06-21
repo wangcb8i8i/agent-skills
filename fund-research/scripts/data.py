@@ -163,6 +163,170 @@ def get_industry_allocation(code: str) -> list:
     return combined.to_dict("records")
 
 
+# ── 排除层数据 ──
+
+
+def get_fund_scale(code: str) -> dict:
+    try:
+        df = ak.fund_scale_em()
+        row = df[df["基金代码"].astype(str) == code]
+        if row.empty:
+            _record_status("fund_scale", False, "代码未在规模列表中找到")
+            return {"scale": None, "unit": "亿元", "category": None}
+        r = row.iloc[0]
+        scale_cols = [c for c in df.columns if "规模" in c or "净值" in c]
+        scale = None
+        for col in scale_cols:
+            try:
+                scale = float(r[col])
+                break
+            except (ValueError, TypeError):
+                continue
+        if scale is None and "基金规模" in r:
+            scale = float(r["基金规模"])
+        _record_status("fund_scale", scale is not None, f"规模: {scale}亿元" if scale else "解析失败")
+        return {
+            "scale": scale,
+            "unit": "亿元",
+            "category": str(r.get("基金类型", "")) if not row.empty else None,
+        }
+    except Exception as e:
+        _record_status("fund_scale", False, str(e))
+        return {"scale": None, "unit": "亿元", "category": None}
+
+
+def get_manager_info(code: str) -> dict:
+    try:
+        df = ak.fund_manager_em()
+        managers = df[df["基金代码"].astype(str) == code]
+        if managers.empty:
+            _record_status("manager_info", False, "未找到经理信息")
+            return {"managers": [], "tenure_years": None, "count": 0}
+        result = []
+        max_tenure = 0.0
+        for _, r in managers.iterrows():
+            tenure_str = str(r.get("任职日期", "") or r.get("任职时间", "") or "未知")
+            tenure_years = None
+            try:
+                import re
+                nums = re.findall(r"[\d.]+", tenure_str)
+                if "年" in tenure_str and len(nums) >= 1:
+                    tenure_years = float(nums[0])
+                elif nums:
+                    tenure_years = float(nums[0])
+            except (ValueError, IndexError):
+                pass
+            if tenure_years and tenure_years > max_tenure:
+                max_tenure = tenure_years
+            result.append({
+                "name": str(r.get("基金经理", "") or r.get("姓名", "") or "未知"),
+                "tenure_years": tenure_years,
+                "tenure_raw": tenure_str,
+            })
+        _record_status("manager_info", True, f"{len(result)}位经理, 最长{max_tenure}年")
+        return {"managers": result, "tenure_years": max_tenure, "count": len(result)}
+    except Exception as e:
+        _record_status("manager_info", False, str(e))
+        return {"managers": [], "tenure_years": None, "count": 0}
+
+
+def get_institutional_ratio(code: str) -> dict:
+    try:
+        df = ak.fund_hold_structure_em(symbol=code)
+        if df.empty:
+            _record_status("inst_ratio", False, "无持有人结构数据")
+            return {"institutional_pct": None, "internal_pct": None}
+        inst_cols = [c for c in df.columns if "机构" in c]
+        internal_cols = [c for c in df.columns if "内部" in c or "管理人" in c]
+        inst_pct = None
+        internal_pct = None
+        if inst_cols:
+            latest = df.iloc[-1]
+            inst_pct = float(latest[inst_cols[0]]) if inst_cols[0] in latest else None
+        if internal_cols:
+            latest = df.iloc[-1]
+            internal_pct = float(latest[internal_cols[0]]) if internal_cols[0] in latest else None
+        _record_status("inst_ratio", inst_pct is not None, f"机构: {inst_pct}%")
+        return {"institutional_pct": inst_pct, "internal_pct": internal_pct}
+    except Exception as e:
+        _record_status("inst_ratio", False, str(e))
+        return {"institutional_pct": None, "internal_pct": None}
+
+
+def get_turnover_rate(code: str) -> dict:
+    try:
+        df = ak.fund_portfolio_turnover_em(symbol=code)
+        if df.empty:
+            _record_status("turnover", False, "无换手率数据")
+            return {"turnover_rate": None, "period": None}
+        rate_cols = [c for c in df.columns if "换手" in c]
+        if not rate_cols:
+            _record_status("turnover", False, "未识别到换手率列")
+            return {"turnover_rate": None, "period": None}
+        latest_rate = float(df.iloc[-1][rate_cols[0]])
+        _record_status("turnover", True, f"换手率: {latest_rate}%")
+        return {
+            "turnover_rate": latest_rate,
+            "period": str(df.iloc[-1].get("截止时间", df.iloc[-1].get("date", ""))),
+        }
+    except Exception as e:
+        _record_status("turnover", False, str(e))
+        return {"turnover_rate": None, "period": None}
+
+
+def get_fee_rate(code: str) -> dict:
+    try:
+        df = ak.fund_name_em()
+        row = df[df["基金代码"].astype(str) == code]
+        if row.empty:
+            _record_status("fee_rate", False, "代码未找到")
+            return {"management_fee": None, "custodian_fee": None, "total_fee": None}
+        r = row.iloc[0]
+        mgmt_str = str(r.get("管理费率", "0") or "0").replace("%", "")
+        cust_str = str(r.get("托管费率", "0") or "0").replace("%", "")
+        try:
+            mgmt = float(mgmt_str)
+        except ValueError:
+            mgmt = None
+        try:
+            cust = float(cust_str)
+        except ValueError:
+            cust = None
+        total = (mgmt or 0) + (cust or 0)
+        _record_status("fee_rate", True, f"管理{mgmt}%+托管{cust}%={total}%")
+        return {"management_fee": mgmt, "custodian_fee": cust, "total_fee": total}
+    except Exception as e:
+        _record_status("fee_rate", False, str(e))
+        return {"management_fee": None, "custodian_fee": None, "total_fee": None}
+
+
+def get_scale_history(code: str) -> list:
+    try:
+        df = ak.fund_scale_change_em()
+        rows = df[df["基金代码"].astype(str) == code]
+        if rows.empty:
+            _record_status("scale_history", False, "无规模历史数据")
+            return []
+        result = []
+        for _, r in rows.iterrows():
+            try:
+                scale = float(str(r.get("基金规模", "0")).replace(",", ""))
+                date = str(r.get("日期", r.get("截止时间", "")))
+                result.append({"date": date, "scale": scale})
+            except (ValueError, TypeError):
+                continue
+        _record_status("scale_history", True, f"{len(result)}期规模数据")
+        return result
+    except Exception as e:
+        _record_status("scale_history", False, str(e))
+        return []
+
+
+def get_active_share(code: str) -> dict:
+    _record_status("active_share", False, "AKShare 无 Active Share 数据源，无法精确计算")
+    return {"active_share": None, "note": "AKShare 无法获取 Active Share。精确计算需基准指数持仓数据。"}
+
+
 def get_peer_nav_history(category: str, max_peers: int = 15) -> dict:
     try:
         df = ak.fund_name_em()

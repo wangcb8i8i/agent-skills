@@ -175,12 +175,12 @@ Step 4: 无论哪种分支，产出完整映射表后
 
 ```html
 <!--wechat-title:文章标题-->
-<!--wechat-digest:文章摘要（正文前 120 字）-->
+<!--wechat-digest:文章摘要（正文前 120 字符）-->
 <!--wechat-cover:/absolute/path/to/cover.png--><!--如 Phase 2d 识别到封面-->
 ```
 
 - **标题**: 取 Markdown 的第一个 `# `（最多 64 字）
-- **摘要**: 取正文前 120 字（去除 Markdown 标记）
+- **摘要**: 取正文前 120 字符（去除 Markdown 标记，若截断点在汉字中间则以字符为准）
 - **封面**: 仅当 Phase 2d 识别到封面候选时注入，否则不生成此标记
 
 publish.py 会在上传图片和创建草稿前提取并移除这些标记，最终提交给 draft API 的内容不含这些标记。

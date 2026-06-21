@@ -32,12 +32,17 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
         lines.append("|:-------|:----|:-----|:-----|")
         key_order = [
             ("fund_basic_info", "基金基本信息"),
+            ("fund_scale", "基金规模"),
+            ("manager_info", "经理信息"),
+            ("inst_ratio", "机构占比"),
+            ("turnover", "换手率"),
             ("nav_history", "净值历史"),
             ("portfolio_holdings", "持仓明细"),
             ("industry_allocation", "行业配置"),
             ("fund_status", "申购/赎回状态"),
             ("market_index", "市场指数"),
             ("peer_nav_history", "同类净值"),
+            ("active_share", "Active Share"),
         ]
         for key, label in key_order:
             ds = data_status.get(key, {})
@@ -118,6 +123,7 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
     dv_pct = percentiles.get("downside_deviation", {})
     var_pct = percentiles.get("var_95", {})
     rt_pct = percentiles.get("recovery_time", {})
+    cr_pct = percentiles.get("calmar_ratio", {})
 
     risk_cols = window_labels[:]
     if dd_pct.get("pct") is not None:
@@ -149,6 +155,12 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
         var_cells.append(f"{var_pct['rank']}")
     lines.append(f"| VaR(95%) | {' | '.join(var_cells)} |")
 
+    cr = factors.get("calmar_ratio", {})
+    cr_cells = [_fmt(cr.get(k)) for k in window_labels]
+    if cr_pct.get("pct") is not None:
+        cr_cells.append(f"{cr_pct['rank']}(p{cr_pct['pct']:.0f})")
+    lines.append(f"| 卡玛比率 | {' | '.join(cr_cells)} |")
+
     rt3 = factors.get("recovery_time", {}).get("3y")
     rt_cell = _fmt(rt3, "天")
     if rt_pct.get("pct") is not None:
@@ -156,14 +168,16 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
     lines.append(f"| 回撤恢复(3年) | {rt_cell} |")
     lines.append("")
 
-    # ── 持仓与行业 ──
+    # ── 持仓与行业 + 因子暴露 ──
     conc = factors.get("concentration", {})
     ind = factors.get("industry", {})
+    fe = factors.get("factor_exposure", {})
+    as_val = factors.get("active_share", {})
     top10 = conc.get("top10_pct")
-    if top10 is not None or ind.get("top3_pct") is not None:
-        lines.append("## 持仓与行业")
+    if top10 is not None or ind.get("top3_pct") is not None or fe.get("status") in ("稳定", "预警", "漂移"):
+        lines.append("## 持仓与风格锚定")
         lines.append("")
-        lines.append("> 注：持仓/行业数据来自季报，滞后 1-3 个月。风格维度定量数据不足，仅定性参考。")
+        lines.append("> 注：持仓/行业数据来自季报，滞后 1-3 个月。")
         lines.append("")
         if top10 is not None:
             lines.append(f"前 10 持仓占比：{top10}%")
@@ -173,6 +187,14 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
             drift = ind["drift"]
             flag = "⚠" if drift > 15 else ""
             lines.append(f"行业漂移(季环比)：{flag} {drift}%")
+        if fe.get("status") in ("稳定", "预警", "漂移"):
+            lines.append(f"因子暴露稳定性：{fe['status']} {('⚠ ' + '; '.join(fe.get('issues', []))) if fe.get('issues') else ''}")
+        if as_val.get("active_share") is not None:
+            lines.append(f"Active Share：{as_val['active_share']}%")
+            if as_val.get("note"):
+                lines.append(f"  > {as_val['note']}")
+        else:
+            lines.append(f"Active Share：数据不可得（需基准指数持仓数据）")
         lines.append("")
 
     # ── 资金行为 ──
@@ -223,18 +245,24 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
         lines.append(f"> ⚠ {scenario_note}")
     lines.append("")
 
-    # ── 综合评分 ──
-    lines.append("## 综合评分")
+    # ── 第一层评分（不含行为共识） ──
+    lines.append("## 第一层评分（基础因子评分）")
     lines.append("")
-    lines.append(f"总分：{scores.get('overall_score', 'N/A')}  （范围 0-1，基于同类排名分位加权计算）")
+    base_score = scores.get("base_score", scores.get("overall_score"))
+    if base_score is not None:
+        lines.append(f"基础分：{base_score}  （范围 0-1，基于同类排名分位加权计算。不含行为共识修正）")
+    else:
+        lines.append("基础分：数据不足，无法评分")
     lines.append("")
     lines.append("| 维度 | 得分 | 权重 | 置信度 | 同类分位 | 说明 |")
     lines.append("|:-----|:-----|:-----|:------|:---------|:-----|")
-    dim_labels = {"return": "收益", "risk": "风险", "style": "风格",
-                  "quality": "质量", "flow": "资金行为", "fee": "费率效率"}
+    dim_labels = {"return": "收益", "risk": "风险", "style": "风格锚定",
+                  "quality": "质量", "fee": "费率效率"}
     for dim, ds in scores.get("dim_scores", {}).items():
         label = dim_labels.get(dim, dim)
         score = ds.get("score", "N/A")
+        if score is None:
+            score = "—"
         w = ds.get("weight", 0)
         conf = ds.get("confidence", "低")
         rank = ds.get("rank", "N/A")
@@ -242,12 +270,38 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
         lines.append(f"| {label} | {score} | {int(w*100)}% | {conf} | {rank} | {detail} |")
     lines.append("")
 
+    # ── 行为共识修正 ──
+    behavior = scores.get("behavior")
+    if behavior:
+        lines.append("## 行为共识修正")
+        lines.append("")
+        lines.append(f"修正系数：{behavior.get('boost', 0):+.3f}  (案由缩放: {behavior.get('case_modifier', 1.0)})")
+        if behavior.get("signals"):
+            lines.append("信号：")
+            for sig in behavior["signals"]:
+                lbl, val, conf = sig[0], sig[1], sig[2] if len(sig) >= 3 else ""
+                arrow = "↑" if val >= 0 else "↓"
+                lines.append(f"  {arrow} {lbl} ({abs(val):.0%}) [{conf}]")
+        if behavior.get("info_gaps"):
+            lines.append("信息缺口：")
+            for gap in behavior["info_gaps"]:
+                lines.append(f"  ⚠ {gap}（数据不可得）")
+        final_score = scores.get("overall_score", "N/A")
+        if final_score is not None:
+            lines.append("")
+            lines.append(f"最终得分（修正后）：**{final_score}**")
+        else:
+            lines.append("")
+            lines.append("最终得分：数据不足以评分")
+        lines.append("")
+
     # ── 定量层局限性 ──
     lines.append("## 定量层局限性")
     lines.append("")
     lines.append("- 数据源：AKShare（爬取天天基金/东方财富公开页面），数据延迟 T+1 以上，持仓数据滞后 1-3 个月")
     lines.append("- 同类池：按基金类型字符串匹配，存在分类粒度粗糙的风险；同类池规模不足 10 只时排名分位不可靠")
-    lines.append("- 风格/费率维度：定量层数据不足，需定性查证补充，当前得分不可作为独立信号")
+    lines.append("- 费率效率维度使用前10持仓集中度作为 Active Share 的粗糙代理，非精确计算")
+    lines.append("- 因子暴露稳定性为基于净值收益分布的前后两段对比，非真实的恒生五因子回归暴露")
     limitations = []
     if peer_pool.get("size", 0) < 5:
         limitations.append("同类池规模不足，整体评分可信度下降")

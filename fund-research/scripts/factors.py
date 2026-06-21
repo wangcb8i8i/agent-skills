@@ -149,7 +149,8 @@ def recovery_time(nav: pd.DataFrame) -> dict:
     return {"3y": days}
 
 
-def fund_flow_score(status: dict) -> dict:
+def fund_flow_score(status: dict, scale_history: list = None,
+                    institutional_data: dict = None) -> dict:
     purchase = status.get("申购状态", "未知")
     redeem = status.get("赎回状态", "未知")
     restrictions = []
@@ -157,10 +158,38 @@ def fund_flow_score(status: dict) -> dict:
         restrictions.append(f"申购:{purchase}")
     if "限" in redeem or "暂停" in redeem:
         restrictions.append(f"赎回:{redeem}")
+
+    scale_trend = None
+    if scale_history and len(scale_history) >= 2:
+        sorted_scales = sorted(scale_history, key=lambda x: x.get("date", ""))
+        if len(sorted_scales) >= 2:
+            recent = sorted_scales[-1].get("scale", 0)
+            prev = sorted_scales[-2].get("scale", 0)
+            if prev > 0:
+                ratio = recent / prev
+                if ratio > 1.5:
+                    scale_trend = "暴增"
+                elif ratio < 0.7:
+                    scale_trend = "锐减"
+                else:
+                    scale_trend = "稳定"
+
+    institutional_trend = None
+    if institutional_data:
+        inst_pct = institutional_data.get("institutional_pct")
+        internal_pct = institutional_data.get("internal_pct")
+    else:
+        inst_pct = None
+        internal_pct = None
+
     return {
         "purchase_status": purchase,
         "redeem_status": redeem,
         "restrictions": restrictions if restrictions else "正常",
+        "scale_trend": scale_trend,
+        "institutional_pct": inst_pct,
+        "internal_pct": internal_pct,
+        "institutional_trend": institutional_trend,
     }
 
 
@@ -209,6 +238,7 @@ def _compute_single_fund_factors(nav: pd.DataFrame, peer_median: pd.Series = Non
         "downside_deviation": downside_deviation(nav),
         "var_95": var_historical(nav),
         "recovery_time": recovery_time(nav),
+        "calmar_ratio": calmar_ratio(nav),
     }
 
 
@@ -242,6 +272,7 @@ def compute_percentiles(fund_factors: dict, peer_navs: dict, peer_median: pd.Ser
         "downside_deviation_3y": [],
         "var_95_3y": [],
         "recovery_time_3y": [],
+        "calmar_ratio_3y": [],
     }
 
     for code, pnav in peer_navs.items():
@@ -269,6 +300,9 @@ def compute_percentiles(fund_factors: dict, peer_navs: dict, peer_median: pd.Ser
         rt_val = pfactors.get("recovery_time", {}).get("3y")
         if rt_val is not None:
             peer_factor_values["recovery_time_3y"].append(rt_val)
+        cr_val = pfactors.get("calmar_ratio", {}).get("3y")
+        if cr_val is not None:
+            peer_factor_values["calmar_ratio_3y"].append(cr_val)
 
     percentiles = {}
     fund_er = _extract_factor_value(fund_factors.get("excess_return"))
@@ -311,13 +345,75 @@ def compute_percentiles(fund_factors: dict, peer_navs: dict, peer_median: pd.Ser
         "pct": rt_pct,
         "rank": _rank_bin(100 - rt_pct if rt_pct is not None else None),
     }
+    fund_cr = fund_factors.get("calmar_ratio", {}).get("3y")
+    cr_pct = _compute_percentile(fund_cr, peer_factor_values["calmar_ratio_3y"])
+    percentiles["calmar_ratio"] = {
+        "pct": cr_pct,
+        "rank": _rank_bin(cr_pct if cr_pct is not None else None),
+    }
 
     return percentiles
 
 
+def calmar_ratio(nav: pd.DataFrame) -> dict:
+    result = {}
+    for label, days in WINDOWS.items():
+        w = _window_slice(nav, days)
+        if len(w) < 2:
+            result[label] = None
+            continue
+        ann_ret = (w["acc_nav"].iloc[-1] / w["acc_nav"].iloc[0]) ** (252 / max(len(w), 1)) - 1
+        peak = w["acc_nav"].cummax()
+        dd_series = (w["acc_nav"] - peak) / peak
+        max_dd = abs(dd_series.min()) if len(dd_series) > 0 else 0
+        if max_dd > 0:
+            calmar = ann_ret / max_dd
+        else:
+            calmar = None
+        result[label] = round(calmar, 2) if calmar is not None else None
+    return result
+
+
+def factor_exposure_stability(nav: pd.DataFrame) -> dict:
+    if len(nav) < 504:
+        return {"status": "数据不足", "detail": "少于2年历史，无法做因子暴露稳定性检验"}
+    mid = nav["date"].max() - pd.Timedelta(days=756)
+    h1 = nav[nav["date"] < mid].copy()
+    h2 = nav[nav["date"] >= mid].copy()
+    if len(h1) < 60 or len(h2) < 60:
+        return {"status": "数据不足", "detail": "子窗口样本不足"}
+    rets1 = h1["daily_return"].dropna()
+    rets2 = h2["daily_return"].dropna()
+    mean1, std1 = rets1.mean(), rets1.std()
+    mean2, std2 = rets2.mean(), rets2.std()
+    drift_detail = {}
+    if std1 > 0 and std2 > 0:
+        return_shift = abs(mean1 - mean2)
+        vol_ratio = max(std1, std2) / min(std1, std2) if min(std1, std2) > 0 else 1
+        drift_detail["return_shift"] = round(return_shift * 100, 2)
+        drift_detail["vol_ratio"] = round(vol_ratio, 2)
+        skw1 = rets1.skew()
+        skw2 = rets2.skew()
+        skew_shift = abs(skw1 - skw2)
+        drift_detail["skew_shift"] = round(skew_shift, 2)
+        issues = []
+        if abs(return_shift * 100) > 0.05:
+            issues.append(f"收益均值偏移{return_shift*100:.2f}bp")
+        if vol_ratio > 1.5:
+            issues.append(f"波动率比{vol_ratio:.2f}x")
+        if skew_shift > 1.0:
+            issues.append(f"偏度偏移{skew_shift:.2f}")
+        if issues:
+            return {"status": "预警" if len(issues) <= 2 else "漂移", "issues": issues, "drift_detail": drift_detail}
+        return {"status": "稳定", "detail": "前后两期收益分布特征基本一致", "drift_detail": drift_detail}
+    return {"status": "数据不足", "detail": "波动率异常"}
+
+
 def compute_all_factors(nav: pd.DataFrame, peer_navs: dict = None,
                         holdings: list = None, status: dict = None,
-                        industry_data: list = None) -> dict:
+                        industry_data: list = None,
+                        scale_history: list = None,
+                        institutional_data: dict = None) -> dict:
     if nav.empty:
         return {}
 
@@ -344,9 +440,11 @@ def compute_all_factors(nav: pd.DataFrame, peer_navs: dict = None,
 
     factors = {}
     factors.update(fund_factors)
-    factors["fund_flow"] = fund_flow_score(status or {})
+    factors["fund_flow"] = fund_flow_score(status or {}, scale_history, institutional_data)
     factors["concentration"] = concentration_risk(holdings or [])
     factors["industry"] = industry_analysis(industry_data or [])
+    factors["factor_exposure"] = factor_exposure_stability(nav)
+    factors["calmar_ratio"] = calmar_ratio(nav)
 
     percentiles = {}
     if peer_pool_size >= 3:
