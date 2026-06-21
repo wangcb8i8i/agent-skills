@@ -15,11 +15,11 @@
 
 ## 输出形状
 
-| 类型 | 输出结构 | 推荐视觉模式 |
+| 类型 | 输出要点 | 推荐视觉模式 |
 |------|----------|-------------|
-| 识别型 | 一句话存在理由 + 一句话定位 + 2-3 个关键事实 | 无图，或树形图（有嵌套时） |
-| 流程型 | 一句话存在理由 + 端到端流程图 + 每步标注：谁做的、什么进、什么出 | Call flow / Sequence / State/Transform |
-| 结构型 | 一句话存在理由 + 结构图 + 组件职责表（每组件一行） | Structure / Hierarchy / Compact table |
-| 理由型 | 决策表或论证链 | Decision table / Reasoning chain |
-| 对比型 | 对比表：准则列 / 选项列 / 突出决定性差异 | Compact table / Options-compared |
-| 追问型 | 只输出缺口，不加前后缀 | 由缺口实质决定 |
+| 识别型 | 先点明它解决了什么痛点，再说它是什么，最后给出几个让人不会误用的关键事实 | 无图，或 Hierarchy（有嵌套时） |
+| 流程型 | 先一句话说明为什么需要这个流程，再用 ASCII 流程图勾勒主路径，每个节点标注谁在做、什么进、什么出 | Call flow / Sequence / State/Transform |
+| 结构型 | 先说明这个结构存在的理由，再用 ASCII 结构图展示模块边界和职责 | Structure / Hierarchy / Compact table |
+| 理由型 | 用决策表或论证链呈现决策依据，突出决定性因素和被放弃的选项 | Decision table / Reasoning chain |
+| 对比型 | 用对比表聚焦在决定性差异上，不罗列共同点 | Compact table / Options-compared |
+| 追问型 | 只回答缺口指向的那一块，不加上下文重述 | 由缺口实质决定 |
