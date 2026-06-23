@@ -69,52 +69,7 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
 
     window_labels = list(WINDOWS.keys())
 
-    # ── 收益类因子 ──
-    lines.append("## 收益类因子")
-    lines.append("")
-    lines.append("格式：基金收益率 / 同类均值")
-    lines.append("")
-
-    er_pct = percentiles.get("excess_return", {})
-    ir_pct = percentiles.get("information_ratio", {})
-
-    header_cols = window_labels[:]
-    if er_pct.get("pct") is not None:
-        header_cols.append("同类分位(3年)")
-    lines.append(f"| 指标 | {' | '.join(header_cols)} |")
-    lines.append(f"|{':--|' * (len(header_cols) + 1)}")
-
-    er = factors.get("excess_return", {})
-    fund_cells = []
-    peer_cells = []
-    exc_cells = []
-    for k in window_labels:
-        v = er.get(k, {})
-        if isinstance(v, dict):
-            fund_cells.append(_fmt(v.get("fund_return"), "%"))
-            peer_cells.append(_fmt(v.get("peer_return"), "%"))
-            exc_cells.append(_fmt(v.get("excess"), "%"))
-        else:
-            fund_cells.append("N/A")
-            peer_cells.append("N/A")
-            exc_cells.append("N/A")
-    if er_pct.get("pct") is not None:
-        fund_cells.append(f"{er_pct['rank']}(p{er_pct['pct']:.0f})")
-        peer_cells.append("")
-        exc_cells.append("")
-
-    lines.append(f"| 基金收益 | {' | '.join(fund_cells)} |")
-    lines.append(f"| 同类均值 | {' | '.join(peer_cells)} |")
-    lines.append(f"| 超额收益 | {' | '.join(exc_cells)} |")
-
-    ir = factors.get("information_ratio", {})
-    ir_cells = [_fmt(ir.get(k)) for k in window_labels]
-    if ir_pct.get("pct") is not None:
-        ir_cells.append(f"{ir_pct['rank']}(p{ir_pct['pct']:.0f})")
-    lines.append(f"| 信息比率 | {' | '.join(ir_cells)} |")
-    lines.append("")
-
-    # ── 风险类因子 ──
+    # ── 风险类因子（放在收益之前，强迫先看风险） ──
     lines.append("## 风险类因子")
     lines.append("")
 
@@ -166,6 +121,53 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
     if rt_pct.get("pct") is not None:
         rt_cell += f" / {rt_pct['rank']}"
     lines.append(f"| 回撤恢复(3年) | {rt_cell} |")
+    lines.append("")
+
+    # ── 收益类因子 ──
+    lines.append("## 收益类因子")
+    lines.append("")
+    lines.append("> ⚠ 看收益前请先确认风险可接受")
+    lines.append("")
+    lines.append("格式：基金收益率 / 同类均值")
+    lines.append("")
+
+    er_pct = percentiles.get("excess_return", {})
+    ir_pct = percentiles.get("information_ratio", {})
+
+    header_cols = window_labels[:]
+    if er_pct.get("pct") is not None:
+        header_cols.append("同类分位(3年)")
+    lines.append(f"| 指标 | {' | '.join(header_cols)} |")
+    lines.append(f"|{':--|' * (len(header_cols) + 1)}")
+
+    er = factors.get("excess_return", {})
+    fund_cells = []
+    peer_cells = []
+    exc_cells = []
+    for k in window_labels:
+        v = er.get(k, {})
+        if isinstance(v, dict):
+            fund_cells.append(_fmt(v.get("fund_return"), "%"))
+            peer_cells.append(_fmt(v.get("peer_return"), "%"))
+            exc_cells.append(_fmt(v.get("excess"), "%"))
+        else:
+            fund_cells.append("N/A")
+            peer_cells.append("N/A")
+            exc_cells.append("N/A")
+    if er_pct.get("pct") is not None:
+        fund_cells.append(f"{er_pct['rank']}(p{er_pct['pct']:.0f})")
+        peer_cells.append("")
+        exc_cells.append("")
+
+    lines.append(f"| 基金收益 | {' | '.join(fund_cells)} |")
+    lines.append(f"| 同类均值 | {' | '.join(peer_cells)} |")
+    lines.append(f"| 超额收益 | {' | '.join(exc_cells)} |")
+
+    ir = factors.get("information_ratio", {})
+    ir_cells = [_fmt(ir.get(k)) for k in window_labels]
+    if ir_pct.get("pct") is not None:
+        ir_cells.append(f"{ir_pct['rank']}(p{ir_pct['pct']:.0f})")
+    lines.append(f"| 信息比率 | {' | '.join(ir_cells)} |")
     lines.append("")
 
     # ── 持仓与行业 + 因子暴露 ──
@@ -270,29 +272,33 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
         lines.append(f"| {label} | {score} | {int(w*100)}% | {conf} | {rank} | {detail} |")
     lines.append("")
 
-    # ── 行为共识修正 ──
+    # ── 行为共识（定性信号，不修正评分） ──
     behavior = scores.get("behavior")
     if behavior:
-        lines.append("## 行为共识修正")
+        lines.append("## 行为共识（定性信号）")
         lines.append("")
-        lines.append(f"修正系数：{behavior.get('boost', 0):+.3f}  (案由缩放: {behavior.get('case_modifier', 1.0)})")
+        lines.append("行为信号不修正评分，作为独立证据影响结论层级。")
+        lines.append("")
         if behavior.get("signals"):
-            lines.append("信号：")
+            lines.append("| 信号 | 方向 | 强度 |")
+            lines.append("|:-----|:-----|:-----|")
             for sig in behavior["signals"]:
-                lbl, val, conf = sig[0], sig[1], sig[2] if len(sig) >= 3 else ""
-                arrow = "↑" if val >= 0 else "↓"
-                lines.append(f"  {arrow} {lbl} ({abs(val):.0%}) [{conf}]")
+                s = sig["signal"]
+                d = sig["direction"]
+                st = sig["strength"]
+                arrow = "↑" if d == "正面" else "↓"
+                lines.append(f"| {s} | {arrow} {d} | {st} |")
+            if behavior.get("has_negative") and not behavior.get("has_positive"):
+                lines.append("")
+                lines.append("> ⚠ 存在负面行为信号 → AI 合成层应考虑结论降档")
+            elif behavior.get("has_positive") and not behavior.get("has_negative"):
+                lines.append("")
+                lines.append("> ✓ 存在正面行为信号 → AI 合成层可参考")
         if behavior.get("info_gaps"):
+            lines.append("")
             lines.append("信息缺口：")
             for gap in behavior["info_gaps"]:
                 lines.append(f"  ⚠ {gap}（数据不可得）")
-        final_score = scores.get("overall_score", "N/A")
-        if final_score is not None:
-            lines.append("")
-            lines.append(f"最终得分（修正后）：**{final_score}**")
-        else:
-            lines.append("")
-            lines.append("最终得分：数据不足以评分")
         lines.append("")
 
     # ── 定量层局限性 ──

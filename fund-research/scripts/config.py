@@ -21,13 +21,32 @@ DEFAULT_END_DATE = None
 DEFAULT_START_DATE_OFFSET = 5 * 365
 
 # ── 排除层 — 不合格品不进入分析 ──
+# 键为策略类型推断关键词（命中规则取首个匹配），default 为兜底
 EXCLUSION_RULES = {
-    "min_scale_active": 2.0,        # 主动管理 ≥ 2 亿元
-    "min_scale_index": 1.0,         # 指数基金 ≥ 1 亿元
-    "min_manager_years": 3,
-    "max_institutional_pct": 90,    # 机构占比 > 90% → 否决
-    "min_institutional_pct": 0,     # 0% 纯散户盘 → 否决（0 表示不启用）
-    "max_turnover_rate": 500,       # 换手率 %/年
+    "default": {
+        "min_scale": 2.0,
+        "min_manager_years": 3,
+        "max_institutional_pct": 90,
+        "max_turnover_rate": 500,
+    },
+    "index": {
+        "min_scale": 1.0,         # 被动产品规模门槛更低
+        "min_manager_years": 1,   # 被动产品经理影响小
+        "max_institutional_pct": 90,
+        "max_turnover_rate": None,  # 不限制
+    },
+    "quant": {
+        "min_scale": 2.0,
+        "min_manager_years": 1,   # 量化新人可能出道即优秀
+        "max_institutional_pct": 90,
+        "max_turnover_rate": None,  # 高换手是量化策略特征，非风险
+    },
+    "bond": {
+        "min_scale": 0.5,         # 债基规模门槛更低
+        "min_manager_years": 3,
+        "max_institutional_pct": 90,
+        "max_turnover_rate": 500,
+    },
 }
 
 # ── 风格锚定 — 因子暴露漂移阈值 ──
@@ -36,19 +55,7 @@ STYLE_DRIFT_THRESHOLDS = {
     "sector_deviation_limit": 0.15,     # 行业偏离 > 15% → 预警
 }
 
-# ── 行为共识修正系数 ──
-BEHAVIOR_BOOST = {
-    "institutional_increase": 0.10,     # 机构/内部人增持
-    "retail_frenzy": -0.10,             # 份额暴增（散户追涨）
-    "lockup_high_retention": 0.05,      # 封闭期打开高留存
-    "lockup_mass_redemption": -0.10,    # 大规模赎回
-    "resilience_proven": 0.05,          # 历史恢复力已证明
-}
-
-# 案由对行为共识修正的缩放系数
-BEHAVIOR_CASE_MODIFIER = {
-    "买入": 1.0,
-    "持有": 0.5,
-    "监控": 0.0,    # 监控案由下行为共识本身就是核心输出，不做修正
-    "对比": 0.7,
-}
+# ── 行为共识修正（定性三段式，不涉及数值评分） ──
+# 强度：强信号（可独立改变判断）/ 中信号（调整权重）/ 弱信号（仅记录）
+# 方向：正面 / 负面
+# 影响：直接改变结论 / 只影响可信度 / 不影响

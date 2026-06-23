@@ -1,4 +1,4 @@
-from config import WEIGHTS, EXCLUSION_RULES, BEHAVIOR_BOOST, BEHAVIOR_CASE_MODIFIER
+from config import WEIGHTS, EXCLUSION_RULES
 
 
 def _percentile_directional_score(pct: float, lower_is_better: bool = False):
@@ -18,34 +18,52 @@ def _weighted_normalized(scores: list, weights: list) -> float:
     return round(sum(s * w for s, w in valid) / total_w, 3) if total_w > 0 else None
 
 
+def _infer_strategy_type(info: dict, turnover_rate: float = None) -> str:
+    category = info.get("category", "")
+    if "指数" in category or "ETF" in category:
+        return "index"
+    if "债" in category or "纯债" in category:
+        return "bond"
+    if turnover_rate is not None and turnover_rate > 500:
+        return "quant"
+    return "default"
+
+
 def check_exclusion(code: str, info: dict, scale: dict, manager: dict,
                     inst_ratio: dict, turnover: dict) -> dict:
     reasons = []
-    is_index = "指数" in info.get("category", "") or "ETF" in info.get("category", "")
-    min_scale = EXCLUSION_RULES["min_scale_index"] if is_index else EXCLUSION_RULES["min_scale_active"]
-    scale_val = scale.get("scale")
-    if scale_val is not None and scale_val < min_scale:
-        reasons.append(f"规模不足: {scale_val}亿 < {min_scale}亿{'（指数）' if is_index else '（主动）'}")
-    tenure = manager.get("tenure_years")
-    if tenure is not None and tenure < EXCLUSION_RULES["min_manager_years"]:
-        reasons.append(f"经理从业年限不足: {tenure}年 < {EXCLUSION_RULES['min_manager_years']}年")
-    inst = inst_ratio.get("institutional_pct")
-    if inst is not None and inst > EXCLUSION_RULES["max_institutional_pct"]:
-        reasons.append(f"机构占比过高: {inst}% > {EXCLUSION_RULES['max_institutional_pct']}%")
-    if inst is not None and inst == 0 and EXCLUSION_RULES["min_institutional_pct"] > 0:
-        reasons.append(f"纯散户盘（机构占比0%）")
     tr = turnover.get("turnover_rate")
-    if tr is not None and tr > EXCLUSION_RULES["max_turnover_rate"]:
-        reasons.append(f"换手率过高: {tr}%/年 > {EXCLUSION_RULES['max_turnover_rate']}%/年")
+    strategy = _infer_strategy_type(info, tr)
+    rules = EXCLUSION_RULES.get(strategy, EXCLUSION_RULES["default"])
+
+    scale_val = scale.get("scale")
+    min_scale = rules["min_scale"]
+    if scale_val is not None and scale_val < min_scale:
+        reasons.append(f"规模不足: {scale_val}亿 < {min_scale}亿（{strategy}）")
+
+    tenure = manager.get("tenure_years")
+    min_years = rules["min_manager_years"]
+    if tenure is not None and tenure < min_years:
+        reasons.append(f"经理从业年限不足: {tenure}年 < {min_years}年（{strategy}）")
+
+    inst = inst_ratio.get("institutional_pct")
+    max_inst = rules["max_institutional_pct"]
+    if inst is not None and inst > max_inst:
+        reasons.append(f"机构占比过高: {inst}% > {max_inst}%")
+
+    max_tr = rules["max_turnover_rate"]
+    if max_tr is not None and tr is not None and tr > max_tr:
+        reasons.append(f"换手率过高: {tr}%/年 > {max_tr}%/年")
+
     return {
         "blocked": len(reasons) > 0,
         "reasons": reasons,
+        "strategy": strategy,
         "detail": {
             "scale": scale_val,
             "manager_tenure": tenure,
             "institutional_pct": inst,
             "turnover_rate": tr,
-            "is_index": is_index,
         },
     }
 
@@ -159,40 +177,37 @@ def compute_behavior_consensus(factors: dict, case: str) -> dict:
     restrictions = flow.get("restrictions", "正常")
     signals = []
     info_gaps = []
-    boost = 0.0
+    has_negative = False
+    has_positive = False
 
     if "限" in purchase or "暂停" in purchase:
-        signals.append(("限购/暂停申购", -0.05, "中"))
-        boost += -0.05
+        signals.append({"signal": "限购/暂停申购", "strength": "中", "direction": "负面"})
+        has_negative = True
 
     if restrictions != "正常" and "赎回" in str(restrictions):
-        signals.append(("赎回受限", -0.05, "中"))
-        boost += -0.05
+        signals.append({"signal": "赎回受限", "strength": "中", "direction": "负面"})
+        has_negative = True
 
     if flow.get("scale_trend") == "暴增":
-        signals.append(("规模暴增（散户追涨）", BEHAVIOR_BOOST["retail_frenzy"], "中"))
-        boost += BEHAVIOR_BOOST["retail_frenzy"]
+        signals.append({"signal": "规模暴增（散户追涨）", "strength": "中", "direction": "负面"})
+        has_negative = True
     elif flow.get("scale_trend") is None:
         info_gaps.append("规模趋势数据不可得")
 
     if flow.get("institutional_trend") == "增持":
-        signals.append(("机构增持", BEHAVIOR_BOOST["institutional_increase"], "高"))
-        boost += BEHAVIOR_BOOST["institutional_increase"]
+        signals.append({"signal": "机构增持", "strength": "强", "direction": "正面"})
+        has_positive = True
 
     if flow.get("institutional_pct") is None:
         info_gaps.append("机构持仓数据不可得")
     if factors.get("concentration", {}).get("top10_pct") is None:
         info_gaps.append("持仓明细数据不可得，无法追溯历史恢复力")
 
-    modifier = BEHAVIOR_CASE_MODIFIER.get(case, 1.0)
-    adjusted_boost = boost * modifier
-
     return {
-        "boost": round(adjusted_boost, 3),
-        "raw_boost": round(boost, 3),
-        "case_modifier": modifier,
         "signals": signals,
         "info_gaps": info_gaps,
+        "has_negative": has_negative,
+        "has_positive": has_positive,
         "is_actionable": len(signals) > 0,
     }
 
@@ -214,13 +229,8 @@ def compute_overall_score(factors: dict, case: str,
 
     base_score = round(total / applied_weight, 3) if applied_weight > 0 else None
 
-    if behavior and base_score is not None:
-        final_score = round(max(0.0, min(1.0, base_score * (1 + behavior["boost"]))), 3)
-    else:
-        final_score = base_score
-
     result = {
-        "overall_score": final_score,
+        "overall_score": base_score,
         "base_score": base_score,
         "dim_scores": dim_scores,
         "weights_applied": weights,
