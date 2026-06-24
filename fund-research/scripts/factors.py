@@ -433,7 +433,7 @@ def compute_all_factors(nav: pd.DataFrame, peer_navs: dict = None,
                     peer_codes.append(code)
         peer_pool_size = len(peers_aligned)
         if len(peers_aligned) >= 3:
-            peer_df = pd.concat(peers_aligned, axis=1, join="outer")
+            peer_df = pd.concat(peers_aligned, axis=1, join="outer", sort=True)
             peer_median = peer_df.median(axis=1)
 
     fund_factors = _compute_single_fund_factors(nav, peer_median)

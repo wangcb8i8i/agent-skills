@@ -304,7 +304,7 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
     # ── 定量层局限性 ──
     lines.append("## 定量层局限性")
     lines.append("")
-    lines.append("- 数据源：AKShare（爬取天天基金/东方财富公开页面），数据延迟 T+1 以上，持仓数据滞后 1-3 个月")
+    lines.append("- 数据源：AKShare → efinance → 直爬（三级降级，天天基金/东方财富），数据延迟 T+1 以上，持仓数据滞后 1-3 个月")
     lines.append("- 同类池：按基金类型字符串匹配，存在分类粒度粗糙的风险；同类池规模不足 10 只时排名分位不可靠")
     lines.append("- 费率效率维度使用前10持仓集中度作为 Active Share 的粗糙代理，非精确计算")
     lines.append("- 因子暴露稳定性为基于净值收益分布的前后两段对比，非真实的恒生五因子回归暴露")

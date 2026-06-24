@@ -1,6 +1,6 @@
 ---
 name: explain-it
-description: Explain code, modules, architecture — so users grasp the why before the what, and can reason from the explanation. Use when the user asks to "explain", "understand", "how does X work", "what is X", or "why is X this way".
+description: Explain code, modules, or architecture. Use when the user asks to "explain", "understand", "how does X work", "what is X", or "why is X this way".
 ---
 
 # explain-it
@@ -12,6 +12,8 @@ Build a **mental model** — the user should predict behaviour of code they have
 1. **Start with why it exists.** Lead with the problem it solves. If you can't find it, say so.
 2. **Read only what answers the question.** Skip setup, config, error handlers, tests — unless they *are* the question.
 3. **Scaffold, don't dump.** Give the skeleton before details. A skeleton is 3 pieces: what problem, how it solves it (one sentence), what it explicitly doesn't do.
+4. **Use analogy, declare its limit.** When the concept maps to something familiar, anchor there — then state exactly where the analogy breaks.
+5. **Use the user's language, not the code's.** Introduce jargon only after defining it in plain terms. If every word you use isn't one the user knows, they can't retell it.
 
 ## Output shapes
 
@@ -54,6 +56,8 @@ You might want to know: how queries get built, how relations work, or how transa
 
 ## Done when
 
-User can answer both: what problem this solves, and the one thing people get wrong.
+User can explain the thing back in their own words — not parrot your phrasing, but describe what it is, why it exists, and where it bites.
 
 After finishing a topic, offer one adjacent piece or stay quiet. Don't ask "is that clear?"
+
+To persist an explanation → `output.md`

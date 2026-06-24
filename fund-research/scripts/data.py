@@ -1,58 +1,104 @@
-import akshare as ak
+import time
 import pandas as pd
-import numpy as np
-import random
-from datetime import datetime, timedelta
+
+from providers._base import _record_status, get_data_status
+from providers._akshare import (
+    _ak_get_fund_code,
+    _ak_get_fund_name,
+    _ak_get_fund_category,
+    _ak_get_fund_info,
+    _ak_get_nav_history,
+    _ak_get_portfolio_holdings,
+    _ak_get_fund_latest_status,
+    _ak_get_market_index_history,
+    _ak_get_industry_allocation,
+    _ak_get_fund_scale,
+    _ak_get_manager_info,
+    _ak_get_institutional_ratio,
+    _ak_get_turnover_rate,
+    _ak_get_fee_rate,
+    _ak_get_scale_history,
+    _ak_get_peer_nav_history,
+)
+from providers._efinance import (
+    _ef_get_fund_code,
+    _ef_get_fund_name,
+    _ef_get_fund_category,
+    _ef_get_fund_info,
+    _ef_get_nav_history,
+    _ef_get_portfolio_holdings,
+    _ef_get_market_index_history,
+    _ef_get_industry_allocation,
+    _ef_get_manager_info,
+    _ef_get_peer_nav_history,
+)
+from providers._scraper import (
+    _sc_get_fund_code,
+    _sc_get_fund_name,
+    _sc_get_fund_category,
+    _sc_get_nav_history,
+    _sc_get_portfolio_holdings,
+    _sc_get_fund_latest_status,
+    _sc_get_market_index_history,
+    _sc_get_industry_allocation,
+    _sc_get_fund_scale,
+    _sc_get_manager_info,
+    _sc_get_institutional_ratio,
+    _sc_get_turnover_rate,
+    _sc_get_fee_rate,
+    _sc_get_scale_history,
+    _sc_get_peer_nav_history,
+)
+
+_last_call = 0.0
+_MIN_INTERVAL = 0.5
 
 
-_DATA_STATUS = {}
+def _rate_limited_call(fn, *args, **kwargs):
+    global _last_call
+    elapsed = time.time() - _last_call
+    if elapsed < _MIN_INTERVAL:
+        time.sleep(_MIN_INTERVAL - elapsed)
+    result = fn(*args, **kwargs)
+    _last_call = time.time()
+    return result
 
 
-def _record_status(key: str, success: bool, detail: str = "", source: str = "AKShare"):
-    _DATA_STATUS[key] = {"success": success, "detail": detail, "source": source}
-
-
-def get_data_status() -> dict:
-    return dict(_DATA_STATUS)
+def _dispatch(sources, *args, status_key=None, critical=False, default=None):
+    last_err = None
+    for src_name, src_fn in sources:
+        try:
+            result = _rate_limited_call(src_fn, *args)
+            return result
+        except Exception as e:
+            _record_status(status_key, False, f"{src_name}: {e}", source=src_name)
+            last_err = e
+            continue
+    _record_status(status_key, False, f"全部源失败: {last_err}", source="全部源失败")
+    if critical:
+        raise RuntimeError(f"{status_key}: 全部源不可用 - {last_err}")
+    return default
 
 
 def get_fund_code(query: str) -> str:
-    try:
-        df = ak.fund_name_em()
-        df["code"] = df["基金代码"].astype(str)
-        exact = df[df["code"] == query]
-        if not exact.empty:
-            _record_status("fund_basic_info", True, f"精确匹配:{query}")
-            return query
-        match = df[df["code"].str.startswith(query)]
-        if not match.empty:
-            code = match.iloc[0]["code"]
-            _record_status("fund_basic_info", True, f"前缀匹配:{code}")
-            return code
-        name_match = df[df["基金简称"].str.contains(query, na=False)]
-        if not name_match.empty:
-            code = name_match.iloc[0]["code"]
-            _record_status("fund_basic_info", True, f"名称匹配:{code}")
-            return code
-    except Exception as e:
-        _record_status("fund_basic_info", False, str(e))
-        raise RuntimeError(f"基金代码查询失败: {e}")
-    _record_status("fund_basic_info", False, "未找到匹配基金")
-    raise ValueError(f"未找到匹配基金: {query}")
+    return _dispatch(
+        [("AKShare", _ak_get_fund_code), ("efinance", _ef_get_fund_code), ("scraper", _sc_get_fund_code)],
+        query, status_key="fund_basic_info", critical=True,
+    )
 
 
 def get_fund_name(code: str) -> str:
-    df = ak.fund_name_em()
-    df["code"] = df["基金代码"].astype(str)
-    match = df[df["code"] == code]
-    return match.iloc[0]["基金简称"] if not match.empty else code
+    return _dispatch(
+        [("AKShare", _ak_get_fund_name), ("efinance", _ef_get_fund_name), ("scraper", _sc_get_fund_name)],
+        code, status_key="fund_name", critical=False, default=code,
+    )
 
 
 def get_fund_category(code: str) -> str:
-    df = ak.fund_name_em()
-    df["code"] = df["基金代码"].astype(str)
-    match = df[df["code"] == code]
-    return match.iloc[0].get("基金类型", "未知") if not match.empty else "未知"
+    return _dispatch(
+        [("AKShare", _ak_get_fund_category), ("efinance", _ef_get_fund_category), ("scraper", _sc_get_fund_category)],
+        code, status_key="fund_category", critical=False, default="未知",
+    )
 
 
 _FUND_INFO_CACHE = {}
@@ -75,251 +121,85 @@ def get_fund_info(code: str) -> dict:
 
 
 def get_nav_history(code: str) -> pd.DataFrame:
-    try:
-        df = ak.fund_open_fund_info_em(symbol=code, indicator="累计净值走势", period="成立来")
-        df.rename(columns={"净值日期": "date", "累计净值": "acc_nav"}, inplace=True)
-        df["date"] = pd.to_datetime(df["date"])
-        df.sort_values("date", inplace=True)
-        df["acc_nav"] = pd.to_numeric(df["acc_nav"], errors="coerce")
-        df["daily_return"] = df["acc_nav"].pct_change() * 100
-        _record_status("nav_history", True, f"{len(df)}条记录")
-        return df
-    except Exception as e:
-        _record_status("nav_history", False, str(e))
-        raise RuntimeError(f"净值数据获取失败 {code}: {e}")
+    return _dispatch(
+        [("AKShare", _ak_get_nav_history), ("efinance", _ef_get_nav_history), ("scraper", _sc_get_nav_history)],
+        code, status_key="nav_history", critical=True,
+    )
 
 
 def get_portfolio_holdings(code: str) -> list:
-    years = [datetime.now().year, datetime.now().year - 1]
-    for y in years:
-        try:
-            df = ak.fund_portfolio_hold_em(symbol=code, date=str(y))
-            if not df.empty:
-                df["占净值比例"] = pd.to_numeric(df.get("占净值比例", 0), errors="coerce")
-                result = df.sort_values("占净值比例", ascending=False).to_dict("records")
-                _record_status("portfolio_holdings", True, f"{len(df)}只持仓（{y}年）")
-                return result
-        except Exception:
-            continue
-    _record_status("portfolio_holdings", False, "未获取到持仓数据")
-    return []
+    return _dispatch(
+        [("AKShare", _ak_get_portfolio_holdings), ("efinance", _ef_get_portfolio_holdings), ("scraper", _sc_get_portfolio_holdings)],
+        code, status_key="portfolio_holdings", critical=False, default=[],
+    )
 
 
 def get_fund_latest_status(code: str) -> dict:
-    try:
-        df = ak.fund_open_fund_daily_em()
-        row = df[df["基金代码"].astype(str) == code]
-        if row.empty:
-            _record_status("fund_status", False, "代码未在日行情列表中找到")
-            return {}
-        r = row.iloc[0]
-        result = {}
-        for col in r.index:
-            val = r[col]
-            if isinstance(val, str) and val.replace(".", "").replace("-", "").isdigit():
-                result[col] = float(val)
-            else:
-                result[col] = str(val)
-        _record_status("fund_status", True, "已获取申购/赎回状态")
-        return result
-    except Exception as e:
-        _record_status("fund_status", False, str(e))
-        return {}
+    return _dispatch(
+        [("AKShare", _ak_get_fund_latest_status), ("scraper", _sc_get_fund_latest_status)],
+        code, status_key="fund_status", critical=False, default={},
+    )
 
 
 def get_market_index_history(symbol: str = "000300", years: int = 10) -> pd.DataFrame:
-    try:
-        end = datetime.now().strftime("%Y%m%d")
-        start = (datetime.now() - pd.DateOffset(years=years)).strftime("%Y%m%d")
-        df = ak.stock_zh_index_hist_csindex(symbol=symbol, start_date=start, end_date=end)
-        df.rename(columns={"日期": "date", "收盘": "close"}, inplace=True)
-        df["date"] = pd.to_datetime(df["date"])
-        df["close"] = pd.to_numeric(df["close"], errors="coerce")
-        df.sort_values("date", inplace=True)
-        _record_status("market_index", True, f"沪深300: {len(df)}条")
-        return df
-    except Exception as e:
-        _record_status("market_index", False, str(e))
-        return pd.DataFrame()
+    return _dispatch(
+        [("AKShare", _ak_get_market_index_history), ("efinance", _ef_get_market_index_history), ("scraper", _sc_get_market_index_history)],
+        symbol, years, status_key="market_index", critical=False, default=pd.DataFrame(),
+    )
 
 
 def get_industry_allocation(code: str) -> list:
-    years = [datetime.now().year, datetime.now().year - 1]
-    all_dfs = []
-    for y in years:
-        try:
-            df = ak.fund_portfolio_industry_allocation_em(symbol=code, date=str(y))
-            if not df.empty:
-                all_dfs.append(df)
-        except Exception:
-            continue
-    if not all_dfs:
-        _record_status("industry_allocation", False, "未获取到行业配置数据")
-        return []
-    combined = pd.concat(all_dfs, ignore_index=True)
-    combined["占净值比例"] = pd.to_numeric(combined.get("占净值比例", 0), errors="coerce")
-    combined["截止时间"] = pd.to_datetime(combined.get("截止时间", combined.get("date", "2025-01-01")))
-    _record_status("industry_allocation", True, f"{len(all_dfs)}季度行业配置")
-    return combined.to_dict("records")
-
-
-# ── 排除层数据 ──
+    return _dispatch(
+        [("AKShare", _ak_get_industry_allocation), ("efinance", _ef_get_industry_allocation), ("scraper", _sc_get_industry_allocation)],
+        code, status_key="industry_allocation", critical=False, default=[],
+    )
 
 
 def get_fund_scale(code: str) -> dict:
-    try:
-        df = ak.fund_scale_em()
-        row = df[df["基金代码"].astype(str) == code]
-        if row.empty:
-            _record_status("fund_scale", False, "代码未在规模列表中找到")
-            return {"scale": None, "unit": "亿元", "category": None}
-        r = row.iloc[0]
-        scale_cols = [c for c in df.columns if "规模" in c or "净值" in c]
-        scale = None
-        for col in scale_cols:
-            try:
-                scale = float(r[col])
-                break
-            except (ValueError, TypeError):
-                continue
-        if scale is None and "基金规模" in r:
-            scale = float(r["基金规模"])
-        _record_status("fund_scale", scale is not None, f"规模: {scale}亿元" if scale else "解析失败")
-        return {
-            "scale": scale,
-            "unit": "亿元",
-            "category": str(r.get("基金类型", "")) if not row.empty else None,
-        }
-    except Exception as e:
-        _record_status("fund_scale", False, str(e))
-        return {"scale": None, "unit": "亿元", "category": None}
+    return _dispatch(
+        [("AKShare", _ak_get_fund_scale), ("scraper", _sc_get_fund_scale)],
+        code, status_key="fund_scale", critical=False,
+        default={"scale": None, "unit": "亿元", "category": None},
+    )
 
 
 def get_manager_info(code: str) -> dict:
-    try:
-        df = ak.fund_manager_em()
-        managers = df[df["基金代码"].astype(str) == code]
-        if managers.empty:
-            _record_status("manager_info", False, "未找到经理信息")
-            return {"managers": [], "tenure_years": None, "count": 0}
-        result = []
-        max_tenure = 0.0
-        for _, r in managers.iterrows():
-            tenure_str = str(r.get("任职日期", "") or r.get("任职时间", "") or "未知")
-            tenure_years = None
-            try:
-                import re
-                nums = re.findall(r"[\d.]+", tenure_str)
-                if "年" in tenure_str and len(nums) >= 1:
-                    tenure_years = float(nums[0])
-                elif nums:
-                    tenure_years = float(nums[0])
-            except (ValueError, IndexError):
-                pass
-            if tenure_years and tenure_years > max_tenure:
-                max_tenure = tenure_years
-            result.append({
-                "name": str(r.get("基金经理", "") or r.get("姓名", "") or "未知"),
-                "tenure_years": tenure_years,
-                "tenure_raw": tenure_str,
-            })
-        _record_status("manager_info", True, f"{len(result)}位经理, 最长{max_tenure}年")
-        return {"managers": result, "tenure_years": max_tenure, "count": len(result)}
-    except Exception as e:
-        _record_status("manager_info", False, str(e))
-        return {"managers": [], "tenure_years": None, "count": 0}
+    return _dispatch(
+        [("AKShare", _ak_get_manager_info), ("efinance", _ef_get_manager_info), ("scraper", _sc_get_manager_info)],
+        code, status_key="manager_info", critical=False,
+        default={"managers": [], "tenure_years": None, "count": 0},
+    )
 
 
 def get_institutional_ratio(code: str) -> dict:
-    try:
-        df = ak.fund_hold_structure_em(symbol=code)
-        if df.empty:
-            _record_status("inst_ratio", False, "无持有人结构数据")
-            return {"institutional_pct": None, "internal_pct": None}
-        inst_cols = [c for c in df.columns if "机构" in c]
-        internal_cols = [c for c in df.columns if "内部" in c or "管理人" in c]
-        inst_pct = None
-        internal_pct = None
-        if inst_cols:
-            latest = df.iloc[-1]
-            inst_pct = float(latest[inst_cols[0]]) if inst_cols[0] in latest else None
-        if internal_cols:
-            latest = df.iloc[-1]
-            internal_pct = float(latest[internal_cols[0]]) if internal_cols[0] in latest else None
-        _record_status("inst_ratio", inst_pct is not None, f"机构: {inst_pct}%")
-        return {"institutional_pct": inst_pct, "internal_pct": internal_pct}
-    except Exception as e:
-        _record_status("inst_ratio", False, str(e))
-        return {"institutional_pct": None, "internal_pct": None}
+    return _dispatch(
+        [("AKShare", _ak_get_institutional_ratio), ("scraper", _sc_get_institutional_ratio)],
+        code, status_key="inst_ratio", critical=False,
+        default={"institutional_pct": None, "internal_pct": None},
+    )
 
 
 def get_turnover_rate(code: str) -> dict:
-    try:
-        df = ak.fund_portfolio_turnover_em(symbol=code)
-        if df.empty:
-            _record_status("turnover", False, "无换手率数据")
-            return {"turnover_rate": None, "period": None}
-        rate_cols = [c for c in df.columns if "换手" in c]
-        if not rate_cols:
-            _record_status("turnover", False, "未识别到换手率列")
-            return {"turnover_rate": None, "period": None}
-        latest_rate = float(df.iloc[-1][rate_cols[0]])
-        _record_status("turnover", True, f"换手率: {latest_rate}%")
-        return {
-            "turnover_rate": latest_rate,
-            "period": str(df.iloc[-1].get("截止时间", df.iloc[-1].get("date", ""))),
-        }
-    except Exception as e:
-        _record_status("turnover", False, str(e))
-        return {"turnover_rate": None, "period": None}
+    return _dispatch(
+        [("AKShare", _ak_get_turnover_rate), ("scraper", _sc_get_turnover_rate)],
+        code, status_key="turnover", critical=False,
+        default={"turnover_rate": None, "period": None},
+    )
 
 
 def get_fee_rate(code: str) -> dict:
-    try:
-        df = ak.fund_name_em()
-        row = df[df["基金代码"].astype(str) == code]
-        if row.empty:
-            _record_status("fee_rate", False, "代码未找到")
-            return {"management_fee": None, "custodian_fee": None, "total_fee": None}
-        r = row.iloc[0]
-        mgmt_str = str(r.get("管理费率", "0") or "0").replace("%", "")
-        cust_str = str(r.get("托管费率", "0") or "0").replace("%", "")
-        try:
-            mgmt = float(mgmt_str)
-        except ValueError:
-            mgmt = None
-        try:
-            cust = float(cust_str)
-        except ValueError:
-            cust = None
-        total = (mgmt or 0) + (cust or 0)
-        _record_status("fee_rate", True, f"管理{mgmt}%+托管{cust}%={total}%")
-        return {"management_fee": mgmt, "custodian_fee": cust, "total_fee": total}
-    except Exception as e:
-        _record_status("fee_rate", False, str(e))
-        return {"management_fee": None, "custodian_fee": None, "total_fee": None}
+    return _dispatch(
+        [("AKShare", _ak_get_fee_rate), ("scraper", _sc_get_fee_rate)],
+        code, status_key="fee_rate", critical=False,
+        default={"management_fee": None, "custodian_fee": None, "total_fee": None},
+    )
 
 
 def get_scale_history(code: str) -> list:
-    try:
-        df = ak.fund_scale_change_em()
-        rows = df[df["基金代码"].astype(str) == code]
-        if rows.empty:
-            _record_status("scale_history", False, "无规模历史数据")
-            return []
-        result = []
-        for _, r in rows.iterrows():
-            try:
-                scale = float(str(r.get("基金规模", "0")).replace(",", ""))
-                date = str(r.get("日期", r.get("截止时间", "")))
-                result.append({"date": date, "scale": scale})
-            except (ValueError, TypeError):
-                continue
-        _record_status("scale_history", True, f"{len(result)}期规模数据")
-        return result
-    except Exception as e:
-        _record_status("scale_history", False, str(e))
-        return []
+    return _dispatch(
+        [("AKShare", _ak_get_scale_history), ("scraper", _sc_get_scale_history)],
+        code, status_key="scale_history", critical=False, default=[],
+    )
 
 
 def get_active_share(code: str) -> dict:
@@ -328,51 +208,7 @@ def get_active_share(code: str) -> dict:
 
 
 def get_peer_nav_history(category: str, max_peers: int = 15) -> dict:
-    try:
-        df = ak.fund_name_em()
-        df["code"] = df["基金代码"].astype(str)
-
-        candidates = df[df["基金类型"] == category]
-        match_method = "精确匹配"
-
-        if len(candidates) < 5:
-            prefix = category.split("-")[0] if "-" in category else category
-            candidates = df[df["基金类型"].str.contains(prefix, na=False)]
-            match_method = f"前缀匹配({prefix}), 精确匹配池不足"
-
-        if candidates.empty:
-            _record_status("peer_nav_history", False, f"分类'{category}'未找到同类基金")
-            return {}
-
-        if len(candidates) > max_peers:
-            candidates = candidates.sample(n=max_peers, random_state=42)
-            match_method += ", 随机抽样"
-
-        codes = candidates["基金代码"].astype(str).tolist()
-
-        _record_status(
-            "peer_nav_history",
-            True,
-            f"{match_method}: 备选{len(codes)}只, 分类'{category}'",
-        )
-    except Exception as e:
-        _record_status("peer_nav_history", False, str(e))
-        return {}
-
-    result = {}
-    fetch_success = 0
-    for code in codes:
-        try:
-            result[code] = get_nav_history(code)
-            fetch_success += 1
-        except Exception:
-            continue
-        if len(result) >= max_peers:
-            break
-
-    _record_status(
-        "peer_nav_history",
-        fetch_success > 0,
-        f"实际拉取{fetch_success}/{len(codes)}只同类净值, 分类'{category}'",
+    return _dispatch(
+        [("AKShare", _ak_get_peer_nav_history), ("efinance", _ef_get_peer_nav_history), ("scraper", _sc_get_peer_nav_history)],
+        category, max_peers, status_key="peer_nav_history", critical=False, default={},
     )
-    return result
