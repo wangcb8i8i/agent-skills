@@ -20,18 +20,23 @@ from providers._akshare import (
     _ak_get_scale_history,
     _ak_get_peer_nav_history,
 )
-from providers._efinance import (
-    _ef_get_fund_code,
-    _ef_get_fund_name,
-    _ef_get_fund_category,
-    _ef_get_fund_info,
-    _ef_get_nav_history,
-    _ef_get_portfolio_holdings,
-    _ef_get_market_index_history,
-    _ef_get_industry_allocation,
-    _ef_get_manager_info,
-    _ef_get_peer_nav_history,
-)
+try:
+    from providers._efinance import (
+        _ef_get_fund_code,
+        _ef_get_fund_name,
+        _ef_get_fund_category,
+        _ef_get_fund_info,
+        _ef_get_nav_history,
+        _ef_get_portfolio_holdings,
+        _ef_get_market_index_history,
+        _ef_get_industry_allocation,
+        _ef_get_manager_info,
+        _ef_get_peer_nav_history,
+    )
+except ImportError:
+    _ef_get_fund_code = _ef_get_fund_name = _ef_get_fund_category = _ef_get_fund_info = None
+    _ef_get_nav_history = _ef_get_portfolio_holdings = _ef_get_market_index_history = None
+    _ef_get_industry_allocation = _ef_get_manager_info = _ef_get_peer_nav_history = None
 from providers._scraper import (
     _sc_get_fund_code,
     _sc_get_fund_name,
@@ -67,6 +72,8 @@ def _rate_limited_call(fn, *args, **kwargs):
 def _dispatch(sources, *args, status_key=None, critical=False, default=None):
     last_err = None
     for src_name, src_fn in sources:
+        if src_fn is None:
+            continue
         try:
             result = _rate_limited_call(src_fn, *args)
             return result

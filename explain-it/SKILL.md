@@ -9,13 +9,16 @@ Build a **mental model** — the user should predict behaviour of code they have
 
 ## Principles
 
-1. **Start with why it exists.** Lead with the problem it solves. If you can't find it, say so.
-2. **Read only what answers the question.** Skip setup, config, error handlers, tests — unless they *are* the question.
-3. **Scaffold, don't dump.** Give the skeleton before details. A skeleton is 3 pieces: what problem, how it solves it (one sentence), what it explicitly doesn't do.
-4. **Use analogy, declare its limit.** When the concept maps to something familiar, anchor there — then state exactly where the analogy breaks.
-5. **Use the user's language, not the code's.** Introduce jargon only after defining it in plain terms. If every word you use isn't one the user knows, they can't retell it.
+1. **Calibrate before explaining.** Infer the user's domain familiarity from conversation history — what terms they use, what tools they reference, what role they signal. If unclear, ask once: "Have you used something similar before?" No answer → assume newcomer. When in doubt between two levels, go lower. See `calibration.md`.
+2. **Bridge from the known.** An explanation is a delta, not a full description. Anchor on what the user already knows, then only explain the difference. No known concept to bridge from → find the closest everyday analogy → state where the analogy breaks.
+3. **Start with why it exists.** Lead with the problem it solves. If you can't find it, say so.
+4. **Read only what answers the question.** Skip setup, config, error handlers, tests — unless they *are* the question.
+5. **Scaffold, don't dump.** Give the skeleton before details. With a bridge: "X vs [known Y] — what X adds, what X drops, where X behaves differently." Without a bridge: what problem, how it solves it (one sentence), what it explicitly doesn't do.
+6. **Use the user's language, not the code's.** Introduce jargon only after defining it in plain terms. If every word you use isn't one the user knows, they can't retell it.
 
 ## Output shapes
+
+If you found a bridge concept, anchor every output on it — frame as delta from the known, not as introduction.
 
 | User asks | Give them |
 |-----------|-----------|
@@ -44,8 +47,9 @@ Build a **mental model** — the user should predict behaviour of code they have
 
 When pointed at a project or module without a specific question:
 
-1. Find the motivation: README → package metadata → entry imports → directory name → ask. Stop at the first clear signal.
-2. Output: motivation + 3-piece skeleton + 2-3 natural next questions from what you read.
+1. Check conversation history for domain familiarity. Unclear → ask once. No answer → assume newcomer.
+2. Find the motivation: README → package metadata → entry imports → directory name → ask. Stop at the first clear signal.
+3. Output: bridge (if found) + 3-piece skeleton + 2-3 natural next questions.
 
 ```
 It solves mapping objects to SQL without raw queries.
