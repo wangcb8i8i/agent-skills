@@ -1,8 +1,8 @@
-# Persistence
+# 持久化
 
-Only write explanations to files when the user explicitly asks.
+仅在用户明确要求时将解释写入文件。
 
-- Write to the path the user specifies. If none, suggest `docs/read-notes/<name>.md`.
-- Use mermaid diagrams in written output (not ASCII).
-- Include at the top: source file paths, date, explanation scope.
-- Confirm the path after writing. Don't repeat the explanation.
+- 写入用户指定的路径。未指定则建议 `docs/read-notes/<名称>.md`。
+- 写入时使用 mermaid 图（不是 ASCII）。
+- 文件顶部注明：源码路径、日期、解释范围。
+- 写完确认路径即可，不要复述解释内容。

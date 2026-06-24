@@ -1,32 +1,32 @@
-# Calibration
+# 校准
 
-Infer the user's domain familiarity before explaining. Use `SKILL.md` Principle 1.
+解释前推断用户的领域熟悉度。配合 `SKILL.md` 原则 1 使用。
 
-## Infer from context
+## 从上下文推断
 
-- User's terminology: "pod" vs "container" → different Kubernetes depth
-- References to related tools: "I used Prisma before"
-- Role signals: "our backend team…" vs "I'm learning…"
-- Previous questions this session: what they've already asked reveals their level
+- 用户用词："pod"还是"容器" → Kubernetes 的不同深度
+- 提过相关工具："我之前用过 Prisma"
+- 角色信号："我们后端团队…" vs. "我在学…"
+- 本轮之前问过什么：已经问过的问题暴露了用户的水平
 
-## Anti-patterns
+## 反模式
 
-- Adjacent domain ≠ same domain. Knows Docker ≠ knows K8s.
-- Title ≠ concrete knowledge. "Senior engineer" may never have touched this specific library.
-- Silence ≠ familiarity. If they didn't mention any related concept, they probably aren't familiar.
-- Safest signal: the user volunteers a bridge concept unprompted. That's the only high-confidence positive.
+- 相邻领域 ≠ 同一领域。懂 Docker ≠ 懂 K8s。
+- 头衔 ≠ 具体知识。"资深工程师"可能从没摸过这个特定库。
+- 沉默 ≠ 熟悉。用户没提任何相关概念，大概率是不熟悉。
+- 最可靠的信号：用户不请自来地提了一个桥接概念。这是唯一高置信度的正面信号。
 
-## When to ask
+## 什么时候问
 
-Once per topic. If conversation history makes the level clear, don't ask.
+每个话题最多问一次。如果对话历史已经让水平很清楚，不问。
 
-Good: "Have you used something similar before?"
-Bad: "Rate your knowledge of distributed systems from 1-10."
+好："你之前用过类似的东西吗？"
+坏："请给分布式系统知识打 1-10 分。"
 
-User doesn't answer → proceed with zero background.
+用户不答 → 按零基础处理。
 
-## When in doubt, go lower
+## 拿不准就往低的靠
 
-The cost of repeating what they know is mild annoyance.
-The cost of skipping what they don't is losing them entirely.
-If you'd mentally flip a coin between two levels, pick the lower one.
+重复用户知道的东西，代价是轻微烦人。
+跳过了用户不知道的东西，代价是彻底跟丢。
+需要靠抛硬币才能决定两个水平之间选哪个时，选低的。

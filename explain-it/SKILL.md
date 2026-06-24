@@ -1,67 +1,73 @@
 ---
 name: explain-it
-description: Explain code, modules, or architecture. Use when the user asks to "explain", "understand", "how does X work", "what is X", or "why is X this way".
+description: 解释代码、模块或架构。当用户说"解释""讲讲""怎么工作""这是什么""为什么这样设计"时使用。
 ---
 
 # explain-it
 
-Build a **mental model** — the user should predict behaviour of code they haven't seen, not recite what they were told.
+帮用户构建**心智模型**——看完解释后，用户能推演没看过的代码的行为，而不是背诵你告诉他的话。
 
-## Principles
+## 原则
 
-1. **Calibrate before explaining.** Infer the user's domain familiarity from conversation history — what terms they use, what tools they reference, what role they signal. If unclear, ask once: "Have you used something similar before?" No answer → assume newcomer. When in doubt between two levels, go lower. See `calibration.md`.
-2. **Bridge from the known.** An explanation is a delta, not a full description. Anchor on what the user already knows, then only explain the difference. No known concept to bridge from → find the closest everyday analogy → state where the analogy breaks.
-3. **Start with why it exists.** Lead with the problem it solves. If you can't find it, say so.
-4. **Read only what answers the question.** Skip setup, config, error handlers, tests — unless they *are* the question.
-5. **Scaffold, don't dump.** Give the skeleton before details. With a bridge: "X vs [known Y] — what X adds, what X drops, where X behaves differently." Without a bridge: what problem, how it solves it (one sentence), what it explicitly doesn't do.
-6. **Use the user's language, not the code's.** Introduce jargon only after defining it in plain terms. If every word you use isn't one the user knows, they can't retell it.
+1. **先校准，再解释。** 从对话历史推断用户的领域熟悉度——用的什么术语、提过什么工具、透露了什么角色。拿不准就问一句："你之前用过类似的东西吗？"不答 → 默认零基础。在两个熟悉度之间摇摆时，往低的靠。详见 `calibration.md`。
+2. **从已知搭桥。** 解释是差异，不是完整描述。锚在用户已经知道的概念上，只讲差异。没有已知概念可桥接 → 找最接近的日常类比 → 宣告类比在哪失效。
+3. **先讲为什么存在。** 从它解决的问题开始。找不到动机就说找不到。
+4. **只读回答问题需要的。** 跳过 setup、配置、error handler、测试——除非这些就是问题本身。
+5. **搭骨架，别倾泻。** 先出骨架再给细节。有桥接："X 和[已知的 Y]比——多了什么、少了什么、哪里行为不同。"无桥接：什么问题、怎么解决（一句话）、明确不做什么。
+6. **说用户的语言，不说代码的语言。** 术语先翻译成大白话再引入。你说的每个词如果用户不认识，他就没法复述。
 
-## Output shapes
+## 输出语言
 
-If you found a bridge concept, anchor every output on it — frame as delta from the known, not as introduction.
+默认中文。当用户使用其他语言提问时，解释语言跟随。
 
-| User asks | Give them |
-|-----------|-----------|
-| What is X | Problem it solves → one-line definition → most common misuse |
-| How does X work | One-line why → ASCII flow → who/what at each node |
-| How is X organized | Why this structure → ASCII nesting → one-line per module role |
-| Why X this way | Options → chosen → rejected and why (decisive factor) |
-| X vs Y | Decisive differences only → when to use which |
-| A specific follow-up | Only the new piece. Zero recap unless ≤2 sentences for context |
+## 输出形状
 
-## Visual patterns
+如果找到了桥接概念，所有输出都挂在桥上——以与已知的差异来组织，而不是当做全新事物介绍。
 
-**Pick the simplest that works.** Downgrade whenever possible — if a call flow does it, don't draw a sequence diagram.
+| 用户问 | 给什么 |
+|--------|--------|
+| X 是什么 | 它解决的问题 → 一句话定义 → 最容易踩的坑 |
+| X 怎么运作 | 一句话动机 → ASCII 流程图 → 每个节点谁在做、什么进、什么出 |
+| X 怎么组织的 | 为什么这样组织 → ASCII 层级图 → 每个模块一句话职责 |
+| 为什么 X 这样设计 | 有哪些选项 → 选了哪个 → 放弃了哪个、为什么（决定性因素） |
+| X 和 Y 的区别 | 只列决定性差异 → 什么时候用哪个 |
+| 追问某个细节 | 只答那一个点。不回顾上下文，除非 ≤2 句就说不清 |
 
-| Scenario | Use | Example |
-|----------|-----|---------|
-| Single-thread execution | Call flow | `A → B → C → result` |
-| Multi-party message exchange | Sequence | `Client → Server → DB` with arrows |
-| Independent branches merging | Pipeline | `[A]─┬─[merge]─[out]` with parallel lanes |
-| Object with lifecycle states | State machine | `[init] → [running] → [done]`, mark impossible transitions |
-| Module roles and nesting | Nesting diagram | `[entry] └─ [service] ├─ [cache] └─ [db]`, each with one-line role |
-| Design decisions | Decision table | `| Option | Chosen? | Why | Tradeoff |` |
-| Options comparison (vs) | Compact table | Only decisive differences, ≤5 rows |
+如果问题宽泛到一行输出形状搞不定（"解释一下这个框架"），走冷启动。
 
-## Cold start
+## 视觉模式
 
-When pointed at a project or module without a specific question:
+**选能用的最简单的。** 能降就降——call flow 够用就别上 sequence diagram。
 
-1. Check conversation history for domain familiarity. Unclear → ask once. No answer → assume newcomer.
-2. Find the motivation: README → package metadata → entry imports → directory name → ask. Stop at the first clear signal.
-3. Output: bridge (if found) + 3-piece skeleton + 2-3 natural next questions.
+| 场景 | 用 | 示意 |
+|------|----|------|
+| 单线程执行 | Call flow | `A → B → C → 结果` |
+| 多方来回交换消息 | Sequence | `Client → Server → DB` 带箭头 |
+| 独立分支并行后合并 | Pipeline | `[A]─┬─[merge]─[out]` 并行通道 |
+| 对象有生命周期 | State machine | `[init] → [running] → [done]`，标出不可能转移 |
+| 模块角色和嵌套 | 层级图 | `[入口] └─ [服务] ├─ [缓存] └─ [数据库]`，各标一句话职责 |
+| 设计决策 | 决策表 | `| 选项 | 选中? | 理由 | 代价 |` |
+| 方案对比 | 紧凑表 | 只列决定性差异，≤5 行 |
+
+## 冷启动
+
+当用户指向一个项目或模块但没有具体问题时：
+
+1. 检查对话历史中的领域熟悉度。不明确 → 问一次。不答 → 当零基础。
+2. 找动机：README → 包元数据 → 入口 imports → 目录名 → 问用户。碰到第一个明确信号就停。
+3. 判断规模。如果对象在模块级以内（单一功能、单一库），输出骨架 + 2-3 个后续方向。如果对象是大型系统（多个子系统、monorepo），骨架后追加一张子区域地图——列出 4-6 个关键子系统，每个一句话定位，替代后续方向。
 
 ```
-It solves mapping objects to SQL without raw queries.
-How: decorators define schema, query builder generates SQL.
-Doesn't handle: schema migrations, connection pooling.
-You might want to know: how queries get built, how relations work, or how transactions work.
+它解决了不用手写 SQL 就能操作数据库的问题。
+怎么做：装饰器定义表结构，查询构造器生成 SQL。
+不管：表结构迁移、连接池管理。
+你可能想了解：查询怎么构造的、关联关系怎么建模、事务怎么处理。
 ```
 
-## Done when
+## 完成标志
 
-User can explain the thing back in their own words — not parrot your phrasing, but describe what it is, why it exists, and where it bites.
+用户能用自己的话把这个东西讲回来——不是复读你的措辞，而是说清楚它是什么、为什么存在、哪会咬人。
 
-After finishing a topic, offer one adjacent piece or stay quiet. Don't ask "is that clear?"
+讲完一个话题后，抛一个邻接方向或保持安静。别问"明白了吗？"
 
-To persist an explanation → `output.md`
+解释需要持久化 → `output.md`
