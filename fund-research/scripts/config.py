@@ -1,10 +1,3 @@
-WEIGHTS = {
-    "买入": {"return": 0.35, "risk": 0.25, "style": 0.10, "quality": 0.20, "fee": 0.10},
-    "持有": {"return": 0.15, "risk": 0.20, "style": 0.15, "quality": 0.45, "fee": 0.05},
-    "监控": {"return": 0.10, "risk": 0.25, "style": 0.25, "quality": 0.25, "fee": 0.15},
-    "对比": {"return": 0.25, "risk": 0.20, "style": 0.20, "quality": 0.25, "fee": 0.10},
-}
-
 WINDOWS = {"1y": 252, "3y": 756, "5y": 1260}
 
 PEER_RANK_BINS = ["前25%", "中位偏上", "中位", "中位偏下", "后25%"]

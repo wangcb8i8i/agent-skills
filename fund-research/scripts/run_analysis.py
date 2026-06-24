@@ -4,7 +4,7 @@
 用法：python run_analysis.py <基金代码> [--case 买入|持有|监控|对比] [--no-exclude] [--log-dir DIR]
 输出：因子分析报告（Markdown + JSON）
 
-流程：排除层 → 数据获取 → 6维度因子计算 → 验证校验 → 第一层评分 → 行为共识修正 → 报告
+流程：排除层 → 数据获取 → 因子计算 → 验证校验 → 报告
 """
 import argparse
 import csv
@@ -12,6 +12,8 @@ import json
 import os
 import sys
 from datetime import datetime
+
+import pandas as pd
 
 from data import (get_fund_code, get_fund_info, get_nav_history,
                   get_peer_nav_history, get_portfolio_holdings,
@@ -22,9 +24,17 @@ from data import (get_fund_code, get_fund_info, get_nav_history,
                   get_active_share, get_fee_rate, get_scale_history)
 from factors import compute_all_factors
 from validation import run_all_checks
-from scoring import (compute_overall_score, compute_behavior_consensus,
-                     check_exclusion)
+from scoring import check_exclusion, classify_fund_type, FUND_TYPE_LABELS
 from report_generator import generate_factor_report
+
+
+def _calc_monthly_win_rate(nav: pd.DataFrame) -> float:
+    if nav.empty or "daily_return" not in nav.columns:
+        return None
+    df = nav[["date", "daily_return"]].copy()
+    df["month"] = df["date"].dt.to_period("M")
+    monthly = df.groupby("month")["daily_return"].sum()
+    return round((monthly > 0).sum() / len(monthly), 3) if len(monthly) > 0 else None
 
 
 _DECISION_LOG_HEADER = ["日期", "基金代码", "案由", "结论", "可信度", "预期收益"]
@@ -148,21 +158,29 @@ def main():
     factors = compute_all_factors(nav, peer_navs, holdings, status, industry,
                                   scale_history, inst_ratio)
     factors["active_share"] = active_share
-    factors["fee_rate"] = fee_rate.get("total_fee")
+    factors["fund_type"] = FUND_TYPE_LABELS.get(
+        classify_fund_type(info, turnover.get("turnover_rate"), len(nav)), "未知")
+    factors["management_fee"] = fee_rate.get("management_fee")
+    factors["custodian_fee"] = fee_rate.get("custodian_fee")
+    factors["total_fee"] = fee_rate.get("total_fee")
+
+    # ── 基准相关性 + 正收益月占比 ──
+    if not nav.empty and not market_index.empty:
+        fund_rets = nav.set_index("date")["daily_return"]
+        bench_rets = market_index.set_index("date")["close"].pct_change() * 100
+        aligned = pd.concat([fund_rets, bench_rets], axis=1, join="inner").dropna()
+        if len(aligned) >= 20:
+            factors["benchmark_corr"] = round(aligned.iloc[:, 0].corr(aligned.iloc[:, 1]), 3)
+            factors["monthly_win_rate"] = _calc_monthly_win_rate(nav)
 
     # ── 3. 验证校验 ──
     print("正在运行验证...", file=sys.stderr)
     validation = run_all_checks(nav, market_index)
 
-    # ── 4. 第一层评分（不含行为共识） ──
-    print("正在计算第一层评分...", file=sys.stderr)
-    behavior = compute_behavior_consensus(factors, args.case)
-    scores = compute_overall_score(factors, args.case, behavior)
-
     data_status = get_data_status()
 
     print("正在生成报告...", file=sys.stderr)
-    report = generate_factor_report(factors, validation, scores, info, data_status)
+    report = generate_factor_report(factors, validation, info, data_status)
 
     output = {
         "fund": info,
@@ -178,7 +196,6 @@ def main():
             "sensitivity": validation.get("sensitivity", {}),
             "scenario": validation.get("scenario", {}),
         },
-        "scores": scores,
         "report_markdown": report,
     }
 

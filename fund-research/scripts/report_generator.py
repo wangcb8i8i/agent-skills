@@ -8,19 +8,18 @@ def _fmt(v, unit=""):
     return f"{v}{unit}"
 
 
-def _conf_label(c):
-    return {"高": "高", "中": "中", "低": "低"}.get(c, c)
-
-
 def _status_icon(success):
     return "✓" if success else "✗"
 
 
-def generate_factor_report(factors: dict, validation: dict, scores: dict,
+def generate_factor_report(factors: dict, validation: dict,
                            fund_info: dict, data_status: dict = None) -> str:
     lines = []
     lines.append(f"# 因子分析报告 — {fund_info.get('name', fund_info.get('code', ''))}")
     lines.append(f"代码：{fund_info.get('code', '')}  |  类型：{fund_info.get('category', '未知')}")
+    ft = factors.get("fund_type")
+    if ft:
+        lines.append(f"策略分类：{ft}")
     lines.append(f"生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}")
     lines.append("")
 
@@ -43,6 +42,7 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
             ("market_index", "市场指数"),
             ("peer_nav_history", "同类净值"),
             ("active_share", "Active Share"),
+            ("fee_rate", "费率"),
         ]
         for key, label in key_order:
             ds = data_status.get(key, {})
@@ -121,6 +121,9 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
     if rt_pct.get("pct") is not None:
         rt_cell += f" / {rt_pct['rank']}"
     lines.append(f"| 回撤恢复(3年) | {rt_cell} |")
+    bc = factors.get("benchmark_corr")
+    if bc is not None:
+        lines.append(f"| 基准相关性(日) | {' | '.join([_fmt(bc)] + [''] * (len(risk_cols) - 1))} |")
     lines.append("")
 
     # ── 收益类因子 ──
@@ -168,6 +171,11 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
     if ir_pct.get("pct") is not None:
         ir_cells.append(f"{ir_pct['rank']}(p{ir_pct['pct']:.0f})")
     lines.append(f"| 信息比率 | {' | '.join(ir_cells)} |")
+
+    mwr = factors.get("monthly_win_rate")
+    if mwr is not None:
+        pad = [""] * len(window_labels)
+        lines.append(f"| 月胜率 | {' | '.join(pad + [_fmt(mwr)])} |")
     lines.append("")
 
     # ── 持仓与行业 + 因子暴露 ──
@@ -183,6 +191,9 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
         lines.append("")
         if top10 is not None:
             lines.append(f"前 10 持仓占比：{top10}%")
+        hcount = conc.get("count")
+        if hcount is not None:
+            lines.append(f"持仓数量：{hcount} 只")
         if ind.get("top3_pct") is not None:
             lines.append(f"前 3 行业占比：{ind['top3_pct']}%  ({_fmt(ind.get('latest_quarter'))})")
         if ind.get("drift") is not None:
@@ -208,6 +219,21 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
     if restrictions and restrictions != "正常":
         lines.append(f"限制：{restrictions}")
     lines.append("")
+
+    # ── 费率 ──
+    mf = factors.get("management_fee")
+    cf = factors.get("custodian_fee")
+    tf = factors.get("total_fee")
+    if mf is not None or cf is not None or tf is not None:
+        lines.append("## 费率")
+        lines.append("")
+        if mf is not None:
+            lines.append(f"管理费率：{mf}%")
+        if cf is not None:
+            lines.append(f"托管费率：{cf}%")
+        if tf is not None:
+            lines.append(f"综合费率（管理+托管）：{tf}%")
+        lines.append("")
 
     # ── 验证校验 ──
     lines.append("## 验证校验")
@@ -247,60 +273,6 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
         lines.append(f"> ⚠ {scenario_note}")
     lines.append("")
 
-    # ── 第一层评分（不含行为共识） ──
-    lines.append("## 第一层评分（基础因子评分）")
-    lines.append("")
-    base_score = scores.get("base_score", scores.get("overall_score"))
-    if base_score is not None:
-        lines.append(f"基础分：{base_score}  （范围 0-1，基于同类排名分位加权计算。不含行为共识修正）")
-    else:
-        lines.append("基础分：数据不足，无法评分")
-    lines.append("")
-    lines.append("| 维度 | 得分 | 权重 | 置信度 | 同类分位 | 说明 |")
-    lines.append("|:-----|:-----|:-----|:------|:---------|:-----|")
-    dim_labels = {"return": "收益", "risk": "风险", "style": "风格锚定",
-                  "quality": "质量", "fee": "费率效率"}
-    for dim, ds in scores.get("dim_scores", {}).items():
-        label = dim_labels.get(dim, dim)
-        score = ds.get("score", "N/A")
-        if score is None:
-            score = "—"
-        w = ds.get("weight", 0)
-        conf = ds.get("confidence", "低")
-        rank = ds.get("rank", "N/A")
-        detail = ds.get("detail", "")
-        lines.append(f"| {label} | {score} | {int(w*100)}% | {conf} | {rank} | {detail} |")
-    lines.append("")
-
-    # ── 行为共识（定性信号，不修正评分） ──
-    behavior = scores.get("behavior")
-    if behavior:
-        lines.append("## 行为共识（定性信号）")
-        lines.append("")
-        lines.append("行为信号不修正评分，作为独立证据影响结论层级。")
-        lines.append("")
-        if behavior.get("signals"):
-            lines.append("| 信号 | 方向 | 强度 |")
-            lines.append("|:-----|:-----|:-----|")
-            for sig in behavior["signals"]:
-                s = sig["signal"]
-                d = sig["direction"]
-                st = sig["strength"]
-                arrow = "↑" if d == "正面" else "↓"
-                lines.append(f"| {s} | {arrow} {d} | {st} |")
-            if behavior.get("has_negative") and not behavior.get("has_positive"):
-                lines.append("")
-                lines.append("> ⚠ 存在负面行为信号 → AI 合成层应考虑结论降档")
-            elif behavior.get("has_positive") and not behavior.get("has_negative"):
-                lines.append("")
-                lines.append("> ✓ 存在正面行为信号 → AI 合成层可参考")
-        if behavior.get("info_gaps"):
-            lines.append("")
-            lines.append("信息缺口：")
-            for gap in behavior["info_gaps"]:
-                lines.append(f"  ⚠ {gap}（数据不可得）")
-        lines.append("")
-
     # ── 定量层局限性 ──
     lines.append("## 定量层局限性")
     lines.append("")
@@ -320,7 +292,6 @@ def generate_factor_report(factors: dict, validation: dict, scores: dict,
     lines.append("")
 
     lines.append("---")
-    lines.append("*第一层输出：因子分析到此为止，不涉及买卖判断。第二层综合判断由 AI 基于因子报告+定性查证给出。*")
+    lines.append("*因子分析报告到此为止，不涉及买卖判断。综合判断由 AI 基于因子报告+定性查证给出。*")
     lines.append("")
-    lines.append("*定性查证关键词/来源将在第二层报告中补充。*")
     return "\n".join(lines)
