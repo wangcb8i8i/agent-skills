@@ -1,160 +1,59 @@
 ---
 name: explain-it
-disable-model-invocation: true
-description: 将代码或文档转化为用户能复述的心智模型。仅在用户要求解释时调用。
+description: Explain code, modules, architecture — so users grasp the why before the what, and can reason from the explanation. Use when the user asks to "explain", "understand", "how does X work", "what is X", or "why is X this way".
 ---
 
 # explain-it
 
-将代码或文档转化为用户可以**回音**（复述并预测）的心智模型。
-只解释，不实现、不审查。
+Build a **mental model** — the user should predict behaviour of code they haven't seen, not recite what they were told.
 
-术语定义 → `GLOSSARY.md`
+## Principles
 
-## 回音序列
+1. **Start with why it exists.** Lead with the problem it solves. If you can't find it, say so.
+2. **Read only what answers the question.** Skip setup, config, error handlers, tests — unless they *are* the question.
+3. **Scaffold, don't dump.** Give the skeleton before details. A skeleton is 3 pieces: what problem, how it solves it (one sentence), what it explicitly doesn't do.
 
-### 0. 入口判断
+## Output shapes
 
-先确定解释对象来源：
-- 对话上下文已有（代码/文件引用）→ 就绪
-- 工作区文件（路径/模块名）→ 读取目标
-- 纯概念（无代码可读）→ 标记
-- 未指明 → 追问
+| User asks | Give them |
+|-----------|-----------|
+| What is X | Problem it solves → one-line definition → most common misuse |
+| How does X work | One-line why → ASCII flow → who/what at each node |
+| How is X organized | Why this structure → ASCII nesting → one-line per module role |
+| Why X this way | Options → chosen → rejected and why (decisive factor) |
+| X vs Y | Decisive differences only → when to use which |
+| A specific follow-up | Only the new piece. Zero recap unless ≤2 sentences for context |
 
-再判断用户状态：
-- 有明确问题 → 步骤 1（缺口分型）
-- 无头绪 → 冷启动（步骤 A）
+## Visual patterns
 
-冷启动完成标志：已输出地形 + 切口引导。
-明确问题完成标志：解释对象已定位。
+**Pick the simplest that works.** Downgrade whenever possible — if a call flow does it, don't draw a sequence diagram.
 
----
+| Scenario | Use | Example |
+|----------|-----|---------|
+| Single-thread execution | Call flow | `A → B → C → result` |
+| Multi-party message exchange | Sequence | `Client → Server → DB` with arrows |
+| Independent branches merging | Pipeline | `[A]─┬─[merge]─[out]` with parallel lanes |
+| Object with lifecycle states | State machine | `[init] → [running] → [done]`, mark impossible transitions |
+| Module roles and nesting | Nesting diagram | `[entry] └─ [service] ├─ [cache] └─ [db]`, each with one-line role |
+| Design decisions | Decision table | `| Option | Chosen? | Why | Tradeoff |` |
+| Options comparison (vs) | Compact table | Only decisive differences, ≤5 rows |
 
-### A. 冷启动
+## Cold start
 
-为"还不知道要问什么"的用户建立第一张心智地图。
-流程：动机先行 → 地形压缩 → 切口引导。
-细节见 `branches/cold-start.md`。
+When pointed at a project or module without a specific question:
 
----
-
-### 1. 缺口分型
-
-识别用户问题归属的缺口类型。
-
-| 用户说 | 类型 |
-|--------|------|
-| "这是什么""XX是做什么的" | 识别型 |
-| "怎么运作""流程""调用链" | 流程型 |
-| "由什么组成""结构""架构" | 结构型 |
-| "为什么这样""设计理由" | 理由型 |
-| "A和B什么区别""vs" | 对比型 |
-| 已有解释 + "X部分再细点"/"那Y呢" | 追问型 |
-
-补充判断：
-- **目标概念** — 用户具体想问什么（函数/模块/文件/机制）
-- **前置掌握度** — 已掌握 / 未掌握 / 有误解 / 模糊
-
-完成标志：缺口类型、目标概念、前置掌握度 三项可列明。
-
-### 1b. 隐含邻接推断
-
-按缺口类型推断用户可能没说出的邻接缺口及其引导语境：
-
-| 当前类型 | 隐含邻接 |
-|----------|----------|
-| 识别型 | 结构——知道用途后想知道内部构造；边界——最易误用的点 |
-| 流程型 | 理由——知道怎么走后会问"为什么不走另一条"；结构——各节点职责归属 |
-| 结构型 | 流程——模块间怎么协作；理由——为什么这样拆分 |
-| 理由型 | 对比——被放弃的选项什么样；结构——决策影响了哪些模块 |
-| 对比型 | 识别——各自是什么；流程——各自动作路径 |
-
-用户表达清楚问题后，用以下格式征求一次意见：
+1. Find the motivation: README → package metadata → entry imports → directory name → ask. Stop at the first clear signal.
+2. Output: motivation + 3-piece skeleton + 2-3 natural next questions from what you read.
 
 ```
-你问的是 {当前缺口}。
-它还关联到：
-  - {邻接A} — 一句话说明
-  - {邻接B} — 一句话说明
-
-先看你的问题也行，看到中间再拓——随你。
+It solves mapping objects to SQL without raw queries.
+How: decorators define schema, query builder generates SQL.
+Doesn't handle: schema migrations, connection pooling.
+You might want to know: how queries get built, how relations work, or how transactions work.
 ```
 
-用户选择 → 标记为"已获邻接许可"进入刀锋，或"仅当前缺口"按原路径。用户不表态则默认仅当前缺口。
+## Done when
 
----
+User can answer both: what problem this solves, and the one thing people get wrong.
 
-### 2. 刀锋切入
-
-按缺口类型读取必要材料：
-
-→ 识别型 → `branches/identify.md`
-→ 流程型 → `branches/flow.md`
-→ 结构型 → `branches/structure.md`
-→ 理由型 → `branches/rationale.md`
-→ 对比型 → `branches/compare.md`
-→ 追问型 → `branches/followup.md`
-
-> 散落在 3 个以上不连续文件 → 先出骨架地图让用户选方向。
-
-完成标志：必要材料已全部读取，已读范围内无无关内容。
-
----
-
-### 3. 骨架构建
-
-按缺口类型输出匹配形状（详见各 branch 文件）：
-
-| 类型 | 输出形状 |
-|------|----------|
-| 识别型 | 痛点 → 是什么 → 不误用的关键事实 |
-| 流程型 | 一句话动机 → ASCII 流程 → 各节点标注谁/进/出 |
-| 结构型 | 结构存在理由 → ASCII 结构图 → 模块职责 |
-| 理由型 | 决策表/论证链 → 决定性因素 + 被放弃选项 |
-| 对比型 | 对比表 → 决定性差异，不列共同点 |
-| 追问型 | 仅缺口指向的一块，无上下文重述 |
-
-从 `branches/` 对应文件中选择推荐视觉模式。
-
-完成标志：回音就绪——骨架已构建，所有断言有已读材料支撑。
-
----
-
-### 4. 填补循环
-
-用户追问 → 回到步骤 1 重新分型（可能变类型）。
-只补新缺口，不重读已覆盖内容。
-
-当用户当前缺口已填补（回答"明白"/沉默 ≥1 轮），从步骤 1b 的隐含邻接中选一个未覆盖的主动抛出：
-
-```
-你理解了 {当前概念}。
-{邻接X} 和它关系很近——要看一眼吗？
-```
-
-选择规则：
-- 只抛步骤 1b 中已识别但尚未被用户选择或拒绝的邻接
-- 每次只抛 1 块
-- 用户拒绝后不再提同一块
-- 用户连续拒绝 2 次 → 停止主动抛出，转入纯被动等待
-
-无深度上限，第 3 层起附加方向提示。
-用户表达的解释偏好（粒度、图文、组织）自动沿用同 session。
-可选附 1-2 个精加工自测题供用户验证理解。严禁`清楚了吗`等封闭式追问。
-
-完成标志：所有隐含邻接已被用户覆盖或明确拒绝。
-
----
-
-## 格式约束
-
-- 对话输出 ASCII，禁 mermaid（写文档时才转 mermaid）
-- 使用类比时附带失效声明
-- 代码引用用 `文件:行号`，文档引用用 `§章节`
-- 不向用户暴露内部术语（冷启动、回音、缺口、刀锋等），所有输出用自然语言
-
-## 硬边界
-
-- 不修改文件（用户要求持久化时除外）
-- 不逐行复述代码
-- 不将解释与实现/审查混在一起
+After finishing a topic, offer one adjacent piece or stay quiet. Don't ask "is that clear?"

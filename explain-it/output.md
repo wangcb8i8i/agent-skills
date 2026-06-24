@@ -1,31 +1,8 @@
-# 持久化产物输出
+# Persistence
 
-仅在用户明确要求时将解释写入文件。
+Only write explanations to files when the user explicitly asks.
 
-## 写入规则
-
-- 写入用户指定路径；未指定则建议 `docs/read-notes/<文件名>.md`
-- 写 markdown 时使用 mermaid 图、全宽表格，而非终端 ASCII
-- 文件头部注明源文件/文档路径、日期和解释范围
-- 写入后确认路径即可，不在对话中重讲一遍
-
-## 多轮解释产物结构
-
-1. **理解状态帧** — 当前 session 结束时用户的理解基线
-2. **结构图** — mermaid 或层级图，标注已/未探索区域
-3. **已探索部分摘要** — 每个已探索部分各一至两段
-4. **完整链路** — 端到端逻辑链
-
-理解状态帧格式（≤ 5 行）：
-
-```
-## 理解状态
-
-已掌握：[概念 A, 概念 B, …]
-待澄清：[概念 X, 概念 Y]
-有效类比：「A 就像 Z」
-```
-
-写入策略：每次写入/更新时基于当前对话推理理解状态帧；同一路径追加而非覆盖历史帧。
-
-不包含：用户追问记录、原始对话拼接。读者拿到文件后能独立理解全部内容。
+- Write to the path the user specifies. If none, suggest `docs/read-notes/<name>.md`.
+- Use mermaid diagrams in written output (not ASCII).
+- Include at the top: source file paths, date, explanation scope.
+- Confirm the path after writing. Don't repeat the explanation.
