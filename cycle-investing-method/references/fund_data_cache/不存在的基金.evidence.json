@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "generated_at": "2026-06-24 17:55:35",
+  "data_source": "天天基金 (eastmoney.com)",
+  "fund": {
+    "code": "不存在的基金",
+    "name": "不存在的基金",
+    "type": "",
+    "manager": ""
+  },
+  "portfolio": {
+    "latest_quarter": {
+      "year": 2026,
+      "quarter": 1
+    },
+    "top10": [
+      {
+        "name": "中际旭创",
+        "code": "300308",
+        "weight": "4.31%"
+      },
+      {
+        "name": "中微公司",
+        "code": "688012",
+        "weight": "3.07%"
+      },
+      {
+        "name": "华虹公司",
+        "code": "688347",
+        "weight": "2.80%"
+      },
+      {
+        "name": "北方华创",
+        "code": "002371",
+        "weight": "2.78%"
+      },
+      {
+        "name": "安集科技",
+        "code": "688019",
+        "weight": "2.67%"
+      },
+      {
+        "name": "海光信息",
+        "code": "688041",
+        "weight": "2.48%"
+      },
+      {
+        "name": "华海清科",
+        "code": "688120",
+        "weight": "2.38%"
+      },
+      {
+        "name": "寒武纪",
+        "code": "688256",
+        "weight": "2.34%"
+      },
+      {
+        "name": "拓荆科技",
+        "code": "688072",
+        "weight": "2.21%"
+      },
+      {
+        "name": "中科飞测",
+        "code": "688361",
+        "weight": "2.11%"
+      }
+    ],
+    "concentration_pct": 27.1,
+    "concentration_label": "分散"
+  },
+  "turnover": {
+    "proxy_pct": 32.5,
+    "label": "中等换手",
+    "quarters_used": 5,
+    "quarters_total": 21
+  },
+  "returns": {
+    "ytd_pct": null,
+    "one_year_pct": null,
+    "three_year_pct": null,
+    "since_inception_pct": null,
+    "max_drawdown_pct": null,
+    "nav_start_date": null,
+    "nav_end_date": null
+  },
+  "nav_records": 0
+}
