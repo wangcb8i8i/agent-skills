@@ -1,6 +1,6 @@
 ---
-name: invest-analyze
-description: 用 5 位中国顶级基金经理的方法论视角独立分析基金或个股。并排叙事输出，不评分、不综合。
+name: fund-managers
+description: 用 6 位中国顶级基金经理的方法论视角独立分析基金或个股。并排叙事输出，不评分、不综合。
 disable-model-invocation: true
 metadata:
   author: personal project (multi-manager methodology matrix)
@@ -9,7 +9,7 @@ metadata:
 
 # 基金经理方法论矩阵 Skill
 
-5 位基金经理 = 5 个**透镜**。同一标的，每人透过自己的透镜独立觀察，并排呈现结果，不做综合。
+6 位基金经理 = 6 个**透镜**。同一标的，每人透过自己的透镜独立觀察，并排呈现结果，不做综合。
 
 ## 编排流程
 
@@ -27,7 +27,7 @@ metadata:
 ┌─────────────────────────────────────────────────┐
 │ ② 取基础信息（宽，一次拉够多数场景需要）            │
 │    引擎调用加 --output-dir 写盘                   │
-│    写 invest-analyze-output/<datetime>/base_data/ │
+│    写 fund-managers-output/<datetime>/base_data/ │
 │    用时预期 ≤ 5 分钟                              │
 │    回退机制兜底，仍然失败则中止分析                 │
 └──────────────────────┬──────────────────────────┘
@@ -137,10 +137,10 @@ metadata:
 
 ### 输出目录
 
-所有文件写入 `invest-analyze-output/<datetime>/base_data/`，其中 `<datetime>` 格式为 `YYYY-MM-DD_HHMM`。
+所有文件写入 `fund-managers-output/<datetime>/base_data/`，其中 `<datetime>` 格式为 `YYYY-MM-DD_HHMM`。
 
 ```
-invest-analyte-output/
+fund-managers-output/
 └── 2026-06-26_1430/
     └── base_data/
         ├── 001513_holdings.json
@@ -162,7 +162,7 @@ invest-analyte-output/
 **完成标志：** 经理名单确定（每人一份 method.md 路径）。进入下一步。
 
 **例（需追问时）：**
-> "这只基金持仓分散、风格均衡。你希望我用哪几位经理来分析？郑希（景气度）、丘栋荣（深度价值）、张坤（GARP）、刘格菘（行业集中）、周蔚文（均衡），还是全部来看？"
+> "这只基金持仓分散、风格均衡。你希望我用哪几位经理来分析？郑希（景气度）、姜诚（深度价值）、张坤（GARP）、刘格菘（行业集中）、周蔚文（均衡）、葛兰（医药），还是全部来看？"
 
 ---
 
@@ -177,8 +177,8 @@ invest-analyte-output/
 | 角色身份 | "你是郑希的分析执行器，按郑希的投资方法分析标的" |
 | 标的 | 代码 + 名称 |
 | 用户意图 | 结构化转述（如"用户想看这只基金在成长风格上是否契合，以及深度价值框架下是否值得买"） |
-| base_data 路径 | `invest-analyze-output/<datetime>/base_data/` |
-| 输出目录 | `invest-analyze-output/<datetime>/<经理>/` |
+| base_data 路径 | `fund-managers-output/<datetime>/base_data/` |
+| 输出目录 | `fund-managers-output/<datetime>/<经理>/` |
 | 方法文件 | `references/<经理>/method.md` |
 
 ### 子代理执行步骤
@@ -215,7 +215,7 @@ invest-analyte-output/
 ### analysis.md 输出要求
 
 - **第一人称叙事** — 以经理的口吻写（例："我看持仓……"），每个文件独立成篇
-- **自由风格** — 不固定模板，不要求 5 人结构一致
+- **自由风格** — 不固定模板，不要求 6 人结构一致
 - **不做评分** — 不给分/不给排名/不给维度加权总分
 - **不做维度对齐** — 每个经理用自己的框架表述，不强求统一维度列表
 - **证据链可见** — 看法背后有数据支撑，引用 base_data 中的数据
@@ -227,7 +227,7 @@ invest-analyte-output/
 所有子代理完成后，父进程**读各 analysis.md**，为每位经理提炼一句话判断，写到 `summary.md`：
 
 ```
-invest-analyte-output/
+fund-managers-output/
 └── 2026-06-26_1430/
     ├── base_data/
     │   ├── 001513_holdings.json
@@ -236,7 +236,7 @@ invest-analyte-output/
     │   └── 001513_managers.json
     ├── 郑希/
     │   └── analysis.md
-    ├── 丘栋荣/
+    ├── 姜诚/
     │   └── analysis.md
     ├── summary.md         ← 父进程汇总
 ```
@@ -247,11 +247,12 @@ summary.md 不做综合判断，只做每人一句话的提炼：
 ## summary
 
 分析标的：001513 易方达信息产业混合
-分析经理：郑希 · 丘栋荣 · 张坤
+分析经理：郑希 · 姜诚 · 张坤 · 葛兰
 
 郑希：持仓方向符合框架，AI 算力链占比高，景气方向明确。但流动性条件偏紧。
-丘栋荣：PB 处于历史高位，不在他的击球区内。
+姜诚：前十大集中度偏高但个股质地扎实，安全边际足够。行业分散保护了好的一面。
 张坤：持仓集中度偏高但个股 ROIC 韧性存疑，安全边际不够。
+葛兰：医药占比高但标的多为创新药龙头，政策风险可控。估值处于历史低位区间。
 ```
 
 父进程不对 summary 做增删改写，只从各 analysis.md 提炼。
