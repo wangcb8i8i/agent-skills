@@ -150,26 +150,52 @@ Step 4: 无论哪种分支，产出完整映射表后
 
 ### Phase 3 — Generate HTML (HTML 生成)
 
-沿用现有 wechat-format 核心逻辑，但输出改用**内联样式**（与 rebel-lion `WeChatFormatter` 一致）：
+采用**混合样式策略**：`<style>` 块保留上下文选择器（父子/兄弟/伪类），`style=""` 仅用于元素级非默认值覆盖。
 
 1. 理解内容语气、类型 → 推荐主题（用户确认）
 2. 分析内容结构 → 识别语义单元（callout、danger card、flow-list 等）
 3. 渲染 Markdown → HTML
-4. 加载主题 CSS，解析所有 CSS 变量 → 对每个元素直接输出 `style=""` 内联样式
+4. 加载主题 CSS → 解析所有 CSS 变量/函数为具体值 → 输出 `<style>` 块（上下文选择器）+ `style=""`（元素级覆盖）
 5. 执行微信兼容性转换（Mermaid 包装、tspan 等）
 
-关键区别：步骤 4 不再生成 `<style>` 块和 CSS 类，而是将主题样式直接写入每个元素的 `style` 属性。例如：
+#### 步骤 4 详细规则
 
-```html
-<!-- 之前 -->
-<p class="codespan">code</p>
-<style>.codespan{padding:2px 4px;color:#333}</style>
+**A. `<style>` 块保留的内容：**
 
-<!-- 现在 -->
-<p style="background:#F6F0E8;padding:2px 4px;color:#333;border-radius:3px;">code</p>
+| 保留类别 | 示例 | 理由 |
+|---------|------|------|
+| 父子选择器 | `blockquote > p { margin: 0 }` | LLM 无法在独立 `<p>` 的 `style=""` 中表达"父元素是 blockquote" |
+| 相邻兄弟选择器 | `p + p { margin-top: 12px }` | 内联后每个 `<p>` 无法知道前一个元素 |
+| 伪类/伪元素 | `:first-child`, `::before` | 内联不支持 |
+| CSS 计数器 | `counter-reset`, `counter-increment` | 内联不支持 |
+| 媒体查询 | `@media (prefers-color-scheme: dark)` | 内联无法表达条件样式 |
+| 主题级全局样式 | `#output { font-family }`, `#output h2 { background }` | 批量生效比逐个内联更可靠 |
+
+**B. `style=""` 内联覆盖的规则：**
+
+仅当以下情况时在元素上写 `style=""`：
+
+- 元素级的**非默认值**（如 `<hr>` 的自定义颜色）
+- 与相邻元素不同的**异例值**（如某段特殊对齐）
+- 必须精确控制且无法通过选择器表达的样式
+
+**C. CSS 变量/函数解析：**
+
+无论 `<style>` 还是 `style=""`，所有 `var()`, `hsl()`, `color-mix()`, `calc()` 必须预先解析为具体值：
+
+```
+var(--md-primary-color)  →  #0F4C81
+hsl(0, 0%, 20%)          →  #333333
+color-mix(in srgb, ...)  →  rgba(...)    (见 color-mix 解析方法)
+calc(16px * 1.4)         →  22.4px
 ```
 
-内联样式使得 HTML 可以直接通过 draft API 提交，无需额外 CSS 内联步骤（如 rebel-lion 的做法）。
+#### 步骤 3 补充：图片处理
+
+渲染 Markdown 中的图片时：
+
+- **远程 URL**（http/https）：直接透传，`http://` → `https://` 归一化。**禁止**将远程图片替换为懒加载占位符或 SVG placeholder
+- **本地路径**：标记为待嵌入，走 Phase 4 配图嵌入流程
 
 此阶段产出的 HTML **不含图片**，但需在 `<head>` 中注入 publish 标记：
 
@@ -184,6 +210,14 @@ Step 4: 无论哪种分支，产出完整映射表后
 - **封面**: 仅当 Phase 2d 识别到封面候选时注入，否则不生成此标记
 
 publish.py 会在上传图片和创建草稿前提取并移除这些标记，最终提交给 draft API 的内容不含这些标记。
+
+#### 步骤 6：输出后处理
+
+在写出 HTML 前执行：
+
+1. **清洗空元素**：删除所有无文本内容的空 `<li>`、`<p>` 标签（不包含子元素且 `textContent.trim() === ""`）
+2. **验证 figcaption**：确认每张配图的 `<figcaption>` 非空、字号 ≥ `0.85em`、色值 ≥ `rgba(51,51,51,0.70)`
+3. **验证列表**：有序列表的 `<ol>` 必须关联 CSS counter（检查 `<style>` 中包含 `counter-increment` 定义），禁止裸 `<span>` 手写编号
 
 ### Phase 4 — Illustration Embedding (配图嵌入)
 
@@ -205,9 +239,12 @@ publish.py 会在上传图片和创建草稿前提取并移除这些标记，最
 
 约束:
   - 不修改原文文字内容
-  - 每张图生成 <figure><img src="本地路径"></figure>
+  - 每张图生成 <figure><img src="本地路径"><figcaption>图注文字</figcaption></figure>
   - src 使用本地绝对路径（file:/// 或绝对路径均可）
+  - figcaption 内容取映射表中 prompt_location 字段
 ```
+
+- **figcaption 样式约束**：字号 ≥ `0.85em`，色值 ≥ `rgba(51,51,51,0.70)`，居中对齐
 
 #### 4b. 展示确认
 
@@ -239,7 +276,7 @@ publish.py 会在上传图片和创建草稿前提取并移除这些标记，最
 
 ### Standard GFM
 
-所有元素渲染为内联样式（`style=""`），无需 `<style>` 块。`Output element` 列标明哪个标签接收样式。
+所有元素使用混合样式策略（见 Phase 3 步骤 4）：上下文选择器在 `<style>` 块中，元素级覆盖用 `style=""`。`Output element` 列标明哪个标签接收样式。
 
 | Element | Syntax | Output element |
 |---------|--------|-------------|
@@ -443,7 +480,7 @@ After theme selected, analyze the Markdown body to identify key semantic units t
 - **Do not overuse**: Each `<section>` should contain at most one special component (callout or card). If everything is emphasized, nothing is.
 - **Ordinary narrative stays as `<p>`**: Only elevate the 2–5 most critical information nodes in the entire article.
 - **Flow list for numbered sequences only**: Use `.flow-list` when the Markdown has an ordered list that represents sequential steps, not arbitrary numbered items. When the list represents key principles, core capabilities, or takeaways that need step-like emphasis, prefer `.flow-list` over plain `<ol>` with custom text markers — the component's numbered badge is visually distinct from ordinary bold text.
-- **Plain ordered list**: If a numbered list does not qualify as a `.flow-list` but needs custom numbering (e.g., `<ol style="list-style:none">` with text markers), ensure the number marker has explicit visual distinction from surrounding `<strong>` elements. Apply a background badge, different font weight/color, or larger font size so readers can immediately recognize it as a list index.
+- **Plain ordered list**: Use CSS counters in the `<style>` block for custom numbering. Do NOT use `<span>` text markers — CSS counters are more reliable, accessible, and avoid empty `<li>` spacer elements. The `<style>` block must contain `ol { counter-reset: item; } li.listitem { counter-increment: item; } li.listitem::before { content: counter(item); }` (styled per theme).
 - **Insight list for takeaways only**: Use at the end of an article or a major section to list key conclusions.
 - **Never nest components** inside each other.
 
@@ -469,7 +506,7 @@ The `birch` theme and all enhanced themes share these typography improvements fo
 - **Serif headings** (`h1`–`h3`): Use `Georgia, "Times New Roman", "PingFang SC", serif` for a publication feel. Body text remains sans-serif for comfort on mobile.
 - **Text rendering**: `-webkit-font-smoothing: antialiased` + `text-rendering: optimizeLegibility` for sharper characters.
 - **Spacing rhythm**: Standardized vertical spacing — `h2` gets `margin-top: 32px`, each `<p>` gets `margin-bottom: 0.75em` to create visible paragraph breaks. Do NOT use `margin: 0` on body paragraphs — that collapses visual separation between blocks of text. Blockquote-internal `<p>` still uses `margin: 0`.
-- **Muted text color**: `#87867F` for figcaptions, footnotes, and secondary content — reduces visual noise.
+- **Muted text color**: `rgba(51, 51, 51, 0.70)`（≈ `#6E6E6E`）for figcaptions, footnotes, and secondary content. Figcaption minimum font size: `0.85em`. Figcaption minimum color: `rgba(51, 51, 51, 0.70)` (WCAG AA ≈ 4.8:1 contrast).
 
 Apply these patterns even when users don't explicitly opt in — they're universal readability improvements.
 
@@ -585,7 +622,7 @@ Examples:
   <section class="container mx-auto">
 
     <!-- first h1 stripped: title is managed by WeChat editor, not pasted into body -->
-    <!-- 所有元素均为内联 style=""，由 Phase 3 步 4 解析主题 CSS 后直出 -->
+    <!-- 混合样式策略：<style> 上下文选择器 + style="" 元素级覆盖，由 Phase 3 步 4 解析主题 CSS 后输出 -->
     {rendered HTML content}
     {footnotes block if any}
 
@@ -694,19 +731,14 @@ WECHAT_PROXY=http://127.0.0.1:7890    # 代理（可选）
 
 Before saving the final HTML, verify every item below. These are the most commonly missed issues in the generated output.
 
-- [ ] **Paragraph spacing**: Every `<p>` outside blockquote has `margin-bottom: 0.75em`. No `margin: 0` on body paragraphs.
+- [ ] **Paragraph spacing**: Every `<p>` outside blockquote has `margin-bottom: 0.75em`. No `margin: 0` on body paragraphs. Blockquote-internal `<p>` uses `margin: 0` (controlled by `<style>` block).
 - [ ] **No trivial reset properties**: Inline styles omit `visibility: visible`, `display: block` on block-level elements (`p`, `h1`–`h6`), and other default browser values. Only include properties that actually change the element's appearance.
 - [ ] **Image styling**: Every `<img>` has `max-width: 100%; border-radius: 6px; display: block; margin: 0.1em auto 0.5em`. No `!important` on content images (reserve for WeChat compatibility transforms only).
+- [ ] **Remote images preserved**: No remote image URL was replaced with a lazy-load placeholder or SVG. Images from `http://` were upgraded to `https://`.
 - [ ] **Heading margins**: `<h2>` uses `margin: {top} auto {bottom}` or `{top} 0 {bottom}` — never `8px` or other arbitrary values for left/right margins.
-- [ ] **List numbering**: Custom text markers (e.g., `"1"` `"2"` `"3"`) in ordered lists have a visual badge or distinct styling — they should not look identical to ordinary `<strong>` text.
+- [ ] **List rendering**: Ordered lists use CSS counters (`counter-increment` in `<style>`). No manual `<span>` text markers. No empty `<li>` elements.
 - [ ] **Cover image**: If a cover image is identified, verify `<!--wechat-cover:...-->` is injected with the correct path.
-- [ ] **Inline style completeness**: Every visible element has the necessary inline styles. Do not rely on WeChat's default rendering for key visual elements (headings, blockquotes, code).
+- [ ] **Figcaption**: Every `<figure>` has a non-empty `<figcaption>`, with `font-size ≥ 0.85em` and `color ≥ rgba(51,51,51,0.70)`.
+- [ ] **No empty elements**: No empty `<li>`, `<p>`, or other block-level elements with `textContent.trim() === ""` in the output.
+- [ ] **Hybrid style completeness**: The `<style>` block covers contextual selectors (parent-child, adjacent sibling, pseudo-classes). Inline `style=""` is only used for element-specific non-default values. Every visible element gets its styles from one of the two sources.
 
-## Anti-Patterns
-
-- ❌ Prompt 块包含说明文字（如"你可以这样使用"、"以下是提示词"）—— 只有提示词本身
-- ❌ Prompt 块用中文写（英文提示词对图像模型理解更好）
-- ❌ 不经过风格确认直接生成提示词
-- ❌ 配图嵌入阶段修改了原文文字内容
-- ❌ 配图嵌入阶段将多张图插入到同一个位置
-- ❌ 配图映射表中未匹配的图片被自动跳过而不通知用户

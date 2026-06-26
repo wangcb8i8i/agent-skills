@@ -136,15 +136,23 @@
 #output figcaption,
 #output .md-figcaption {
   text-align: center;
-  color: #888;
-  font-size: 0.8em;
+  color: #6E6E6E;
+  font-size: 0.85em;
 }
 
 /* === Lists === */
-#output ol { padding-left: 1.5em; color: hsl(var(--foreground)); }
+#output ol { padding-left: 1.5em; color: hsl(var(--foreground)); counter-reset: item; }
 #output ul { list-style: none; padding-left: 1.5em; color: hsl(var(--foreground)); }
 #output li { margin: 0.5em 8px; color: hsl(var(--foreground)); }
 #output li + li { margin-top: 6px; }
+#output ol > li { counter-increment: item; }
+#output ol > li::before {
+  content: counter(item);
+  display: inline-block;
+  width: 1.8em;
+  font-weight: 700;
+  font-size: 0.85em;
+}
 
 /* === HR === */
 #output hr {

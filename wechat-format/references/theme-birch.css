@@ -151,10 +151,19 @@
 }
 
 /* === Lists === */
-#output ol { padding-left: 1.2em; margin-left: 0; color: rgb(44, 44, 42); }
+#output ol { padding-left: 1.2em; margin-left: 0; color: rgb(44, 44, 42); counter-reset: item; }
 #output ul { padding-left: 1.2em; margin-left: 0; color: rgb(44, 44, 42); }
 #output li { display: block; margin: 0.2em 8px; color: rgb(44, 44, 42); }
 #output li + li { margin-top: 6px; }
+#output ol > li { counter-increment: item; }
+#output ol > li::before {
+  content: counter(item);
+  display: inline-block;
+  width: 1.8em;
+  font-weight: 700;
+  font-size: 0.85em;
+  color: #0F4C81;
+}
 
 /* === Table === */
 #output table {
@@ -193,7 +202,7 @@
 #output figcaption,
 #output .md-figcaption {
   text-align: center;
-  color: #87867F;
+  color: #6E6E6E;
   font-size: 0.85em;
   margin-top: 6px;
 }

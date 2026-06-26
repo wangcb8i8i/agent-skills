@@ -162,10 +162,19 @@
 }
 
 /* === Lists === */
-#output ol { padding-left: 1em; margin-left: 0; color: hsl(var(--foreground)); }
+#output ol { padding-left: 1em; margin-left: 0; color: hsl(var(--foreground)); counter-reset: item; }
 #output ul { list-style: circle; padding-left: 1em; margin-left: 0; color: hsl(var(--foreground)); }
 #output li { display: block; margin: 0.2em 8px; color: hsl(var(--foreground)); }
 #output li + li { margin-top: 6px; }
+#output ol > li { counter-increment: item; }
+#output ol > li::before {
+  content: counter(item);
+  display: inline-block;
+  width: 1.8em;
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--md-primary-color);
+}
 
 /* === Table === */
 #output table {
@@ -205,8 +214,8 @@
 #output figcaption,
 #output .md-figcaption {
   text-align: center;
-  color: rgba(51, 51, 51, 0.50); /* ← adjust when foreground changes */
-  font-size: 0.8em;
+  color: rgba(51, 51, 51, 0.70); /* ← adjust when foreground changes. WCAG AA ≈ 4.8:1 */
+  font-size: 0.85em;
 }
 
 /* === HR === */
