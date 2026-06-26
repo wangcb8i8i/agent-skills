@@ -1,3 +1,4 @@
+import time
 import akshare as ak
 import pandas as pd
 import numpy as np
@@ -62,14 +63,22 @@ def _ak_get_fund_info(code: str) -> dict:
 
 
 def _ak_get_nav_history(code: str) -> pd.DataFrame:
-    df = ak.fund_open_fund_info_em(symbol=code, indicator="累计净值走势", period="成立来")
-    df.rename(columns={"净值日期": "date", "累计净值": "acc_nav"}, inplace=True)
+    # 累计净值 — 用于区间总收益计算（excess_return 等）
+    df_acc = ak.fund_open_fund_info_em(symbol=code, indicator="累计净值走势", period="成立来")
+    df_acc.rename(columns={"净值日期": "date", "累计净值": "acc_nav"}, inplace=True)
+
+    # 单位净值 + 日增长率 — 用于日收益率计算（volatility、VaR、IR 等）
+    time.sleep(0.3)
+    df_unit = ak.fund_open_fund_info_em(symbol=code, indicator="单位净值走势", period="成立来")
+
+    df = pd.merge(df_acc, df_unit, on="净值日期", how="outer")
     df["date"] = pd.to_datetime(df["date"])
     df.sort_values("date", inplace=True)
     df["acc_nav"] = pd.to_numeric(df["acc_nav"], errors="coerce")
-    df["daily_return"] = df["acc_nav"].pct_change() * 100
+    # 日增长率来自东方财富，即 unit_nav.pct_change()，是正确的日收益率
+    df["daily_return"] = pd.to_numeric(df["日增长率"], errors="coerce")
     _record_status("nav_history", True, f"{len(df)}条记录")
-    return df
+    return df[["date", "acc_nav", "daily_return"]].dropna(subset=["acc_nav"])
 
 
 def _ak_get_portfolio_holdings(code: str) -> list:

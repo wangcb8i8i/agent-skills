@@ -78,21 +78,37 @@ def _sc_get_fund_category(code: str) -> str:
 def _sc_get_nav_history(code: str) -> pd.DataFrame:
     r = requests.get(_PINGZHONG_URL.format(code), headers=_HEADERS, timeout=15)
     text = r.text
-    match = re.search(r"var Data_ACWorthTrend = (\[.*?\]);", text, re.DOTALL)
-    if not match:
-        raise RuntimeError(f"无法解析净值数据: {code}")
-    data = json.loads(match.group(1))
+
+    # 累计净值 — 用于区间总收益计算
+    match_acc = re.search(r"var Data_ACWorthTrend = (\[.*?\]);", text, re.DOTALL)
+    if not match_acc:
+        raise RuntimeError(f"无法解析累计净值: {code}")
+    data_acc = json.loads(match_acc.group(1))
+
+    # 单位净值 — 用于日收益率计算
+    match_unit = re.search(r"var Data_netWorthTrend = (\[.*?\]);", text, re.DOTALL)
+    unit_map = {}
+    if match_unit:
+        for item in json.loads(match_unit.group(1)):
+            ts_ms, unit_nav = item
+            d = datetime.fromtimestamp(ts_ms / 1000).strftime("%Y-%m-%d")
+            unit_map[d] = float(unit_nav)
+
     rows = []
-    for item in data:
+    for item in data_acc:
         ts_ms, acc_nav = item
         d = datetime.fromtimestamp(ts_ms / 1000).strftime("%Y-%m-%d")
-        rows.append({"date": d, "acc_nav": float(acc_nav)})
+        rows.append({
+            "date": d,
+            "acc_nav": float(acc_nav),
+            "unit_nav": unit_map.get(d, None),
+        })
     df = pd.DataFrame(rows)
     df["date"] = pd.to_datetime(df["date"])
     df.sort_values("date", inplace=True)
-    df["daily_return"] = df["acc_nav"].pct_change() * 100
+    df["daily_return"] = df["unit_nav"].pct_change() * 100
     _record_status("nav_history", True, f"{len(df)}条记录", source="scraper")
-    return df
+    return df[["date", "acc_nav", "daily_return"]]
 
 
 def _sc_get_portfolio_holdings(code: str) -> list:

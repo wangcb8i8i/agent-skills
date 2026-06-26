@@ -70,7 +70,9 @@ def _ef_get_nav_history(code: str) -> pd.DataFrame:
     df["date"] = pd.to_datetime(df["date"])
     df["acc_nav"] = pd.to_numeric(df["acc_nav"], errors="coerce")
     df.sort_values("date", inplace=True)
-    df["daily_return"] = df["acc_nav"].pct_change() * 100
+    # 使用单位净值计算日收益率（避免累计净值含历史分红导致分母膨胀）
+    unit_nav = pd.to_numeric(df["单位净值"], errors="coerce")
+    df["daily_return"] = unit_nav.pct_change() * 100
     df = df[["date", "acc_nav", "daily_return"]].dropna(subset=["acc_nav"])
     _record_status("nav_history", True, f"{len(df)}条记录", source="efinance")
     return df

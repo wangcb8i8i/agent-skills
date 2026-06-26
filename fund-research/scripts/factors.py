@@ -77,8 +77,9 @@ def max_drawdown(nav: pd.DataFrame) -> dict:
         if len(w) < 2:
             result[label] = None
             continue
-        peak = w["acc_nav"].cummax()
-        dd = (w["acc_nav"] - peak) / peak
+        cum = (1 + w["daily_return"] / 100).cumprod()
+        peak = cum.cummax()
+        dd = (cum - peak) / peak
         result[label] = round(dd.min() * 100, 2)
     return result
 
@@ -129,23 +130,26 @@ def recovery_time(nav: pd.DataFrame) -> dict:
     w = _window_slice(nav, 756)
     if len(w) < 2:
         return {"3y": None}
-    peak = w["acc_nav"].cummax()
-    dd = (w["acc_nav"] - peak) / peak
+    cum = (1 + w["daily_return"] / 100).cumprod()
+    cum_peak = cum.cummax()
+    dd = (cum - cum_peak) / cum_peak
     max_dd_idx = dd.idxmin()
     if pd.isna(max_dd_idx):
         return {"3y": None}
-    max_dd_row = w.loc[max_dd_idx]
-    dd_start = w.loc[:max_dd_idx][w.loc[:max_dd_idx, "acc_nav"] == w.loc[:max_dd_idx, "acc_nav"].max()]
-    if dd_start.empty:
-        return {"3y": None}
-    dd_start_date = dd_start.index[-1] if isinstance(dd_start.index[-1], pd.Timestamp) else None
-    if dd_start_date is None:
-        dd_start_date = dd_start.iloc[0]["date"]
-    recovery_candidates = w.loc[max_dd_idx:]
-    recovered = recovery_candidates[recovery_candidates["acc_nav"] >= w.loc[max_dd_idx, "acc_nav"]]
+
+    # 最大回撤前的净值最高点（前高）
+    cum_before = cum.loc[:max_dd_idx]
+    peak_val = cum_before.max()
+    peak_idx = cum_before.idxmax()
+    peak_date = w.loc[peak_idx, "date"]
+
+    # 净值回到前高才算恢复
+    after = cum.loc[max_dd_idx:]
+    recovered = after[after >= peak_val]
     if recovered.empty:
         return {"3y": None}
-    days = (recovered.iloc[0]["date"] - dd_start_date).days
+    recovery_date = w.loc[recovered.index[0], "date"]
+    days = (recovery_date - peak_date).days
     return {"3y": days}
 
 
@@ -362,9 +366,10 @@ def calmar_ratio(nav: pd.DataFrame) -> dict:
         if len(w) < 2:
             result[label] = None
             continue
-        ann_ret = (w["acc_nav"].iloc[-1] / w["acc_nav"].iloc[0]) ** (252 / max(len(w), 1)) - 1
-        peak = w["acc_nav"].cummax()
-        dd_series = (w["acc_nav"] - peak) / peak
+        cum = (1 + w["daily_return"] / 100).cumprod()
+        ann_ret = cum.iloc[-1] ** (252 / max(len(w), 1)) - 1
+        cum_peak = cum.cummax()
+        dd_series = (cum - cum_peak) / cum_peak
         max_dd = abs(dd_series.min()) if len(dd_series) > 0 else 0
         if max_dd > 0:
             calmar = ann_ret / max_dd
@@ -397,8 +402,9 @@ def factor_exposure_stability(nav: pd.DataFrame) -> dict:
         skew_shift = abs(skw1 - skw2)
         drift_detail["skew_shift"] = round(skew_shift, 2)
         issues = []
-        if abs(return_shift * 100) > 0.05:
-            issues.append(f"收益均值偏移{return_shift*100:.2f}bp")
+        return_shift_bp = return_shift * 100
+        if return_shift > 0.05:  # 0.05% 日收益偏移 ≈ 12.6% 年化
+            issues.append(f"收益均值偏移{return_shift_bp:.2f}bp")
         if vol_ratio > 1.5:
             issues.append(f"波动率比{vol_ratio:.2f}x")
         if skew_shift > 1.0:
