@@ -1,608 +1,180 @@
 ---
 name: wechat-format
 description: >
-  Convert Markdown to WeChat Official Account (微信公众号) formatted HTML+CSS.
-  Supports illustration embedding via --preview (local preview) or --publish (with
-  publish script trigger). Trigger when the user wants to publish a WeChat article,
-  format Markdown for WeChat, create a WeChat-friendly styled article, or any
-  content that will be pasted into the WeChat Official Account editor. Also trigger
-  when the user mentions mp.weixin.qq.com, 微信排版, or wants "公众号风格" formatting.
-  Use this whenever the output is destined for WeChat MP (公众号) — the formatting
-  rules are very different from web or email HTML.
+  Converts Markdown to self-contained HTML for WeChat Official Account (微信公众号).
+  Triggers on content destined for mp.weixin.qq.com, 微信排版, or 公众号风格 content.
+  Parameters: --preview (default, open browser) or --publish (upload images, create draft).
 ---
 
 # WeChat Format (微信排版)
 
-Converts Markdown into a self-contained HTML file styled for WeChat Official Account articles, with optional illustration embedding.
+Converts Markdown → self-contained HTML styled for WeChat Official Account articles, with optional illustration embedding.
 
 ## Input / Output
 
 | | |
 |---|---|
-| **Input** | Markdown text (standard + extensions below) |
-| **Parameters** | `--preview` (default): local file paths + open browser. `--publish`: trigger `scripts/publish.py`. |
-| **Output** | Single `.html` file, CSS embedded in `<style>`, ready to paste into 微信公众号编辑器. Written to `web-chat-artifacts/<name>.html` (see [Output Path](#output-path)). |
+| **Input** | Markdown text (standard + WeChat extensions) |
+| **Parameters** | `--preview` (default): local image paths + open browser. `--publish`: run `scripts/publish.py`. |
+| **Output** | Single `.html`, CSS embedded in `<style>`, ready to paste into 微信公众号编辑器. Written to `web-chat-artifacts/<name>.html`. |
+
+## Leading Words
+
+| Word | Meaning |
+|------|---------|
+| `style-block` | All CSS in `<style>`, no inline `style=""` except `compat-wrap` transforms. WeChat preserves `<style>`; avoids LLM CSS→inline bugs. Selectors, counters, media queries all work naturally. |
+| `compat-wrap` | Inline `style=""` only for WeChat compatibility transforms. Minimal, element-specific overrides. No theme-level properties (font-family, color, etc.) inline. |
+| `three-gate` | Illustration matching algorithm with 3 branches (auto-match, sequential pair, manual). All converge to user-confirmed mapping table. |
+| `cover-out` | Cover image is API metadata, not article content. Never inserted into body HTML. |
 
 ## Workflow
 
-共 5 个阶段，7 个步骤，按顺序执行。
+5 phases, sequential.
 
 ```
-Phase 1 ─  Target Recognition (参数解析)
+Phase 1 ─ Target Recognition (参数解析)
               ↓
-Phase 2 ─  Illustration Matching (可能跳过)
+Phase 2 ─ Illustration Matching (may skip)
               ↓
-Phase 3 ─  Generate HTML (保留现有 wechat-format 核心逻辑)
+Phase 3 ─ Generate HTML
               ↓
-Phase 4 ─  Illustration Embedding (可能跳过)
+Phase 4 ─ Illustration Embedding (may skip)
               ↓
-Phase 5 ─  Consume (preview / publish)
+Phase 5 ─ Consume (preview / publish)
 ```
 
-### Phase 1 — Target Recognition (目标识别)
+### Phase 1 — Target Recognition
 
-根据传入参数确定消费模式：
+| Parameter | Mode | Behavior |
+|-----------|------|----------|
+| `--preview` | Preview | Local image paths; save HTML then `open` browser |
+| `--publish` | Publish | Local paths; save HTML then run `scripts/publish.py` |
+| (none) | Preview | Same as `--preview` |
 
-| 参数 | 模式 | 行为 |
-|------|------|------|
-| `--preview` | 预览 | 图片用本地绝对路径；保存 HTML 后自动 `open` 浏览器 |
-| `--publish` | 发布 | 图片用本地绝对路径；保存 HTML 后调用 `scripts/publish.py` |
-| 无参数 | 默认预览 | 等同 `--preview` |
+### Phase 2 — Illustration Matching
 
-参数在 skill 调用时传入，例如 `/wechat-format --publish`。
+#### 2a. Ask user
 
-### Phase 2 — Illustration Matching (插图匹配)
+- **Need illustrations** → user provides illustration directory path, go to 2b
+- **No illustrations** → skip to Phase 3
 
-#### 2a. 询问是否需要配图
+#### 2b. Three-Gate Matching (`three-gate`)
 
-向用户确认是否需为文章配图：
-
-- **需要配图** → 用户指定插图信息目录路径，进入 2b
-- **无需配图** → 标记跳过，直接进入 Phase 3
-
-#### 2b. 半自动映射
-
-扫描用户指定的插图信息目录，读取两类文件：
-
-| 文件类型 | 用途 |
-|---------|------|
-| `.prompt` 文件 | 提取 `diagram-slug` 列表（来自 illustration-prompt 产出） |
-| 图片文件 (png/jpg/webp/…) | 待插入的配图文件 |
-
-映射流程：
+Read `.prompt` files (extract `diagram-slug` list, preserve order) and image files (sorted by name).
 
 ```
-Step 1: 解析 .prompt 文件 → 提取 slugs（保持顺序）
-               ↓
-Step 2: 扫描图片文件 → 提取文件名列表（按文件名排序）
-               ↓
-Step 3: 自动匹配 filename == slug
-        后接兜底逻辑，按结果进入三分支：
+Step 1: Parse .prompt → slugs (ordered)
+Step 2: Scan images → filenames (sorted)
+Step 3: Auto-match by filename → three gates:
 ```
 
-自动匹配后，根据匹配结果进入三分支：
+| Condition | Gate |
+|-----------|------|
+| **≥1 auto-match** | Keep matches; pair remaining images & slugs in order 1:1 |
+| **0 match, count(img) == count(slug)** | All paired 1:1 in order (skip filename matching entirely) |
+| **0 match, count(img) ≠ count(slug)** | Fallback: ask user per image which slug it maps to |
 
-| 条件 | 行为 |
-|------|------|
-| **至少 1 条自动匹配** | 已匹配项保留；剩余未匹配的图片和 slug **按顺序 1:1 配对** |
-| **0 条匹配，且图片数 == slug 数** | **全部按顺序 1:1 一一对应**（完全跳过文件名匹配） |
-| **0 条匹配，且图片数 ≠ slug 数** | 回退：逐张询问每张图片对应哪个 slug |
-
-三分支汇合后统一进入 Step 4：
-
-```
-               ↓
-Step 4: 无论哪种分支，产出完整映射表后
-        统一进入用户确认（见下文「映射表确认交互」）
-```
-
-#### 2c. 构建映射表
-
-产出配图映射表，供 Phase 4 使用：
-
-```json
-[
-  {
-    "slug": "leader-election",
-    "img_path": "/absolute/path/to/leader-election.png",
-    "prompt_location": "第 2 节 · Leader Election 首次出现段落后",
-    "match_method": "auto"
-  }
-]
-```
-
-其中：
-- `prompt_location` 直接从 `.prompt` 文件的 `Context` 区块中的"所处位置"字段读取
-- `match_method` 标记配对方式：`"auto"`（文件名自动匹配）或 `"paired"`（兜底顺序配对）或 `"manual"`（逐张询问回退）
-
-#### 映射表确认交互
-
-三种分支汇合后，产出完整映射表，统一展示给用户确认：
+All branches converge to mapping table → user confirmation:
 
 ```
 📄 配图映射确认（共 N 张图）
-
   顺序 │ 图片             │ 匹配方式  │ 插入位置
   ─────┼──────────────────┼──────────┼───────────────────────
    1   │ leader-election  │ 自动匹配  │ 第 2 节 · Leader Election
-   2   │ log-replication  │ 序列配对  │ 第 3 节 · Log Replication
-  ...
 
-  操作：
-    Enter      → 全部确认，进入 2d
-    swap 1 3   → 交换第 1 张和第 3 张的位置
-    move 2 4   → 将第 2 张移到第 4 张之后
-    remove 3   → 移除第 3 张图（不删除文件）
-    done       → 确认并进入 2d
+  Enter      → confirm all
+  swap 1 3   → swap images
+  move 2 4   → move image
+  remove 3   → remove image
+  done       → confirm and proceed
 ```
 
-用户确认后进入 2d 封面图识别。
+#### 2c. Build Mapping Table
 
-#### 2d. 封面图识别
-
-构建映射表后，自动尝试识别封面图：
-
-1. 检查配图目录是否包含独立封面图（以 `cover` 命名的文件，如 `cover.png`、`cover.jpg`）
-2. 如无独立封面，将映射表**第一张图片**标记为封面候选
-3. 展示给用户确认/替换封面，确认后记录到映射表
-
-此信息将在 Phase 3 以 `<!--wechat-cover:...-->` 标记写入 HTML，供 publish.py 读取。
-
-### Phase 3 — Generate HTML (HTML 生成)
-
-采用**混合样式策略**：`<style>` 块保留上下文选择器（父子/兄弟/伪类），`style=""` 仅用于元素级非默认值覆盖。
-
-1. 理解内容语气、类型 → 推荐主题（用户确认）
-2. 分析内容结构 → 识别语义单元（callout、danger card、flow-list 等）
-3. 渲染 Markdown → HTML
-4. 加载主题 CSS → 解析所有 CSS 变量/函数为具体值 → 输出 `<style>` 块（上下文选择器）+ `style=""`（元素级覆盖）
-5. 执行微信兼容性转换（Mermaid 包装、tspan 等）
-
-#### 步骤 4 详细规则
-
-**A. `<style>` 块保留的内容：**
-
-| 保留类别 | 示例 | 理由 |
-|---------|------|------|
-| 父子选择器 | `blockquote > p { margin: 0 }` | LLM 无法在独立 `<p>` 的 `style=""` 中表达"父元素是 blockquote" |
-| 相邻兄弟选择器 | `p + p { margin-top: 12px }` | 内联后每个 `<p>` 无法知道前一个元素 |
-| 伪类/伪元素 | `:first-child`, `::before` | 内联不支持 |
-| CSS 计数器 | `counter-reset`, `counter-increment` | 内联不支持 |
-| 媒体查询 | `@media (prefers-color-scheme: dark)` | 内联无法表达条件样式 |
-| 主题级全局样式 | `#output { font-family }`, `#output h2 { background }` | 批量生效比逐个内联更可靠 |
-
-**B. `style=""` 内联覆盖的规则：**
-
-仅当以下情况时在元素上写 `style=""`：
-
-- 元素级的**非默认值**（如 `<hr>` 的自定义颜色）
-- 与相邻元素不同的**异例值**（如某段特殊对齐）
-- 必须精确控制且无法通过选择器表达的样式
-
-**C. CSS 变量/函数解析：**
-
-无论 `<style>` 还是 `style=""`，所有 `var()`, `hsl()`, `color-mix()`, `calc()` 必须预先解析为具体值：
-
-```
-var(--md-primary-color)  →  #0F4C81
-hsl(0, 0%, 20%)          →  #333333
-color-mix(in srgb, ...)  →  rgba(...)    (见 color-mix 解析方法)
-calc(16px * 1.4)         →  22.4px
+```json
+[{"slug": "leader-election", "img_path": "/abs/path.png", "prompt_location": "...", "match_method": "auto"}]
 ```
 
-#### 步骤 3 补充：图片处理
+`match_method`: `"auto"` / `"paired"` / `"manual"`
 
-渲染 Markdown 中的图片时：
+#### 2d. Cover Detection (`cover-out`)
 
-- **远程 URL**（http/https）：直接透传，`http://` → `https://` 归一化。**禁止**将远程图片替换为懒加载占位符或 SVG placeholder
-- **本地路径**：标记为待嵌入，走 Phase 4 配图嵌入流程
+Cover is API metadata, not body content:
 
-此阶段产出的 HTML **不含图片**，但需在 `<head>` 中注入 publish 标记：
+1. Check for independent cover file (`cover.png` / `cover.jpg` / etc.)
+2. If none, mark first mapped image as cover candidate and **remove from mapping table**
+3. Show to user for confirmation/replacement
+
+Output (cover path separate from mapping):
+
+```json
+{"mapping": [/* body images only */], "cover_img_path": "/abs/path/cover.png"}
+```
+
+Cover path written as `<!--wechat-cover:...-->` in HTML (Phase 3) for publish.py.
+
+### Phase 3 — Generate HTML
+
+**`style-block` approach**: semantic HTML + class names, all styles in `<style>` block. Inline `style=""` only for `compat-wrap` transforms.
+
+1. Understand content tone → recommend [theme](references/themes.md) (user confirms)
+2. Analyze structure → identify semantic units — see [components guide](references/components.md)
+3. Render Markdown → semantic HTML with classes — see [syntax reference](references/syntax-reference.md)
+4. Load theme CSS → resolve all CSS functions (`var()`, `hsl()`, `color-mix()`, `calc()`) to concrete values → output `<style>` block
+   - `<style>` in `<head>`, duplicated at `<body>` start for WeChat fallback
+5. Apply [compatibility transforms](references/compatibility.md) (Mermaid SVG wrap, tspan color, dominant-baseline→dy, image sizing)
+6. Post-process: clean empty elements, validate against [quality checklist](references/quality-checklist.md)
+
+**Image handling**: Remote URLs pass through, `http://` → `https://`. No lazy-load placeholders. Local paths marked for Phase 4.
+
+**Metadata comments** in `<head>`:
 
 ```html
-<!--wechat-title:文章标题-->
-<!--wechat-digest:文章摘要（正文前 120 字符）-->
-<!--wechat-cover:/absolute/path/to/cover.png--><!--如 Phase 2d 识别到封面-->
+<!--wechat-title:{title (first h1, max 64 chars)}-->
+<!--wechat-digest:{first 120 chars of body, stripped of markup}-->
+<!--wechat-cover:{path}--><!-- only if Phase 2d found a cover -->
 ```
 
-- **标题**: 取 Markdown 的第一个 `# `（最多 64 字）
-- **摘要**: 取正文前 120 字符（去除 Markdown 标记，若截断点在汉字中间则以字符为准）
-- **封面**: 仅当 Phase 2d 识别到封面候选时注入，否则不生成此标记
+### Phase 4 — Illustration Embedding
 
-publish.py 会在上传图片和创建草稿前提取并移除这些标记，最终提交给 draft API 的内容不含这些标记。
+Only runs if Phase 2 produced a mapping. Skip otherwise.
 
-#### 步骤 6：输出后处理
+#### 4a. LLM Infers Insertion Positions
 
-在写出 HTML 前执行：
+Input: full HTML + mapping table (no cover image).
 
-1. **清洗空元素**：删除所有无文本内容的空 `<li>`、`<p>` 标签（不包含子元素且 `textContent.trim() === ""`）
-2. **验证 figcaption**：确认每张配图的 `<figcaption>` 非空、字号 ≥ `0.85em`、色值 ≥ `rgba(51,51,51,0.70)`
-3. **验证列表**：有序列表的 `<ol>` 必须关联 CSS counter（检查 `<style>` 中包含 `counter-increment` 定义），禁止裸 `<span>` 手写编号
+Process: read `.prompt` position presets → cross-reference HTML structure → infer insertion points.
 
-### Phase 4 — Illustration Embedding (配图嵌入)
+Constraints:
+- Don't modify original text
+- Each image: `<figure><img src="local-path"><figcaption>caption</figcaption></figure>`
+- `figcaption`: font-size ≥ 0.85em, color ≥ rgba(51,51,51,0.70), centered
+- **Cover never inserted** (`cover-out`)
 
-仅在 Phase 2 用户指定了配图时执行，否则跳过。
-
-#### 4a. LLM 推断插入位置
-
-基于映射表 + HTML 完整结构，由 LLM 自行推断每张图的插入位置：
-
-```
-输入:
-  - 完整 HTML（不含图的结构化内容）
-  - 映射表 [{slug, img_path, prompt_location}, ...]
-
-过程:
-  1. 读取 .prompt 中每张图的位置预设（自然语言描述）
-  2. 对照 HTML 中各标题/段落/列表结构
-  3. 推断每张图应插入在哪个元素之后
-
-约束:
-  - 不修改原文文字内容
-  - 每张图生成 <figure><img src="本地路径"><figcaption>图注文字</figcaption></figure>
-  - src 使用本地绝对路径（file:/// 或绝对路径均可）
-  - figcaption 内容取映射表中 prompt_location 字段
-```
-
-- **figcaption 样式约束**：字号 ≥ `0.85em`，色值 ≥ `rgba(51,51,51,0.70)`，居中对齐
-
-#### 4b. 展示确认
-
-展示合并结果供用户确认：
+#### 4b. Confirmation
 
 ```
 📄 已为 3 张配图定位并插入 HTML：
+  ✓ leader-election  → 插入在「## Leader Election」段落后
+  ✓ log-replication  → 插入在「## Log Replication」段落后
 
-  ✓ leader-election   → 插入在「## Leader Election」段落后
-  ✓ log-replication   → 插入在「## Log Replication」段落后
-  ✓ pre-vote-compare  → 插入在「Pre-Vote 与基础选主对比」段落后
-
-请确认或调整：
-  - 位置不对 → 描述需要如何调整
-  - 跳过某张 → 移除该图
-  - 全部确认 → 进入消费阶段
+  全部确认 → 进入消费阶段
 ```
 
-### Phase 5 — Consume (消费产出)
-
-| 模式 | 行为 |
-|------|------|
-| `--preview` | 保存 HTML 到 `web-chat-artifacts/<name>.html` |
-| `--publish` | 1. 保存 HTML 到 `web-chat-artifacts/<name>.html`<br>2. 调用 `scripts/publish.py <html_path>`<br>3. publish.py 上传配图 → 创建草稿 → **删除 HTML 文件** |
-
-两种模式下图片 URL 均使用本地绝对路径。publish 模式下由 `publish.py` 完成图片上传、草稿创建和产物清理。
-
-## Syntax Reference
-
-### Standard GFM
-
-所有元素使用混合样式策略（见 Phase 3 步骤 4）：上下文选择器在 `<style>` 块中，元素级覆盖用 `style=""`。`Output element` 列标明哪个标签接收样式。
-
-| Element | Syntax | Output element |
-|---------|--------|-------------|
-| Heading | `#` ~ `######` | `h1` ~ `h6` |
-| Paragraph | plain text | `p` |
-| Bold | `**text**` | `strong` |
-| Italic | `*text*` | `em` |
-| Inline code | `` `code` `` | `codespan` |
-| Code block | ```` ```lang ```` | `pre.code__pre > code.language-{lang}` |
-| Link | `[text](url)` | `<a>` |
-| Image | `![alt](url)` | `<figure><img>` |
-| Image + size | `![alt\|300x200](url)` | `<img width="300" height="200">` |
-| Ordered list | `1. item` | `ol > li.listitem` |
-| Unordered list | `- item` | `ul > li.listitem` |
-| Table | GFM pipe table | `table.preview-table > thead/th/tr/td` |
-| Blockquote | `> text` | `blockquote` |
-| HR | `---` / `***` / `___` | `hr.hr-dash` / `hr-star` / `hr-underscore` |
-
-All `<img>` elements **must** include these inline styles: `display: block; max-width: 100%; margin: 0.1em auto 0.5em; border-radius: 6px;`. No `!important` on regular content images — reserve `!important` only for WeChat compatibility transforms (tspan colors, image dimension overrides).
-
-### WeChat Extensions
-
-#### Text Markup
-```
-==highlight==      → <span class="markup-highlight">   (黄底/主题色底白字)
-++underline++      → <span class="markup-underline">   (主题色下划线)
-~wavyline~         → <span class="markup-wavyline">    (主题色波浪线)
-```
-
-#### Ruby Annotation (注音)
-```
-[文字]{zhù yīn}
-[文字]^(zhu yin)
-```
-→ `<ruby>` tag; use `・` `．` `。` `-` to split multi-char ruby.
-
-#### GFM Alerts / Obsidian Callouts
-```
-> [!NOTE]     > [!TIP]      > [!IMPORTANT]  > [!WARNING]  > [!CAUTION]
-> [!ABSTRACT] > [!SUMMARY]  > [!TODO]       > [!SUCCESS]  > [!DONE]
-> [!QUESTION] > [!HELP]     > [!FAILURE]    > [!DANGER]   > [!ERROR]
-> [!BUG]      > [!EXAMPLE]  > [!QUOTE]      > [!CITE]     > [!INFO]
-```
-
-Each renders as:
-```html
-<blockquote class="markdown-alert markdown-alert-{type}">
-  <p class="markdown-alert-title alert-title-{type}"><svg icon>Title</p>
-  content...
-</blockquote>
-```
-
-Container variant:
-```
-::: note
-content
-:::
-```
-
-#### Image Slider
-```
-<![alt1](url1),![alt2](url2),![alt3](url3)>
-```
-→ Horizontal scroll container with `<img>` and `<<< 左右滑动看更多 >>>` hint.
-
-#### LaTeX (KaTeX)
-```
-行内: $E=mc^2$
-块级: $$E=mc^2$$
-```
-
-#### Diagrams
-````
-```mermaid
-graph TD; A-->B;
-```
-```plantuml
-@startuml
-A -> B
-@enduml
-```
-```infographic
-```
-````
-→ Rendered as SVG, embedded inline. PlantUML uses `inlineSvg: true` mode specifically for WeChat.
-
-#### Footnotes
-```
-text[^1]
-[^1]: description
-```
-→ Superscript `[n]` in text, collected at bottom in `<p class="footnotes">`.
-
-#### Table of Contents
-```
-[TOC]
-```
-
-#### Diff Code Blocks
-````
-```diff-js
-+ console.log('added')
-- console.log('removed')
-```
-````
-→ `+` lines green bg, `-` lines red bg, rest normal highlight.
-
-#### Code Block Decorations
-Code blocks always include the macOS traffic-light SVG:
-```html
-<span class="mac-sign"><svg>🔴🟡🟢</svg></span>
-```
-And use highlight.js syntax highlighting with class-based tokens.
-
-### Custom Components (JSX-style)
-
-Syntax: `<ComponentName prop="value" />` (PascalCase, self-closing or open-close).
-
-| Component | Purpose | Key props |
-|-----------|---------|-----------|
-| `<MpProfile />` | WeChat account card | `mpId` `nickname` `headimg` `signature` `serviceType` `verifyStatus` |
-| `<QRCodeBlock />` | QR code image | `url` `text="扫码访问"` `size=150` |
-| `<AuthorBlock />` | Author info card | `name` `avatar` `bio` |
-| `<TipBlock />` | Info/warning box | `type=info/success/warning/danger` `title` `content` |
-| `<TableBlock />` | Advanced table | `headers='["A","B"]'` `rows='[["a","b"]]'` `striped=true` `caption` |
-| `<InfoGrid />` | Key-value grid | `items='[{"label":"","value":""}]'` `cols=2` |
-| `<BadgeGroup />` | Tag badges | `tags='["tag1","tag2"]'` `color="#07c160"` |
-
-Components use CSS variables for colors (fallbacks provided). **TipBlock** has 4 color variants:
-- `info` → blue `#1890ff`
-- `success` → green `#52c41a`
-- `warning` → yellow `#faad14`
-- `danger` → red `#ff4d4f`
-
-Component templates are inline styles + CSS variables. These use `--md-comp-*` variables:
-- `--md-comp-bg`: component background (default `#fff`)
-- `--md-comp-bg-secondary`: secondary bg (`#f5f5f5`)
-- `--md-comp-bg-stripe`: stripe bg (`#fafafa`)
-- `--md-comp-text-primary`: primary text (`#333`)
-- `--md-comp-text-secondary`: secondary text (`#666`)
-- `--md-comp-text-tertiary`: tertiary text (`#999`)
-- `--md-comp-border-default`: border (`#e0e0e0`)
-- `--md-comp-border-light`: light border (`#eee`)
-
-## Theme System
-
-Four themes available in `references/`. Each theme file is self-contained, using CSS variables for user-customizable values. The `birch` theme is inspired by the Birch HTML design system, featuring a warm ivory background, serif headings for publication feel, and a clean spacing scale.
-
-### CSS Variables to Resolve
-
-When generating the final HTML, resolve these variables to concrete values (user-configured or defaults):
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `--md-primary-color` | `#0F4C81` | Theme accent color (titles, borders, highlights) |
-| `--md-font-family` | `-apple-system-font, BlinkMacSystemFont, ...` | Article font stack |
-| `--md-font-size` | `16px` | Base font size |
-| `--foreground` | (from theme) | Text color |
-| `--blockquote-background` | (from theme) | Blockquote bg |
-| `--text-muted` | `#87867F` | Muted/secondary text color (figcaptions, footnotes) |
-| `--code-bg` | `#F6F0E8` | Code block warm background |
-
-**Theme names and file mapping:**
-
-| Theme | File | Credits |
-|-------|------|---------|
-| `default` (经典) | `references/theme-default.css` | Core |
-| `grace` (优雅) | `references/theme-grace.css` | @brzhang |
-| `simple` (简洁) | `references/theme-simple.css` | @okooo5km |
-| `birch` (Birch 灵感) | `references/theme-birch.css` | Birch design system |
-
-### Theme Recommendation Guidance
-
-Match content type to theme when recommending:
-
-| If the content is... | Recommend | Rationale |
-|----------------------|-----------|-----------|
-| Formal analysis, announcements, long-form serious reading | **default** | Blue accent + structured headings convey trust, fit dense text |
-| Lifestyle, culture, design, personal stories, creative | **grace** | Soft shadows + rounded corners feel warm and approachable |
-| Technical docs, quick tutorials, code-heavy, minimalist | **simple** | Clean lines reduce visual noise for focused reading |
-| Thoughtful essays, narrative, publication-quality long reads | **birch** | Serif headings + warm ivory background feel like a print magazine |
-
-Always explain your recommendation in one sentence, then briefly list alternatives so the user can confirm or override.
-
-## Content Structuring Guide
-
-After theme selected, analyze the Markdown body to identify key semantic units that deserve visual emphasis beyond standard GFM.
-
-### Component Mapping Table
-
-| When you find... | Use this component | Example |
-|------------------|-------------------|---------|
-| The article's core thesis or central question | `.callout` with `.callout-label` | "当编码不再是稀缺资源，靠编码吃饭的人该怎么办？" |
-| A critical warning, urgent risk to highlight | `.card.card-danger` | "不是 AI 会取代你，而是 AI 产出了一堆你理解不了的东西" |
-| A key quote or standalone insight worth emphasizing | `.card.card-filled` with larger serif text | "LLM 不会恐惧复杂度。而且它是史上最高产的程序员。" |
-| A set of sequential steps, numbered principles, or action items | `<ol class="flow-list">` with `.flow-step` + `.flow-num` | 四条行动原则 / 三步操作指南 |
-| Final takeaways, conclusions, or dual insights | `<ul class="insight-list">` with `.insight-marker` | 结尾两个金句收束 |
-
-### Rules
-
-- **Do not overuse**: Each `<section>` should contain at most one special component (callout or card). If everything is emphasized, nothing is.
-- **Ordinary narrative stays as `<p>`**: Only elevate the 2–5 most critical information nodes in the entire article.
-- **Flow list for numbered sequences only**: Use `.flow-list` when the Markdown has an ordered list that represents sequential steps, not arbitrary numbered items. When the list represents key principles, core capabilities, or takeaways that need step-like emphasis, prefer `.flow-list` over plain `<ol>` with custom text markers — the component's numbered badge is visually distinct from ordinary bold text.
-- **Plain ordered list**: Use CSS counters in the `<style>` block for custom numbering. Do NOT use `<span>` text markers — CSS counters are more reliable, accessible, and avoid empty `<li>` spacer elements. The `<style>` block must contain `ol { counter-reset: item; } li.listitem { counter-increment: item; } li.listitem::before { content: counter(item); }` (styled per theme).
-- **Insight list for takeaways only**: Use at the end of an article or a major section to list key conclusions.
-- **Never nest components** inside each other.
-
-### Heading Style Overrides
-
-In addition to the theme, users can configure per-level heading styles:
-
-| Style | CSS output |
-|-------|-----------|
-| `default` | Theme default |
-| `color-only` | `color: var(--md-primary-color)` |
-| `border-bottom` | `border-bottom: 2px solid var(--md-primary-color)` |
-| `border-left` | `border-left: 4px solid var(--md-primary-color)` |
-
-These are applied AFTER the theme CSS (higher specificity: `#output section h1`).
-
-⚠️ **Heading margin rule**: When applying heading overrides, preserve the theme's left/right margin strategy. Use `margin: {top} auto {bottom}` for centered headings, or `{top} 0 {bottom}` for left-aligned. Never use arbitrary pixel values like `8px` for left/right margins — they create an unintentional indent that doesn't align with the rest of the content.
-
-### Typography Notes
-
-The `birch` theme and all enhanced themes share these typography improvements for a more refined reading experience:
-
-- **Serif headings** (`h1`–`h3`): Use `Georgia, "Times New Roman", "PingFang SC", serif` for a publication feel. Body text remains sans-serif for comfort on mobile.
-- **Text rendering**: `-webkit-font-smoothing: antialiased` + `text-rendering: optimizeLegibility` for sharper characters.
-- **Spacing rhythm**: Standardized vertical spacing — `h2` gets `margin-top: 32px`, each `<p>` gets `margin-bottom: 0.75em` to create visible paragraph breaks. Do NOT use `margin: 0` on body paragraphs — that collapses visual separation between blocks of text. Blockquote-internal `<p>` still uses `margin: 0`.
-- **Muted text color**: `rgba(51, 51, 51, 0.70)`（≈ `#6E6E6E`）for figcaptions, footnotes, and secondary content. Figcaption minimum font size: `0.85em`. Figcaption minimum color: `rgba(51, 51, 51, 0.70)` (WCAG AA ≈ 4.8:1 contrast).
-
-Apply these patterns even when users don't explicitly opt in — they're universal readability improvements.
-
-### User Customization Options
-
-When the user provides or you infer preferences:
-
-| Option | Values |
-|--------|--------|
-| Font | sans-serif / serif / monospace (see font stacks below) |
-| Font size | 14px / 15px / 16px / 17px / 18px |
-| Primary color | 12 presets: classic blue `#0F4C81`, emerald `#009874`, orange `#FA5151`, yellow `#FECE00`, lavender `#92617E`, sky blue `#55C9EA`, rose gold `#B76E79`, olive `#556B2F`, graphite `#333333`, smoke `#A9A9A9`, sakura pink `#FFB7C5` |
-| Paragraph indent | `text-indent: 2em` on `#output p` (boolean) |
-| Text justify | `text-align: justify` on `#output p` (boolean) |
-| Line numbers | On code blocks (boolean) |
-| Code block theme | Any highlight.js theme (e.g., `github`, `monokai-sublime`, `atom-one-dark`) |
-
-Font stacks:
-- **Sans-serif**: `-apple-system-font, BlinkMacSystemFont, Helvetica Neue, PingFang SC, Hiragino Sans GB, Microsoft YaHei UI, Microsoft YaHei, Arial, sans-serif`
-- **Serif**: `Optima-Regular, Optima, PingFangSC-light, PingFangTC-light, 'PingFang SC', Cambria, Cochin, Georgia, Times, 'Times New Roman', serif`
-- **Monospace**: `Menlo, Monaco, 'Courier New', monospace`
-
-## WeChat Compatibility Transforms
-
-Applied during Phase 3. Each transform is a lossless equivalence — browser rendering is unchanged.
-
-### Mermaid SVG Wrap
-
-WeChat strips bare `<svg>`. Wrap in `<section>` to preserve.
-
-```
-Before: <div class="mermaid-diagram"><svg ...>...</svg></div>
-After:  <div class="mermaid-diagram"><section style="max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch"><svg ...>...</svg></section></div>
-```
-
-Apply to all `<svg>` inside any element with class `mermaid-diagram`.
-
-### SVG Text Color
-
-WeChat overwrites `<tspan>` fill color. Force with `!important`.
-
-```
-Before: <tspan class="...">text</tspan>
-After:  <tspan class="..." style="fill:#333333!important;color:#333333!important;stroke:none!important">text</tspan>
-```
-
-If `<tspan>` already has `style`, append these declarations.
-
-### SVG dominant-baseline → dy
-
-WeChat X5 kernel and Safari don't support `dominant-baseline`. Replace with equivalent `dy` offset.
-
-| Value | dy |
-|-------|-----|
-| `hanging` | `-0.55em` |
-| `central` | `0.35em` |
-| `middle` | `0.35em` |
-| `alphabetic` | *(remove attr, no dy)* |
-| `ideographic` | `0.18em` |
-| `text-before-edge` | `-0.85em` |
-| `text-after-edge` | `0.15em` |
-
-```
-Before: <text dominant-baseline="hanging" x="0" y="0">text</text>
-After:  <text dy="-0.55em" x="0" y="0">text</text>
-```
-
-### Image Sizing → Inline Style
-
-WeChat strips `width`/`height` attributes but respects inline `style`.
-
-- Pure number (e.g., `300`) → `300px`
-- Non-numeric (e.g., `50%`) → preserved
-- Remove original attribute
-- Append to existing `style` if present
-
-```
-Before: <img src="..." width="300" height="200">
-After:  <img src="..." style="width:300px;height:200px">
-```
+### Phase 5 — Consume
+
+| Mode | Behavior |
+|------|----------|
+| `--preview` | Save to `web-chat-artifacts/<name>.html` |
+| `--publish` | 1. Save to `web-chat-artifacts/<name>.html`<br>2. Run `scripts/publish.py <html_path>`<br>3. publish.py uploads images → creates draft → **deletes HTML file** |
 
 ## Output Path
 
 | | |
 |---|---|
-| **Directory** | `web-chat-artifacts/` — created as a subdirectory of the directory containing the input Markdown file |
-| **Filename** | `{input-stem}.html` — same stem as the input file, with `.html` extension |
-| **Auto-create** | Create the `web-chat-artifacts/` directory if it does not exist |
-
-Examples:
-
-| Input | Output |
-|-------|--------|
-| `articles/deep-dive.md` | `articles/web-chat-artifacts/deep-dive.html` |
-| `./my-post.md` | `./web-chat-artifacts/my-post.html` |
-| `docs/tutorials/guide.md` | `docs/tutorials/web-chat-artifacts/guide.html` |
+| **Directory** | `web-chat-artifacts/` — sibling to the input Markdown file |
+| **Filename** | `{input-stem}.html` |
+| **Auto-create** | Create directory if it does not exist |
 
 ## Output Template
 
@@ -613,19 +185,15 @@ Examples:
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{article title}</title>
-<!--wechat-title:{文章标题}--><!-- Phase 3 注入，publish.py 提取后移除 -->
-<!--wechat-digest:{文章摘要}-->
-<!--wechat-cover:{封面图本地路径}--><!-- 仅当 Phase 2d 识别到封面时注入 -->
+<!--wechat-title:{标题}--><!-- publish.py extracts and removes these -->
+<!--wechat-digest:{摘要}-->
+<!--wechat-cover:{封面路径}--><!-- only if Phase 2d -->
 </head>
-<body style="background:{resolved-theme-bg-color};">
+<body>
 <div id="output">
-  <section class="container mx-auto">
-
-    <!-- first h1 stripped: title is managed by WeChat editor, not pasted into body -->
-    <!-- 混合样式策略：<style> 上下文选择器 + style="" 元素级覆盖，由 Phase 3 步 4 解析主题 CSS 后输出 -->
-    {rendered HTML content}
-    {footnotes block if any}
-
+  <section>
+    <!-- first h1 stripped: title managed by WeChat editor -->
+    {rendered content}
   </section>
 </div>
 </body>
@@ -633,6 +201,7 @@ Examples:
 ```
 
 ### Footnotes Block
+
 ```html
 <h4>引用链接</h4>
 <p class="footnotes">
@@ -641,104 +210,61 @@ Examples:
 </p>
 ```
 
-### color-mix Resolution
+## Caveats Summary
 
-Since WeChat X5 Blink kernel does not support CSS `color-mix()`, each `color-mix()` call must be pre-computed to `rgba()` before output.
+WeChat's X5 Blink kernel has specific behaviors. Key constraints:
 
-**Calculation method** for `color-mix(in srgb, color1 p1, color2 p2)`:
+| # | Rule |
+|---|------|
+| 1 | **No CSS functions at runtime**: resolve `var()`, `hsl()`, `color-mix()`, `calc()` before output |
+| 2 | **No external resources**: all inline `<style>`, no `@import`, no webfonts |
+| 3 | **`<style>` in `<body>`**: WeChat may strip `<head>` styles — duplicate a copy before content |
+| 4 | **Tables need scroll wrapper**: `<section style="max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch">` |
+| 5 | **`color-mix()` unsupported**: pre-compute to `rgba()` — see [method](references/caveats.md#color-mix-resolution) |
 
-1. Parse both color values to sRGB components `(r1, g1, b1)` and `(r2, g2, b2)` in 0–1 range
-2. Normalize percentages: `t = p1 / (p1 + p2)` (if only one percentage given, the other is `100% - p1`)
-3. Interpolate each channel: `result = c1 × t + c2 × (1 - t)`
-4. Convert back to `rgba(r, g, b, a)`, where each channel is rounded to integer 0–255
+See [full caveats](references/caveats.md) for all 11 items (dark mode, code block copy safety, link handling, image sizing, etc.).
 
-**Example**:
+## Reference Files
 
-```css
-/* Source */
---color: color-mix(in srgb, #0F4C81 10%, white);
-/* Resolved */
---color: rgba(229, 237, 244, 1);
-```
-
-(即使主题 CSS 当前未使用 `color-mix()`，此方法适用于用户自定义配置或未来主题更新。)
-
-## WeChat-Specific Caveats
-
-These are critical — WeChat's rendering engine (X5 Blink) has unique behaviors:
-
-1. **No CSS functions or variables**: Resolve all of these before output:
-   - `var(--md-*)` → concrete value (e.g., `var(--md-primary-color)` → `#0F4C81`)
-   - `hsl(var(--foreground))` → hex or static hsl (e.g., `hsl(0, 0%, 20%)` → `#333333`)
-   - `color-mix(in srgb, ...)` → pre-computed `rgba()` (see [color-mix resolution](#color-mix-resolution))
-   - `calc(var(--md-font-size) * 1.4)` → concrete px (e.g., `calc(16px * 1.4)` → `22.4px`)
-
-2. **No external resources**: All CSS must be inline `<style>`. No external stylesheets, no `@import`, no webfonts. Images must use absolute URLs to hosted images (use the user's configured image hosting).
-
-3. **`overflow-x: scroll` works**: The horizontal slider pattern uses WeChat-compatible `section` layout with `-webkit-overflow-scrolling: touch`. The scroll hint text `<<< 左右滑动看更多 >>>` is important — WeChat users need this cue.
-
-4. **`<section>` is your friend**: WeChat's editor strips many HTML tags but preserves `<section>`, `<p>`, `<span>`, `<img>`, `<a>`, `<blockquote>`, `<table>`, `<ul>/<ol>/<li>`, `<pre>/<code>`, `<h1>`-`<h6>`, `<figure>`, `<hr>`, `<ruby>`. Use these.
-
-5. **`<style>` inside `<body>`**: WeChat _may_ strip `<style>` from `<head>`. To be safe, you can place a `<style>` tag inside `<body>` (before the content), but preferably keep it in `<head>` — most modern WeChat WebViews handle this.
-
-6. **Tables need scroll wrapper**: Always wrap tables in `<section style="max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch">` for mobile.
-
-7. **Links to mp.weixin.qq.com**: Keep as normal `<a>` tags. External links should include `target="_blank"` or use the footnote system (superscript + bottom list).
-
-8. **Code block copy safety**: Use `user-select:none` on the macOS traffic-light dots so they don't copy with the code. Use `user-select:all` or nothing on the actual code.
-
-9. **Image sizing**: The `![alt|widthxheight](url)` extension is non-standard Markdown. The renderer extracts dimensions and sets `width`/`height` attributes on `<img>`.
-
-10. **Dark mode**: Each theme should provide dark mode styles via `prefers-color-scheme: dark`. The component system uses CSS variables with light fallbacks — dark mode overrides these.
-
-11. **`color-mix()` not supported**: WeChat X5 Blink kernel does not support CSS `color-mix()`. When resolving the theme CSS for final output, replace every `color-mix()` call with a pre-computed `rgba()` value. See the [color-mix Resolution](#color-mix-resolution) section above for the calculation method.
+| When you need... | File |
+|------------------|------|
+| GFM + WeChat extension syntax (text markup, alerts, diagrams, etc.) | [syntax-reference.md](references/syntax-reference.md) |
+| Custom components (JSX-style) + content structuring guide | [components.md](references/components.md) |
+| Theme selection, CSS variables, customization options | [themes.md](references/themes.md) |
+| WeChat compatibility transforms (SVG wrap, tspan, etc.) | [compatibility.md](references/compatibility.md) |
+| All 11 WeChat caveats + color-mix resolution | [caveats.md](references/caveats.md) |
+| Output quality checklist | [quality-checklist.md](references/quality-checklist.md) |
 
 ## Scripts
 
 ### publish.py
 
-位于 `scripts/publish.py`，通过微信公众号 API 上传配图并替换 HTML 中的本地路径为远程 URL。
+`scripts/publish.py` — upload images via WeChat API, create draft.
 
 ```
-$ python scripts/publish.py <html_path>              # 覆盖原文件
-$ python scripts/publish.py <html_path> -o out.html  # 输出到新文件
-$ python scripts/publish.py <html_path> --dry-run    # 仅预览，不上传
+$ python scripts/publish.py <html_path>               # overwrite original
+$ python scripts/publish.py <html_path> -o out.html   # output to new file
+$ python scripts/publish.py <html_path> --dry-run     # preview only
 ```
 
-工作流：
-1. 从 `.env` 读取 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET`
-2. 扫描 HTML 中 `<img src="本地路径">` 的图片
-3. 自动压缩图片至 ≤1MB（`/cgi-bin/media/uploadimg` 的规格限制）
-4. 调用微信 API 上传，获取 `https://mmbiz.qpic.cn/...` URL
-5. 替换 HTML 中的 src 并写出
+Workflow:
+1. Read `WECHAT_APP_ID` / `WECHAT_APP_SECRET` from `.env`
+2. Scan HTML for local `<img src="...">` paths
+3. Auto-compress images to ≤1MB (WeChat upload limit)
+4. Upload via WeChat API, get `https://mmbiz.qpic.cn/...` URL
+5. Replace local src paths, write output
 
-依赖：`httpx`（必需）、`Pillow`（可选，自动压缩）、`python-dotenv`（可选）
+Dependencies: `httpx` (required), `Pillow` (optional, auto-compress), `python-dotenv` (optional)
 
 ### .env
 
-位于 `scripts/.env`，`.gitignore` 忽略。用于存储微信公众号 API 凭证：
+`scripts/.env` (gitignored):
 
 ```
 WECHAT_APP_ID=wx_xxx
 WECHAT_APP_SECRET=xxx
 WECHAT_AUTHOR=作者名
-WECHAT_PROXY=http://127.0.0.1:7890    # 代理（可选）
+WECHAT_PROXY=http://127.0.0.1:7890    # proxy (optional)
 ```
 
-`scripts/.env.example` 为模板文件，不含真实密钥。
-
-## Output Quality Checklist
-
-Before saving the final HTML, verify every item below. These are the most commonly missed issues in the generated output.
-
-- [ ] **Paragraph spacing**: Every `<p>` outside blockquote has `margin-bottom: 0.75em`. No `margin: 0` on body paragraphs. Blockquote-internal `<p>` uses `margin: 0` (controlled by `<style>` block).
-- [ ] **No trivial reset properties**: Inline styles omit `visibility: visible`, `display: block` on block-level elements (`p`, `h1`–`h6`), and other default browser values. Only include properties that actually change the element's appearance.
-- [ ] **Image styling**: Every `<img>` has `max-width: 100%; border-radius: 6px; display: block; margin: 0.1em auto 0.5em`. No `!important` on content images (reserve for WeChat compatibility transforms only).
-- [ ] **Remote images preserved**: No remote image URL was replaced with a lazy-load placeholder or SVG. Images from `http://` were upgraded to `https://`.
-- [ ] **Heading margins**: `<h2>` uses `margin: {top} auto {bottom}` or `{top} 0 {bottom}` — never `8px` or other arbitrary values for left/right margins.
-- [ ] **List rendering**: Ordered lists use CSS counters (`counter-increment` in `<style>`). No manual `<span>` text markers. No empty `<li>` elements.
-- [ ] **Cover image**: If a cover image is identified, verify `<!--wechat-cover:...-->` is injected with the correct path.
-- [ ] **Figcaption**: Every `<figure>` has a non-empty `<figcaption>`, with `font-size ≥ 0.85em` and `color ≥ rgba(51,51,51,0.70)`.
-- [ ] **No empty elements**: No empty `<li>`, `<p>`, or other block-level elements with `textContent.trim() === ""` in the output.
-- [ ] **Hybrid style completeness**: The `<style>` block covers contextual selectors (parent-child, adjacent sibling, pseudo-classes). Inline `style=""` is only used for element-specific non-default values. Every visible element gets its styles from one of the two sources.
-
+Template file: `scripts/.env.example` (no real keys)
