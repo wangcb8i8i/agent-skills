@@ -22,8 +22,8 @@ Converts Markdown → self-contained HTML styled for WeChat Official Account art
 
 | Word | Meaning |
 |------|---------|
-| `style-block` | All CSS in `<style>`, no inline `style=""` except `compat-wrap` transforms. WeChat preserves `<style>`; avoids LLM CSS→inline bugs. Selectors, counters, media queries all work naturally. |
-| `compat-wrap` | Inline `style=""` only for WeChat compatibility transforms. Minimal, element-specific overrides. No theme-level properties (font-family, color, etc.) inline. |
+| `juiced` | Class names on elements anchor styles in `<style>` block. juice2 reads the `<style>`, matches selectors to DOM, writes matching properties into `style=""`, then removes `<style>` — no LLM CSS→inline bugs. |
+| `compat-wrap` | WeChat compatibility transforms (Mermaid SVG wrap, tspan color, dominant-baseline→dy, image sizing) still applied as inline `style=""` at Phase 3 step 5. These survive juicing. |
 | `three-gate` | Illustration matching algorithm with 3 branches (auto-match, sequential pair, manual). All converge to user-confirmed mapping table. |
 | `cover-out` | Cover image is API metadata, not article content. Never inserted into body HTML. |
 
@@ -36,11 +36,13 @@ Phase 1 ─ Target Recognition (参数解析)
               ↓
 Phase 2 ─ Illustration Matching (may skip)
               ↓
-Phase 3 ─ Generate HTML
+Phase 3 ─ Generate HTML (with <style> + class names)
               ↓
 Phase 4 ─ Illustration Embedding (may skip)
               ↓
-Phase 5 ─ Consume (preview / publish)
+Phase 4.5 ─ Inline Conversion (juice2: <style> → inline)
+              ↓
+Phase 5 ─ Consume (preview / publish) — pure inline HTML
 ```
 
 ### Phase 1 — Target Recognition
@@ -115,15 +117,16 @@ Cover path written as `<!--wechat-cover:...-->` in HTML (Phase 3) for publish.py
 
 ### Phase 3 — Generate HTML
 
-**`style-block` approach**: semantic HTML + class names, all styles in `<style>` block. Inline `style=""` only for `compat-wrap` transforms.
+**`juiced` approach**: semantic HTML + class names, all styles in `<style>` block via class selectors. juice2 (Phase 4.5) inlines them mechanically. Inline `style=""` only for `compat-wrap` transforms.
 
 1. Understand content tone → recommend [theme](references/themes.md) (user confirms)
 2. Analyze structure → identify semantic units — see [components guide](references/components.md)
 3. Render Markdown → semantic HTML with classes — see [syntax reference](references/syntax-reference.md)
 4. Load theme CSS → resolve all CSS functions (`var()`, `hsl()`, `color-mix()`, `calc()`) to concrete values → output `<style>` block
-   - `<style>` in `<head>`, duplicated at `<body>` start for WeChat fallback
+   - **Every content element must carry a class name that matches a selector in `<style>`** — juice2 (Phase 4.5) converts via selector matching, not element type
+   - `<style>` is **intermediate**: Phase 4.5 will inline its properties, then delete the block
 5. Apply [compatibility transforms](references/compatibility.md) (Mermaid SVG wrap, tspan color, dominant-baseline→dy, image sizing)
-6. Post-process: clean empty elements, validate against [quality checklist](references/quality-checklist.md)
+6. Post-process: clean empty elements, validate class-selector parity against [quality checklist](references/quality-checklist.md)
 
 **Image handling**: Remote URLs pass through, `http://` → `https://`. No lazy-load placeholders. Local paths marked for Phase 4.
 
@@ -161,12 +164,28 @@ Constraints:
   全部确认 → 进入消费阶段
 ```
 
+### Phase 4.5 — Inline Conversion
+
+Run `scripts/inline.js` on the HTML to convert `<style>` → inline.
+
+**Input**: HTML with `<style>` block (from Phase 3-4).
+
+**Process**:
+1. Run: `node scripts/inline.js web-chat-artifacts/<name>.html`
+2. juice2 parses `<style>`, matches selectors to DOM elements
+3. Each element gets `style=""` with matching properties
+4. `<style>` block is removed
+
+**Output**: Pure inline HTML, no `<style>` blocks.
+
+**Error handling**: If script fails (non-zero exit), show error and stop.
+
 ### Phase 5 — Consume
 
 | Mode | Behavior |
 |------|----------|
-| `--preview` | Save to `web-chat-artifacts/<name>.html` |
-| `--publish` | 1. Save to `web-chat-artifacts/<name>.html`<br>2. Run `scripts/publish.py <html_path>`<br>3. publish.py uploads images → creates draft → **deletes HTML file** |
+| `--preview` | Save inlined HTML to `web-chat-artifacts/<name>.html`, then open browser |
+| `--publish` | 1. Save inlined HTML to `web-chat-artifacts/<name>.html`<br>2. Run `scripts/publish.py <html_path>`<br>3. publish.py uploads images → creates draft → **deletes HTML file** |
 
 ## Output Path
 
@@ -218,7 +237,7 @@ WeChat's X5 Blink kernel has specific behaviors. Key constraints:
 |---|------|
 | 1 | **No CSS functions at runtime**: resolve `var()`, `hsl()`, `color-mix()`, `calc()` before output |
 | 2 | **No external resources**: all inline `<style>`, no `@import`, no webfonts |
-| 3 | **`<style>` in `<body>`**: WeChat may strip `<head>` styles — duplicate a copy before content |
+| 3 | **`<style>` deleted before publish**: Phase 3 generates `<style>`, Phase 4.5 (juice2) inlines and deletes it. No `<style>` reaches WeChat's editor. |
 | 4 | **Tables need scroll wrapper**: `<section style="max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch">` |
 | 5 | **`color-mix()` unsupported**: pre-compute to `rgba()` — see [method](references/caveats.md#color-mix-resolution) |
 
@@ -236,6 +255,18 @@ See [full caveats](references/caveats.md) for all 11 items (dark mode, code bloc
 | Output quality checklist | [quality-checklist.md](references/quality-checklist.md) |
 
 ## Scripts
+
+### inline.js
+
+`scripts/inline.js` — converts `<style>` blocks to inline `style=""` via juice2.
+
+```
+$ node scripts/inline.js <html_path>
+```
+
+Called by Phase 4.5 after LLM generates HTML with `<style>` block. Reads the file, matches selectors to DOM, writes properties as `style=""`, removes `<style>` block. Overwrites in place.
+
+Dependencies: Node.js, juice (in `scripts/node_modules/`).
 
 ### publish.py
 
