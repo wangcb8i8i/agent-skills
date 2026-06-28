@@ -21,6 +21,19 @@ _S = requests.Session()
 _S.headers.update({"User-Agent": UA})
 _S.verify = False
 
+# 模块级东财请求节流：保证连续请求间隔 ≥ EM_MIN_INTERVAL 秒
+_LAST_EM_CALL = 0.0
+EM_MIN_INTERVAL = 0.5
+
+
+def _throttle():
+    """东财 HTTP 请求前节流，防止触发风控。"""
+    global _LAST_EM_CALL
+    wait = EM_MIN_INTERVAL - (time.time() - _LAST_EM_CALL)
+    if wait > 0:
+        time.sleep(wait)
+    _LAST_EM_CALL = time.time()
+
 # AKShare 基金回退（延迟导入，仅在需要时加载）
 _HAVE_AK = None
 
@@ -38,6 +51,7 @@ def _check_akshare():
 
 def get(url, referer=None, tries=3):
     """HTTP GET with retry. Returns response text or None."""
+    _throttle()
     h = {"Referer": referer} if referer else {}
     for i in range(tries):
         try:

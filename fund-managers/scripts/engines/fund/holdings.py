@@ -5,7 +5,7 @@
 用法:
   python engines/fund/holdings.py <基金代码>
 """
-import sys, os, json, time
+import sys, os, json
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from engines._shared.eastmoney import parse_holdings, THIS_YEAR, fund_list_path
@@ -28,7 +28,6 @@ def main():
     for y in range(2003, THIS_YEAR + 1):
         qs = parse_holdings(code, y)
         quarters += qs
-        time.sleep(0.4)
 
     # dedup
     uniq = {}

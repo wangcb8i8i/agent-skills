@@ -2,7 +2,7 @@
 
 Before running inline.js, verify every item below. juice2 can only inline what's correctly class-anchored.
 
-- [ ] **Paragraph spacing**: Controlled by `<style>` block — `#output p { margin: 1.5em 8px }`, `#output blockquote > p { margin: 0 }`.
+- [ ] **Paragraph spacing**: Controlled by `<style>` block — `#output p { margin: 0.75em 8px }`, `#output blockquote > p { margin: 0 }`.
 - [ ] **Image styling**: Every `<img>` has `max-width: 100%; border-radius: 6px; display: block; margin: 0.1em auto 0.5em` (from `<style>` block). No `!important` on content images.
 - [ ] **Remote images preserved**: No remote image URL was replaced with a lazy-load placeholder or SVG. Images from `http://` were upgraded to `https://`.
 - [ ] **Heading margins**: `<h2>` uses `margin: {top} auto {bottom}` or `{top} 0 {bottom}` — never `8px` or other arbitrary values for left/right margins.

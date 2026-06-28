@@ -185,7 +185,7 @@ Run `scripts/inline.js` on the HTML to convert `<style>` → inline.
 | Mode | Behavior |
 |------|----------|
 | `--preview` | Save inlined HTML to `web-chat-artifacts/<name>.html`, then open browser |
-| `--publish` | 1. Save inlined HTML to `web-chat-artifacts/<name>.html`<br>2. Run `scripts/publish.py <html_path>`<br>3. publish.py uploads images → creates draft → **deletes HTML file** |
+| `--publish` | 1. Save inlined HTML to `web-chat-artifacts/<name>.html`<br>2. Run `scripts/publish.py <html_path>`<br>3. publish.py uploads images → creates draft |
 
 ## Output Path
 

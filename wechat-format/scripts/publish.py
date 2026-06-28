@@ -423,11 +423,6 @@ async def _run(html_path: Path, dry_run: bool) -> None:
     except PublishError as e:
         print(f" ✗\n\n错误: {e}")
         raise
-    finally:
-        # 无论草稿创建成功或失败，都删除产物文件
-        if html_path.exists():
-            html_path.unlink()
-            print(f"  🗑  已删除: {html_path}")
 
 
 def main() -> None:
