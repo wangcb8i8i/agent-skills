@@ -3,3 +3,7 @@ scripts/pre-push
 docs/**/*.md
 .playwright-mcp
 research-plan-driven/docs
+__pycache__
+**/__pycache__
+.pytest_cache
+**/.pytest_cache
