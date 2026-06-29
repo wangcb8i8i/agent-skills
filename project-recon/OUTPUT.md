@@ -15,16 +15,17 @@
     ├── entry-points.md          ← 入口点清单
     ├── dev-loop.md              ← 构建/测试/调试命令
     ├── design-decisions.md      ← 设计决策（跨模块统一归档）
-    ├── core.md                  ← Flow 节 + Deep 节
-    ├── auth.md
-    └── payment.md
+    └── modules/                 ← 模块专属文件
+        ├── core.md              ← Flow 节 + Deep 节
+        ├── auth.md
+        └── payment.md
 ```
 
 不写 `.gitignore`——Recon Map 默认进入版本控制，可被团队共享和审查。如果决定后续排除，一行 `.recon/` 到 `.gitignore` 即可。
 
 ## Module 文件格式
 
-每个模块一个 `.recon/{module}.md`，按节（section）递进：
+每个模块一个 `.recon/modules/{module}.md`，按节（section）递进：
 
 ```markdown
 # {module}
