@@ -27,7 +27,7 @@ metadata:
 ┌─────────────────────────────────────────────────┐
 │ ② 取基础信息（宽，一次拉够多数场景需要）            │
 │    引擎调用加 --output-dir 写盘                   │
-│    写 fund-managers-output/<datetime>/base_data/ │
+│    写 fund-managers-output/<datetime>/data/      │
 │    用时预期 ≤ 5 分钟                              │
 │    回退机制兜底，仍然失败则中止分析                 │
 └──────────────────────┬──────────────────────────┘
@@ -46,12 +46,12 @@ metadata:
 │    父进程为每位经理启动一个独立子代理                │        读 method.md
 │    子代理互不知晓存在、不读彼此文件                  │        掌握透镜参数
 │    串行运行，一个跑完再跑下一个                      │        │
-│                                                    │        读 base_data
+│                                                    │        检查 manifest → 读 data/
 │    传递给子代理的信息：                              │        准备给透镜的素材
 │     · 角色身份（"你是郑希"）                        │        │
 │     · 标的代码/名称                                 │        按需补数据
 │     · 用户意图（结构化转述）                         │        │
-│     · base_data 目录路径               ────────────→  透过透镜，写 analysis.md
+│     · data 目录路径                    ────────────→  透过透镜，写 analysis.md
 │     · 自己的输出目录路径                                        │
 │     · 行为约束                                     │        正常返回（不串结论）
 └──────────────────────┬──────────────────────────┘
@@ -70,8 +70,9 @@ metadata:
 
 所有输出（任何分支）遵守：
 
-- 分清三种话：**原话**（引出处分） / **推演**（标注 "按 XX 的方法推演"） / **需核实**（标清）
+- 分清三种话：**原话** / **推演** / **需核实**
 - 引用原话时自然标注来源（时间+出处），不说文件路径
+- 标注方式因叙事风格不同而异（见各分支具体要求），但三种话的边界始终保持
 
 ---
 
@@ -100,25 +101,9 @@ metadata:
 
 ### 标的类型与引擎映射
 
-**基金标的调用：**
-
-| 引擎 | 调用 | 写盘文件名 | 用途 |
-|------|------|-----------|------|
-| 前十大持仓 | `python scripts/engines/fund/holdings.py <代码> --output-dir <dir>` | `<code>_holdings.json` | 持仓、集中度、行业分布 |
-| 净值数据 | `python scripts/engines/fund/nav.py <代码> --output-dir <dir>` | `<code>_nav.json` | 收益、回撤、同类排名 |
-| 规模变动 | `python scripts/engines/fund/scale.py <代码> --output-dir <dir>` | `<code>_scale.json` | 申赎趋势、持有人结构 |
-| 基金经理 | `python scripts/engines/fund/managers.py <代码> --output-dir <dir>` | `<code>_managers.json` | 任职回报、在管规模 |
-
-**个股标的调用：**
-
-| 引擎 | 调用 | 写盘文件名 | 用途 |
-|------|------|-----------|------|
-| 财务指标 | `python scripts/engines/stock/financials.py <代码> --output-dir <dir>` | `<code>_financials.json` | ROE/营收/毛利率/负债率 |
-| 估值 | `python scripts/engines/stock/valuation.py <代码> --output-dir <dir>` | `<code>_valuation.json` | PE/PB 历史序列+百分位 |
-| 行情 | `python scripts/engines/stock/price.py <代码> --output-dir <dir>` | `<code>_price.json` | 日线量价换手率 |
-
-**如果代码未知，先搜索：**
-`python scripts/engines/fund/search.py <关键词> --output-dir <dir>`
+引擎清单、调用参数、输出文件名见 `scripts/ENGINE.md`。
+标的类型决定调哪个引擎组——基金走 `fund/` 下引擎，个股走 `stock/` 下引擎。
+代码未知时先搜索（引擎清单中有说明）。
 
 ### --output-dir 行为
 
@@ -137,19 +122,63 @@ metadata:
 
 ### 输出目录
 
-所有文件写入 `fund-managers-output/<datetime>/base_data/`，其中 `<datetime>` 格式为 `YYYY-MM-DD_HHMM`。
+所有文件写入 `fund-managers-output/<datetime>/data/`，其中 `<datetime>` 格式为 `YYYY-MM-DD_HHMM`。
+
+每次执行建立新 `data/` 目录，不缓存、不复用。
+
+### 数据获取协议
+
+无论父进程还是子代理，获取任何数据都遵守同一协议：
+
+```
+① 根据 ENGINE.md 确定引擎名和预期输出文件名 {code}_{engine}.json
+② 读 data/manifest.md，检查该文件名是否存在？
+    是 → 文件已在池中，直接读，跳过引擎调用
+    否 → 调引擎脚本 --output-dir data/
+         文件落盘后，追加一笔到 data/manifest.md
+③ 读数据文件
+```
+
+### manifest.md
+
+`data/manifest.md` 是数据目录的目录表，由获取数据的进程维护。格式：
+
+```markdown
+# Data Manifest
+
+## 600519_price.json
+- 描述：日线行情（前复权，2000 年起）
+- 引擎：stock/price
+
+## 600519_valuation.json
+- 描述：PE/PB/PS 历史序列+百分位
+- 引擎：stock/valuation
+
+## 001513_holdings.json
+- 描述：前十大持仓（全部披露季度）
+- 引擎：fund/holdings
+```
+
+追加操作：在文件末尾加一个 `## {filename}\n- 描述：{label}\n- 引擎：{engine}\n` 段。
+不需要加锁——子代理串行执行，无并发问题。
+
+### 输出目录示例
 
 ```
 fund-managers-output/
 └── 2026-06-26_1430/
-    └── base_data/
-        ├── 001513_holdings.json
-        ├── 001513_nav.json
-        ├── 001513_scale.json
-        └── 001513_managers.json
+    ├── data/
+    │   ├── manifest.md
+    │   ├── 001513_holdings.json
+    │   ├── 001513_nav.json
+    │   ├── 001513_scale.json
+    │   └── 001513_managers.json
+    ├── 郑希/
+    │   └── analysis.md
+    ├── 姜诚/
+    │   └── analysis.md
+    └── summary.md
 ```
-
-不缓存。每次执行新目录。
 
 ---
 
@@ -157,7 +186,7 @@ fund-managers-output/
 
 **用户已指定 → 照办。**
 
-**用户未指定：** 从 base_data 判断标的风格偏向。行业集中度 > 60%（单一赛道）→ 选 2-3 个最契合的经理，不追问。行业分布均衡（均方差 < 15%）→ 问用户选哪几个。
+**用户未指定：** 从 `data/` 判断标的风格偏向。行业集中度 > 60%（单一赛道）→ 选 2-3 个最契合的经理，不追问。行业分布均衡（均方差 < 15%）→ 问用户选哪几个。
 
 **完成标志：** 经理名单确定（每人一份 method.md 路径）。进入下一步。
 
@@ -177,7 +206,7 @@ fund-managers-output/
 | 角色身份 | "你是郑希的分析执行器，按郑希的投资方法分析标的" |
 | 标的 | 代码 + 名称 |
 | 用户意图 | 结构化转述（如"用户想看这只基金在成长风格上是否契合，以及深度价值框架下是否值得买"） |
-| base_data 路径 | `fund-managers-output/<datetime>/base_data/` |
+| data 目录 | `fund-managers-output/<datetime>/data/` |
 | 输出目录 | `fund-managers-output/<datetime>/<经理>/` |
 | 方法文件 | `references/<经理>/method.md` |
 
@@ -190,11 +219,13 @@ fund-managers-output/
 读 method.md（理解框架）
    │
    ▼
-读 base_data/ 下的 JSON 文件（了解标的）
+读 data/manifest.md，按需读 data/ 下的 JSON 文件（了解标的）
    │
    ▼
-按需补数据（method.md 的维度 base_data 没覆盖 → 调引擎）
-   │   写自己目录下，不共享
+检查数据是否满足框架需求，不满足时：
+   │ ① 检查 manifest，数据已有 → 直接读
+   │ ② 数据不在 manifest → 调引擎 --output-dir data/，追加 manifest
+   │    （遵循 §② 数据获取协议）
    ▼
 写 analysis.md
    │
@@ -206,8 +237,8 @@ fund-managers-output/
 
 - 子代理**不知道**其他经理的存在 → 不读他人 method.md，不读他人已产出的 analysis.md
 - 子代理**不知道**自己被点名还是被补充进来的
-- 补数据调引擎：`python scripts/engines/{fund|stock}/<脚本>.py <代码> --output-dir <自己的输出目录>`
-- 补数据各调各的，不检查其他经理目录是否已有
+- 补数据目标目录始终是全局 `data/`，不是自己的输出目录
+- 子代理之间不检查彼此目录——通过 `manifest.md` 避免冗余调用
 - 数据不足以支撑分析 → 能写多少写多少，如实标注缺失部分，正常返回
 - 引擎调用失败 → 标记"XX 数据缺失"，继续写分析，不抛给父进程
 - 最终产出：`<输出目录>/analysis.md`
@@ -215,10 +246,14 @@ fund-managers-output/
 ### analysis.md 输出要求
 
 - **第一人称叙事** — 以经理的口吻写（例："我看持仓……"），每个文件独立成篇
+- **三条话在第一人称中的表现**：
+  - **原话**：带来源标注，如 `"……"（2026-06 中国证券报）`
+  - **推演**：无来源的陈述即为 AI 用框架推演，不额外标"按 XX 的方法推演"——读者默认第一人称下非引用的内容均为框架推演
+  - **需核实**：仍标清，如 `（需核实）`
 - **自由风格** — 不固定模板，不要求 6 人结构一致
 - **不做评分** — 不给分/不给排名/不给维度加权总分
 - **不做维度对齐** — 每个经理用自己的框架表述，不强求统一维度列表
-- **证据链可见** — 看法背后有数据支撑，引用 base_data 中的数据
+- **证据链可见** — 看法背后有数据支撑，引用 `data/` 中的数据
 
 ---
 
@@ -229,7 +264,8 @@ fund-managers-output/
 ```
 fund-managers-output/
 └── 2026-06-26_1430/
-    ├── base_data/
+    ├── data/
+    │   ├── manifest.md
     │   ├── 001513_holdings.json
     │   ├── 001513_nav.json
     │   ├── 001513_scale.json
@@ -274,6 +310,6 @@ summary.md 不做综合判断，只做每人一句话的提炼：
 用某经理的框架分析他本人没有公开评论过的行业/主题/个股。
 
 1. 读该经理的 `method.md` 掌握框架
-2. 标注 **"按 XX 的方法推演，不是他的原话"**
-3. 用框架逐条推演
+2. 开头写一句声明：**"以下内容按 XX 的方法推演，不是他的原话"**，后续不再每句重复
+3. 原话仍有来源时正常标注
 4. 需核实的数字标 **"需核实"**
