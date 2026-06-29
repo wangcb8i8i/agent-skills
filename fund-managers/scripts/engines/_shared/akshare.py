@@ -3,11 +3,12 @@
 
 回退链路（每层失败自动尝试下一层）：
   主源 → AKShare
-           └→ 失败 → BaoStock
-                        └→ 失败 → 直调东方财富 HTTP（仅实时快照）
-                                    └→ 失败 → 返回 None（降级容忍）
+           └→ 失败 → BaoStock（自有服务器，日线/财务）
+                        └→ 失败 → pytdx（通达信协议，日线/实时行情）
+                                    └→ 失败 → 直调东方财富 HTTP（仅实时快照）
+                                                └→ 失败 → 返回 None（降级容忍）
 
-所有 stock 引擎脚本通过此模块访问数据，不直接调 AKShare 或 BaoStock。
+所有 stock 引擎脚本通过此模块访问数据，不直接调 AKShare / BaoStock / pytdx。
 """
 
 import sys
@@ -118,7 +119,7 @@ def valuation_history(symbol):
 def daily_bars(symbol, start_date="20000101", end_date="20500101", adjust="qfq"):
     """获取个股日线行情。
 
-    回退链路：AKShare → BaoStock → None
+    回退链路：AKShare → BaoStock → pytdx → None
 
     参数：
       symbol   — 股票代码（纯数字，无需后缀）
@@ -149,6 +150,15 @@ def daily_bars(symbol, start_date="20000101", end_date="20500101", adjust="qfq")
         return df
     except Exception as e:
         print(f"    BaoStock daily_bars({symbol}) 失败: {e}", file=sys.stderr)
+
+    # 第 3 层：pytdx（通达信协议，不复权数据）
+    try:
+        from engines._shared.pytdx_wrapper import daily_bars as tdx_bars
+        df = tdx_bars(symbol, start_date=start_date, end_date=end_date)
+        if df is not None and not df.empty:
+            return df
+    except Exception as e:
+        print(f"    pytdx daily_bars({symbol}) 失败: {e}", file=sys.stderr)
 
     return None
 
@@ -204,7 +214,7 @@ def _eastmoney_spot_direct(symbol):
 def spot_snapshot(symbol):
     """获取个股实时行情快照（含 PE-动态、PB、总市值）。
 
-    回退链路：AKShare → 东方财富 HTTP 直调 → None
+    回退链路：AKShare → pytdx（通达信协议）→ 东方财富 HTTP → None
 
     返回 dict 或 None。
     """
@@ -223,9 +233,17 @@ def spot_snapshot(symbol):
         except Exception as e:
             print(f"    AKShare spot_snapshot({symbol}) 失败: {e}", file=sys.stderr)
 
-    # 第 2 层：直调东方财富 API
+    # 第 2 层：pytdx（通达信协议直连）
+    try:
+        from engines._shared.pytdx_wrapper import spot_snapshot as tdx_spot
+        result = tdx_spot(symbol)
+        if result is not None:
+            return result
+    except Exception as e:
+        print(f"    pytdx spot_snapshot({symbol}) 失败: {e}", file=sys.stderr)
+
+    # 第 3 层：直调东方财富 API
     result = _eastmoney_spot_direct(symbol)
     if result is not None:
-        # 统一换手率字段名（AKShare 叫"换手率"，东方财富不直接给）
         pass
     return result

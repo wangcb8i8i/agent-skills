@@ -56,9 +56,9 @@ def main():
             report[col] = _safe_val(row[col])
         reports.append(report)
 
-    # 从第一行取股票名（如果有的话）
-    if reports and "股票代码" in reports[0]:
-        name = reports[0].get("股票名称", code)
+    # 从第一行取股票名（AKShare 字段名 vs 统一字段名）
+    if reports:
+        name = reports[0].get("股票名称") or reports[0].get("SECURITY_NAME_ABBR") or name
 
     out = {
         "code": code,
