@@ -1,4 +1,0 @@
-# fund-research
-display_name: 基金裁决
-short_description: 公募基金/ETF/FOF 调查研究与投资判断。系统化取证、判决输出，支持买入/持有/监控/对比四种案由。
-default_prompt: 请使用 fund-research skill 对指定基金进行全面调查分析，输出研究简报。
