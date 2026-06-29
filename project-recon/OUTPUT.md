@@ -1,0 +1,65 @@
+# Recon Map 产出规范
+
+> 被 [project-recon](SKILL.md) 引用的披露参考。Recon Map 是技能的核心产出——既是 Agent 的状态数据库，也是用户的回忆索引。只在你需要写文件或检查格式时查阅本节。
+
+## 文件结构
+
+目标项目根目录下 **`.recon/`** 子目录，集中存放所有产出物：
+
+```
+{目标项目}/
+└── .recon/
+    ├── RECON.md                 ← 覆盖状态表（唯一索引）
+    ├── glossary.md              ← 项目专用术语
+    ├── architecture.md          ← 模块依赖图 + 核心抽象
+    ├── entry-points.md          ← 入口点清单
+    ├── dev-loop.md              ← 构建/测试/调试命令
+    ├── design-decisions.md      ← 设计决策（跨模块统一归档）
+    ├── core.md                  ← Flow 节 + Deep 节
+    ├── auth.md
+    └── payment.md
+```
+
+不写 `.gitignore`——Recon Map 默认进入版本控制，可被团队共享和审查。如果决定后续排除，一行 `.recon/` 到 `.gitignore` 即可。
+
+## Module 文件格式
+
+每个模块一个 `.recon/{module}.md`，按节（section）递进：
+
+```markdown
+# {module}
+
+## Flow
+
+从入口到出口的完整功能路径，精确到 `文件::函数`。
+（Step 4 产出，Full / onCover 创建，onRevisit 更新）
+
+## Deep
+
+内部抽象、错误处理路径、设计 tradeoffs、Open Questions。
+（Step 6 产出，onDig 创建 / onRevisit 更新）
+```
+
+## RECON.md 格式
+
+```markdown
+# Recon Map: {project-name}
+Generated: {date} | HEAD: {commit}
+
+## Module Coverage
+
+| Module | 1.Perim | 2.Entry | 3.Arch | 4.Flow | 5.DevLoop | 6.Deep | Last Visit |
+|--------|---------|---------|--------|--------|-----------|--------|------------|
+| core/  | ✓       | ✓       | ✓      | ✓      | -         | ✓      | 2026-06-27 |
+| auth/  | ✓       | ✓       | ✓      | ✓      | -         | -      | 2026-06-27 |
+| payment/ | ✓     | ✓       | ✓      | -      | -         | -      | 2026-06-26 |
+
+### 字段规则
+
+**Module**：以代码目录/模块为粒度。一个模块一次覆盖整块代码。
+
+**里程碑（1-6）**：✓ = 完成该步骤，- = 未完成。Agent 用 `-` 来判断走 onCover 时还需要做什么。
+
+**Depth**：`✓` 的数量（N/6）。1-2 为"扫过"，3-4 为"已跟踪"，5-6 为"深入"。
+
+**Last Visit**：最后一次 revisist 的日期。超过 30 天且有最新 commit 变化则建议 revisit。

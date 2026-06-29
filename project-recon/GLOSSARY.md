@@ -9,7 +9,7 @@
 ## 完成标准 / Completion Criterion
 每步末尾的可检查条件。Agent 用这个条件判断工作是否结束——必须是可验证的（"说出所有入口点"而非"了解入口"）。模糊的完成标准是前置完成的主要入口。
 
-## 三叉判断
+## 分支判断
 首次调用 `project-recon` 时做的分支选择——根据用户说的内容决定走 Full / onCover / onDig / onRevisit。
 
 ## 前置完成 / Premature Completion
