@@ -8,7 +8,7 @@
 import sys, os, json
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from engines._shared.eastmoney import parse_holdings, THIS_YEAR, fund_list_path
+from engines._shared.eastmoney import parse_holdings, THIS_YEAR
 from engines._shared.output import extract_output_dir, save_output
 
 try:
@@ -36,16 +36,7 @@ def main():
     quarters = list(uniq.values())
     quarters.sort(key=lambda x: (x["year"], x["quarter"]), reverse=True)
 
-    # name
     name = code
-    try:
-        fl = json.load(open(fund_list_path(), encoding="utf-8"))
-        for f in fl.get("funds", []):
-            if f["code"] == code:
-                name = f["name"]
-                break
-    except Exception:
-        pass
 
     save_output({"code": code, "name": name, "quarters": quarters}, f"{code}_holdings.json", output_dir)
 

@@ -8,7 +8,7 @@
 import sys, os, json
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from engines._shared.eastmoney import parse_pingzhong, fund_list_path
+from engines._shared.eastmoney import parse_pingzhong
 from engines._shared.output import extract_output_dir, save_output
 
 try:

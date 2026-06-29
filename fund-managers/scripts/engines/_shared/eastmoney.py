@@ -299,16 +299,5 @@ def parse_holdings(code, year):
     return _ak_parse_holdings(code, year)
 
 
-def fund_list_path():
-    """返回 fund_list.json 的绝对路径。"""
-    return _rel_root("references", "shared", "all_funds", "fund_list.json")
-
-
-def _rel_root(*parts):
-    """从脚本位置向上追溯到项目根目录。"""
-    p = os.path.abspath(__file__)
-    for _ in range(4):
-        p = os.path.dirname(p)
-    return os.path.join(p, *parts)
 
 

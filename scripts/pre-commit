@@ -4,6 +4,31 @@ set -euo pipefail
 SKILLS_DIR="$HOME/.agents/skills"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
+# ============================================
+# Phase 1 — 清理编译/使用产物（不限 changed_skills）
+# ============================================
+
+# 根级别
+rm -rf "$REPO_ROOT/.playwright-mcp"
+
+# 所有 skill 目录
+for dir in "$REPO_ROOT"/*/; do
+    [ ! -f "$dir/SKILL.md" ] && continue
+    find "$dir" \( \
+        -type d -name "__pycache__" -o \
+        -type d -name "node_modules" -o \
+        -type d -name ".mypy_cache" -o \
+        -type d -name ".ruff_cache" -o \
+        -type d -name ".pytest_cache" -o \
+        -type f -name ".DS_Store" -o \
+        -type f -name "*.pyc" \
+    \) -exec rm -rf {} + 2>/dev/null || true
+done
+
+# ============================================
+# Phase 2 — 同步 changed_skills
+# ============================================
+
 changed_skills=()
 
 while IFS= read -r file; do
