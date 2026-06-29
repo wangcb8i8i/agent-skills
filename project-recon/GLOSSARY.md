@@ -12,5 +12,8 @@
 ## 分支判断
 首次调用 `project-recon` 时做的分支选择——根据用户说的内容决定走 Full / onCover / onDig / onRevisit。
 
+## User Journey
+用户从首次接触到用出价值的完整路径。与 Feature Flow 同层抽象，但以用户视角而非代码视角组织。产出写入 `.recon/user-journeys.md`。
+
 ## 前置完成 / Premature Completion
 Agent 在一步还没真正完成时就跳到下一步——注意力从"做完当前工作"滑到"做完整个流程"。主要防御是：清晰的完成标准（第一步防线）；步骤拆分/隐藏后序步骤（更强的措施，仅在完成标准不够时使用）。

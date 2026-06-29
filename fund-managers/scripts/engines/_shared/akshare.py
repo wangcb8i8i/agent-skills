@@ -167,58 +167,95 @@ def daily_bars(symbol, start_date="20000101", end_date="20500101", adjust="qfq")
 
 
 def _eastmoney_spot_direct(symbol):
-    """直调东方财富实时行情 API（不依赖 AKShare）。"""
+    """直调东方财富实时行情 API（单只股票，不依赖 AKShare 全量下载）。
+
+    返回 dict，包含名称、PE、PB、市值等 pytdx 不返回的字段。
+    """
     try:
         import requests
-        url = f"https://push2.eastmoney.com/api/qt/stock/get"
+        market = f"1.{symbol}" if symbol[:3] in ("600", "601", "603", "605", "688", "689") else f"0.{symbol}"
+        url = "https://push2.eastmoney.com/api/qt/stock/get"
         params = {
-            "secid": f"1.{symbol}" if symbol[:3] in ("600", "601", "603", "605", "688", "689") else f"0.{symbol}",
-            "fields": "f43,f44,f45,f46,f47,f48,f50,f57,f58,f170,f171,f57,f58,f162,f167,f168,f169",
+            "secid": market,
+            "fields": "f43,f44,f45,f46,f57,f58,f60,f116,f117,f162,f167",
             "invt": "2",
         }
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                          "Chrome/120.0 Safari/537.36",
+            "User-Agent": "Mozilla/5.0 Chrome/120.0",
             "Referer": "https://quote.eastmoney.com/",
         }
-        r = requests.get(url, params=params, headers=headers, timeout=15)
-        r.encoding = "utf-8"
-        data = r.json()
-        d = data.get("data", {})
-        if not d:
-            return None
-        fields = d.get("fields", "").split(",")
-        values = d.get("values", [])
-        if not fields or not values or len(fields) != len(values):
+        r = requests.get(url, params=params, headers=headers, timeout=10)
+        d = r.json().get("data", {})
+        if not d or "f43" not in d:
             return None
 
-        # 东方财富 API 的字段映射
-        key_map = {
-            "f43": "最新价", "f44": "最高", "f45": "最低",
-            "f46": "开盘", "f47": "涨跌额", "f48": "涨跌幅", "f50": "量比",
-            "f57": "代码", "f58": "名称",
-            "f162": "市盈率-动态", "f167": "市净率",
-            "f168": "总市值", "f169": "流通市值",
-            "f170": "成交额", "f171": "成交量",
+        price = d["f43"] / 100
+        last_close = d.get("f60", d["f43"]) / 100
+
+        result = {
+            "代码": d.get("f57", symbol),
+            "名称": d.get("f58", ""),
+            "最新价": price,
+            "涨跌幅": round((price - last_close) / last_close * 100, 2) if last_close else 0,
+            "涨跌额": round(price - last_close, 2) if last_close else 0,
+            "开盘": d.get("f46", 0) / 100,
+            "最高": d.get("f44", 0) / 100,
+            "最低": d.get("f45", 0) / 100,
         }
-        result = {}
-        for i, f in enumerate(fields):
-            if f in key_map and i < len(values):
-                result[key_map[f]] = values[i]
+        if "f162" in d:
+            result["市盈率-动态"] = d["f162"] / 100
+        if "f167" in d:
+            result["市净率"] = d["f167"] / 100
+        if "f116" in d:
+            result["总市值"] = float(d["f116"])
+        if "f117" in d:
+            result["流通市值"] = float(d["f117"])
         return result
     except Exception as e:
         print(f"    direct eastmoney spot({symbol}) 失败: {e}", file=sys.stderr)
         return None
 
 
+def _spot_merge(symbol, base_dict):
+    """从 东财HTTP 补充缺少的字段（名称/PE/PB/市值等）到 base_dict。"""
+    try:
+        supp = _eastmoney_spot_direct(symbol)
+        if supp:
+            for k, v in supp.items():
+                if k not in base_dict or base_dict.get(k) in (None, 0, ""):
+                    base_dict[k] = v
+    except Exception:
+        pass
+    return base_dict
+
+
 def spot_snapshot(symbol):
     """获取个股实时行情快照（含 PE-动态、PB、总市值）。
 
-    回退链路：AKShare → pytdx（通达信协议）→ 东方财富 HTTP → None
+    回退链路：
+      1. pytdx（通达信协议，~1s，无 HTTP 代理依赖）
+         → 成功后异步补充名称/PE/PB/市值（东财 HTTP 单只查询）
+      2. 东财 HTTP 直接查询（单只，~2s）
+      3. AKShare 全量下载（~65s，最慢回退）
 
     返回 dict 或 None。
     """
-    # 第 1 层：AKShare
+    # 第 1 层：pytdx（通达信协议直连，不受 HTTP 代理影响）
+    try:
+        from engines._shared.pytdx_wrapper import spot_snapshot as tdx_spot
+        result = tdx_spot(symbol)
+        if result is not None:
+            # 补充名称/PE/PB/市值（如果 pytdx 没有）
+            return _spot_merge(symbol, result)
+    except Exception as e:
+        print(f"    pytdx spot_snapshot({symbol}) 失败: {e}", file=sys.stderr)
+
+    # 第 2 层：东财 HTTP 单只查询
+    result = _eastmoney_spot_direct(symbol)
+    if result is not None:
+        return result
+
+    # 第 3 层：AKShare 全量下载（最慢回退）
     if _HAVE_AK:
         try:
             df = ak.stock_zh_a_spot_em()
@@ -233,17 +270,4 @@ def spot_snapshot(symbol):
         except Exception as e:
             print(f"    AKShare spot_snapshot({symbol}) 失败: {e}", file=sys.stderr)
 
-    # 第 2 层：pytdx（通达信协议直连）
-    try:
-        from engines._shared.pytdx_wrapper import spot_snapshot as tdx_spot
-        result = tdx_spot(symbol)
-        if result is not None:
-            return result
-    except Exception as e:
-        print(f"    pytdx spot_snapshot({symbol}) 失败: {e}", file=sys.stderr)
-
-    # 第 3 层：直调东方财富 API
-    result = _eastmoney_spot_direct(symbol)
-    if result is not None:
-        pass
-    return result
+    return None

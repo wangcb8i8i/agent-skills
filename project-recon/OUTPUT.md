@@ -12,6 +12,7 @@
     ├── RECON.md                 ← 覆盖状态表（唯一索引）
     ├── glossary.md              ← 项目专用术语
     ├── architecture.md          ← 模块依赖图 + 核心抽象
+    ├── user-journeys.md         ← 用户旅程
     ├── entry-points.md          ← 入口点清单
     ├── dev-loop.md              ← 构建/测试/调试命令
     ├── design-decisions.md      ← 设计决策（跨模块统一归档）
@@ -22,6 +23,21 @@
 ```
 
 不写 `.gitignore`——Recon Map 默认进入版本控制，可被团队共享和审查。如果决定后续排除，一行 `.recon/` 到 `.gitignore` 即可。
+
+## user-journeys.md 格式
+
+```markdown
+# User Journeys: {project-name}
+
+## Personas
+- {persona}: {description}
+
+## Journey: {name}
+{step1} → {step2} → {step3} → done
+
+### Prerequisites
+- {step2} 依赖 {step1} 完成
+```
 
 ## Module 文件格式
 

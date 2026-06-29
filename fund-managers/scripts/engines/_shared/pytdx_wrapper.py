@@ -164,7 +164,7 @@ def spot_snapshot(symbol):
 
         price = float(q.get("price", 0))
         last_close = float(q.get("last_close", 0))
-        chg_pct = (price - last_close) / last_close if last_close else 0
+        chg_pct = round((price - last_close) / last_close * 100, 2) if last_close else 0
 
         result = {
             "代码": symbol,
