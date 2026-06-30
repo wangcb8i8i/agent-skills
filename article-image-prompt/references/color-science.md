@@ -13,49 +13,28 @@
 
 | 风格基调 | 色板 slug | 行 |
 |---------|----------|---|
-| 简洁技术风 | tech-clean | ↓ |
-| 温暖教程风 | tutorial-warm | ↓ |
+| 技术手绘风 | tech-handdrawn | ↓ |
 | 高对比分析风 | analysis-contrast | ↓ |
-| 产品文档风 | product-doc | ↓ |
 | 灰度结构风 | grayscale-structural | ↓ |
 | 手记博客风 | blog-handdrawn | ↓ |
-| 技术手绘风 | tech-handdrawn | ↓ |
 
 ---
 
-### tech-clean — 简洁技术风
+### tech-handdrawn — 技术手绘风
 
 | 角色 | 色值 | HSL | 用途 |
 |------|------|-----|------|
-| 主色 | `#00D4FF` | hsl(190, 100%, 50%) | Primary entity fill |
-| 强调色 | `#FF6B35` | hsl(18, 100%, 60%) | Accent / call to action |
-| 背景色 | `#0D1117` | hsl(216, 28%, 7%) | Canvas background |
-| 第二背景 | `#161B22` | hsl(216, 20%, 11%) | Card / panel |
-| 成功/确认 | `#00FF88` | hsl(155, 100%, 50%) | Confirmation / complete |
-| 警告/注意 | `#FFB800` | hsl(43, 100%, 50%) | Warning / pending |
-| 错误/拒绝 | `#FF4444` | hsl(0, 100%, 63%) | Error / denied |
-| 中性/次要 | `#4A4A6E` | hsl(240, 20%, 36%) | Secondary entity |
-| 文字/标签 | `#E6EDF3` | hsl(210, 35%, 93%) | Label / text |
+| 主色 | `#3D7EA6` | hsl(204, 45%, 45%) | Primary entity fill |
+| 强调色 | `#C47A3D` | hsl(30, 45%, 50%) | Accent / call to action |
+| 背景色 | `#F5F3EF` | hsl(35, 30%, 96%) | Canvas background |
+| 第二背景 | `#E8E4DC` | hsl(35, 25%, 89%) | Card / panel |
+| 成功/确认 | `#4A8C5A` | hsl(130, 30%, 42%) | Confirmation / complete |
+| 警告/注意 | `#B8923D` | hsl(42, 50%, 48%) | Warning / pending |
+| 错误/拒绝 | `#A64D4D` | hsl(0, 35%, 48%) | Error / denied |
+| 中性/次要 | `#6D7A8C` | hsl(210, 15%, 49%) | Secondary entity |
+| 文字/标签 | `#2D3A4A` | hsl(210, 25%, 23%) | Label / text |
 
-**氛围印象**: 冷静 · 精确 · 技术感
-
----
-
-### tutorial-warm — 温暖教程风
-
-| 角色 | 色值 | HSL | 用途 |
-|------|------|-----|------|
-| 主色 | `#4FC3F7` | hsl(199, 91%, 64%) | Primary entity fill |
-| 强调色 | `#FF8A65` | hsl(15, 100%, 70%) | Accent / call to action |
-| 背景色 | `#FAFAFA` | hsl(0, 0%, 98%) | Canvas background |
-| 第二背景 | `#F0F0F0` | hsl(0, 0%, 94%) | Card / panel |
-| 成功/确认 | `#66BB6A` | hsl(123, 38%, 57%) | Confirmation / complete |
-| 警告/注意 | `#FFD54F` | hsl(46, 100%, 66%) | Warning / pending |
-| 错误/拒绝 | `#EF5350` | hsl(1, 83%, 63%) | Error / denied |
-| 中性/次要 | `#90A4AE` | hsl(200, 16%, 62%) | Secondary entity |
-| 文字/标签 | `#37474F` | hsl(200, 16%, 26%) | Label / text |
-
-**氛围印象**: 明亮 · 亲切 · 教学感
+**氛围印象**: 严谨 · 手绘 · 白板感
 
 ---
 
@@ -74,24 +53,6 @@
 | 文字/标签 | `#FFFFFF` | hsl(0, 0%, 100%) | Label / text |
 
 **氛围印象**: 戏剧化 · 高张力 · 分析感
-
----
-
-### product-doc — 产品文档风
-
-| 角色 | 色值 | HSL | 用途 |
-|------|------|-----|------|
-| 主色 | `#1565C0` | hsl(210, 80%, 42%) | Primary entity fill |
-| 强调色 | `#FF6F00` | hsl(36, 100%, 50%) | Accent / call to action |
-| 背景色 | `#F5F5F5` | hsl(0, 0%, 96%) | Canvas background |
-| 第二背景 | `#FFFFFF` | hsl(0, 0%, 100%) | Card / panel |
-| 成功/确认 | `#2E7D32` | hsl(123, 46%, 34%) | Confirmation / complete |
-| 警告/注意 | `#F9A825` | hsl(42, 95%, 56%) | Warning / pending |
-| 错误/拒绝 | `#C62828` | hsl(0, 66%, 47%) | Error / denied |
-| 中性/次要 | `#78909C` | hsl(200, 14%, 54%) | Secondary entity |
-| 文字/标签 | `#212121` | hsl(0, 0%, 13%) | Label / text |
-
-**氛围印象**: 专业 · 干净 · 文档感
 
 ---
 
@@ -128,21 +89,3 @@
 | 文字/标签 | `#5D4037` | hsl(17, 25%, 29%) | Label / text |
 
 **氛围印象**: 温暖 · 有机 · 手写感
-
----
-
-### tech-handdrawn — 技术手绘风
-
-| 角色 | 色值 | HSL | 用途 |
-|------|------|-----|------|
-| 主色 | `#3D7EA6` | hsl(204, 45%, 45%) | Primary entity fill |
-| 强调色 | `#C47A3D` | hsl(30, 45%, 50%) | Accent / call to action |
-| 背景色 | `#F5F3EF` | hsl(35, 30%, 96%) | Canvas background |
-| 第二背景 | `#E8E4DC` | hsl(35, 25%, 89%) | Card / panel |
-| 成功/确认 | `#4A8C5A` | hsl(130, 30%, 42%) | Confirmation / complete |
-| 警告/注意 | `#B8923D` | hsl(42, 50%, 48%) | Warning / pending |
-| 错误/拒绝 | `#A64D4D` | hsl(0, 35%, 48%) | Error / denied |
-| 中性/次要 | `#6D7A8C` | hsl(210, 15%, 49%) | Secondary entity |
-| 文字/标签 | `#2D3A4A` | hsl(210, 25%, 23%) | Label / text |
-
-**氛围印象**: 严谨 · 手绘 · 白板感
