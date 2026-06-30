@@ -9,9 +9,9 @@ Recon Map 按阅读优先级组织。建议阅读顺序：
 1. **RECON.md — Overview + Module Coverage 表**：项目全貌、技术栈、模块划分
 2. **content-journey.md**：内容在系统中经历的形态变化链（先看全景，再看模块细节）
 3. **architecture.md**：模块间关系和核心抽象（聚焦"改哪里影响谁"时读）
-3. **选一个最关心的模块，读其 Flow 节**：主功能走通，入口到出口
-4. **user-journeys.md**：用户怎么用这个系统（关注"实际怎么用"时读）
-5. **dev-loop.md**：搭建环境时查阅
+4. **选一个最关心的模块，读其 Flow 节**：主功能走通，入口到出口
+5. **user-journeys.md**：用户怎么用这个系统（关注"实际怎么用"时读）
+6. **dev-loop.md**：搭建环境时查阅
 
 每份文件独立可读——不需要从头到尾读完。
 
@@ -33,7 +33,9 @@ Recon Map 按阅读优先级组织。建议阅读顺序：
     └── modules/                 ← 模块专属文件
         ├── core.md              ← Flow 节 + Deep 节
         ├── auth.md
-        └── payment.md
+        ├── payment.md
+        └── {subsystem}/         ← 大型项目：按子系统分组
+            └── {module}.md
 ```
 
 不写 `.gitignore`——Recon Map 默认进入版本控制，可被团队共享和审查。如果决定后续排除，一行 `.recon/` 到 `.gitignore` 即可。
@@ -116,3 +118,11 @@ Generated: {date} | HEAD: {commit}
 **Depth**：`✓` 的数量（N/6）。1-2 为"扫过"，3-4 为"已跟踪"，5-6 为"深入"。
 
 **Last Visit**：最后一次 revisist 的日期。超过 30 天且有最新 commit 变化则建议 revisit。
+
+**子表**：大模块可展开为子表——主表该行标记 `→`，子表在同一文件下面另起一节。
+
+```
+| core/ | ✓ | ✓ | ✓ | → | - | ✓ | ← 标记 → 表示展开 |
+|   skeleton | ✓ | ✓ | ✓ | ✓ | - | ✓ | ← 缩进表示子模块 |
+|   adaptation | ✓ | ✓ | ✓ | ✓ | - | ✓ |
+```
