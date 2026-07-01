@@ -39,9 +39,9 @@ Recon Map 按阅读优先级组织。建议阅读顺序：
 └── .recon/
     ├── RECON.md                 ← Overview + 覆盖状态表（唯一索引）
     ├── glossary.md              ← 项目专用术语
-    ├── architecture.md          ← 模块依赖图 + 核心抽象
+    ├── architecture.md          ← 模块依赖图（含外部系统）+ 核心抽象 + 数据模型
     ├── user-journeys.md         ← 用户旅程（每步标注涉及模块）
-    ├── entry-points.md          ← 运行时入口清单（main、CLI、路由注册、导出API）
+    ├── entry-points.md          ← 运行时入口清单（main、CLI、路由注册、导出API）+ 运行时配置
     ├── dev-loop.md              ← 构建/测试/lint/CI 命令与环境搭建
     ├── design-decisions.md      ← 设计决策（跨模块统一归档，深入了解模块时产出）
     └── modules/                 ← 模块专属文件（Step 3 创建骨架，Step 4/6 增补）
@@ -134,7 +134,7 @@ Generated: {date} | HEAD: {commit}
 
 ## Module Coverage
 
-| Module | 1.Perim | 2.Entry | 3.Arch | 4.Flow | 5.DevLoop | 6.Deep | Last Visit |
+| Module | 1.Perim | 2.Entry | 3.Arch | 4.Journey | 5.DevLoop | 6.Deep | Last Visit |
 |--------|---------|---------|--------|--------|-----------|--------|------------|
 | core/  | ✓       | ✓       | ✓      | ✓      | -         | ✓      | 2026-06-27 |
 | auth/  | ✓       | ✓       | ✓      | ✓      | -         | -      | 2026-06-27 |
@@ -146,7 +146,7 @@ Generated: {date} | HEAD: {commit}
 
 **里程碑（1-6）**：`✓` = 完成该步骤且有内容；`○` = 已评估，无需写（如该模块没有数据旅程或代码轨迹）；`-` = 未完成。Agent 用 `-` 来判断尚未覆盖的工作。
 
-> **4.Flow 列**：`✓` = 已写 Flow 节；`○` = 评估后该模块无需 Flow（无数据旅程或代码轨迹）；`-` = 未评估。读者据符号即可判断，无需追到 `modules/{module}.md` 确认。
+> **4.Journey 列**：`✓` = 已写 Flow 节；`○` = 评估后该模块无需 Flow（无数据旅程或代码轨迹）；`-` = 未评估。读者据符号即可判断，无需追到 `modules/{module}.md` 确认。
 
 **Last Visit**：最后一次 revisit 的日期。超过 30 天且有最新 commit 变化则建议 revisit。
 
