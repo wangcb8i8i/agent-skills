@@ -1,5 +1,5 @@
 ---
-name: explain-it
+name: explain-code
 description: 解释代码、模块或架构。当用户说"解释""讲讲""怎么工作""这是什么""为什么这样设计"时使用。
 ---
 
