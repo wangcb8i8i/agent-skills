@@ -6,14 +6,29 @@
 
 Recon Map 按阅读优先级组织。建议阅读顺序：
 
-1. **RECON.md — Overview + Module Coverage 表**：项目全貌、技术栈、模块划分
-2. **content-journey.md**：内容在系统中经历的形态变化链（先看全景，再看模块细节）
-3. **architecture.md**：模块间关系和核心抽象（聚焦"改哪里影响谁"时读）
+1. **RECON.md — Overview + Module Coverage 表**：项目全貌、解决什么问题、技术栈、模块划分
+2. **user-journeys.md**：用户怎么用这个系统，每步涉及哪些模块（→ modules/{m}.md 查看模块职责与 Flow）
+3. **glossary.md**：项目专用术语——看不懂领域名词时查阅
 4. **选一个最关心的模块，读其 Flow 节**：主功能走通，入口到出口
-5. **user-journeys.md**：用户怎么用这个系统（关注"实际怎么用"时读）
+5. **architecture.md**：模块间关系和核心抽象（聚焦"改哪里影响谁"时读）
 6. **dev-loop.md**：搭建环境时查阅
 
 每份文件独立可读——不需要从头到尾读完。
+
+每份产出文件末尾写入一段固定格式的「下一步」导航，降低读者在文件间的跳转成本：
+
+```markdown
+---
+→ 下一步：{一句指引，说明读完这份后看什么最划算}
+```
+- RECON.md 尾部：`→ 下一步：制作用户怎么用这个系统？读 user-journeys.md；看不懂领域名词？查 glossary.md`
+- user-journeys.md 尾部：`→ 下一步：挑一个出现在最多步骤中的模块，读 modules/{m}.md 的 Flow 节`
+- glossary.md 尾部：`→ 下一步：回 RECON.md 的 Overview 看整体定位；或读 user-journeys.md 看用户怎么与这些术语互动`
+- modules/{m}.md 尾部：`→ 下一步：想看模块间的依赖关系？读 architecture.md；想深入该模块设计？读 Deep 节`
+- architecture.md 尾部：`→ 下一步：想搭建开发环境？读 dev-loop.md；想深入某个模块？读 modules/{m}.md`
+- dev-loop.md 尾部：`→ 下一步：回 RECON.md 选一个模块开始探索，从 modules/{m}.md 的 Flow 节入手`
+- design-decisions.md 尾部：`→ 下一步：回头看对应模块的 Deep 节理解上下文 → modules/{m}.md`
+- entry-points.md 尾部：`→ 下一步：想了解这些入口如何协同完成用户目标？读 user-journeys.md`
 
 ## 文件结构
 
@@ -22,16 +37,15 @@ Recon Map 按阅读优先级组织。建议阅读顺序：
 ```
 {目标项目}/
 └── .recon/
-    ├── RECON.md                 ← 覆盖状态表（唯一索引）
+    ├── RECON.md                 ← Overview + 覆盖状态表（唯一索引）
     ├── glossary.md              ← 项目专用术语
     ├── architecture.md          ← 模块依赖图 + 核心抽象
-    ├── user-journeys.md         ← 用户旅程
-    ├── content-journey.md       ← 内容变形记：内容在系统中的形态变化链
-    ├── entry-points.md          ← 入口点清单
-    ├── dev-loop.md              ← 构建/测试/调试命令
-    ├── design-decisions.md      ← 设计决策（跨模块统一归档）
-    └── modules/                 ← 模块专属文件
-        ├── core.md              ← Flow 节 + Deep 节
+    ├── user-journeys.md         ← 用户旅程（每步标注涉及模块）
+    ├── entry-points.md          ← 运行时入口清单（main、CLI、路由注册、导出API）
+    ├── dev-loop.md              ← 构建/测试/lint/CI 命令与环境搭建
+    ├── design-decisions.md      ← 设计决策（跨模块统一归档，深入了解模块时产出）
+    └── modules/                 ← 模块专属文件（Step 3 创建骨架，Step 4/6 增补）
+        ├── core.md              ← 职责/上下游 + Flow 节 + Deep 节
         ├── auth.md
         ├── payment.md
         └── {subsystem}/         ← 大型项目：按子系统分组
@@ -49,32 +63,21 @@ Recon Map 按阅读优先级组织。建议阅读顺序：
 - {persona}: {description}
 
 ## Journey: {name}
-{step1} → {step2} → {step3} → done
+
+### User Steps
+| 步骤 | 用户动作 | 涉及模块（→ modules/{m}.md Flow 节，architecture.md 次级） |
+|------|---------|------------------------------|
+| Step1 | init    | [core/]                      |
+| Step2 | add src | [scanner/], [db/]            |
+| Step3 | query   | [api/], [db/], [view/]       |
+
+Steps: Step1 → Step2 → Step3 → done
 
 ### Prerequisites
-- {step2} 依赖 {step1} 完成
+- Step2 依赖 Step1 完成
 ```
 
-## content-journey.md 格式
-
-```markdown
-# 内容变形记：{project-name}
-
-以内容本身为主语，描述它从进入系统到最终产出的完整形态变化链。
-
----
-
-## 第{N}站：{站名}
-
-一句话描述：{输入形态} → {经过什么处理} → {输出形态}
-
-**输入**：数据来源（表/文件/上游产出）
-**处理**：关键处理逻辑（什么 Agent / 什么步骤）
-**输出**：写入位置（表/文件）
-**下一站**：{下一站名}
-```
-
-（Step 4 产出，Full 全部模块追踪完成后写一份完整的。onCover 补全模块后更新相应站。）
+（首次侦察时产出。后续用户指向具体模块时按需补充 Flow 节。）
 
 每个模块一个 `.recon/modules/{module}.md`，按节（section）递进：
 
@@ -84,15 +87,28 @@ Recon Map 按阅读优先级组织。建议阅读顺序：
 **职责**：这个模块做什么的、解决什么问题。
 **上下游**：上游依赖谁的产出 → [本模块] → 下游谁依赖本模块的产出。
 
-## Flow
+## Flow（按需）
 
-从入口到出口的完整功能路径，精确到 `文件::函数`。
-（Step 4 产出，Full / onCover 创建，onRevisit 更新）
+Flow 节整体按需——模块可能没有此节（评估后标记 `○` 即可）。两个子节各自按需——没有数据旅程或代码轨迹的模块不写该子节。
+
+### 数据旅程
+（仅在模块有输入输出形态变化或副作用时写）
+输入：{输入形态}
+处理：{关键处理逻辑}
+输出：{输出形态}
+输出送入：→ [{下游模块}]
+
+### 代码轨迹
+（仅在模块有可追踪的执行路径时写）
+{文件}::{函数} → {文件}::{函数} → {文件}::{函数}
+
+（Flow 节：用户指向具体模块时按需创建或更新）
 
 ## Deep
 
 内部抽象、错误处理路径、设计 tradeoffs、Open Questions。
-（Step 6 产出，onDig 创建 / onRevisit 更新）
+末尾加 `→ design-decisions.md#{module}` 反向指针（design-decisions 条目以模块名二级标题归档，使锚点可用）。
+（用户要求深入了解指定模块时创建或更新）
 ```
 
 ## RECON.md 格式
@@ -100,6 +116,15 @@ Recon Map 按阅读优先级组织。建议阅读顺序：
 ```markdown
 # Recon Map: {project-name}
 Generated: {date} | HEAD: {commit}
+
+## Overview
+
+- **定位**：{一句话——项目是什么 + 技术栈}
+- **问题域**：{这个项目解决用户的什么问题——谁在什么场景下用它来干什么}
+- **模块地图**：{module} → 一句话职责（→ modules/{m}.md）；…
+- **关键架构决策**：{最值得注意的设计选择，不是全部}
+- **快速开始**：{想跑起来做什么 → dev-loop.md}
+- **推荐入口**：如果想理解架构，读 {产出/章节}；如果想动手改代码，读 {产出/章节}
 
 ## Module Coverage
 
@@ -113,11 +138,11 @@ Generated: {date} | HEAD: {commit}
 
 **Module**：以代码目录/模块为粒度。一个模块一次覆盖整块代码。
 
-**里程碑（1-6）**：✓ = 完成该步骤，- = 未完成。Agent 用 `-` 来判断走 onCover 时还需要做什么。
+**里程碑（1-6）**：`✓` = 完成该步骤且有内容；`○` = 已评估，无需写（如该模块没有数据旅程或代码轨迹）；`-` = 未完成。Agent 用 `-` 来判断尚未覆盖的工作。
 
-**Depth**：`✓` 的数量（N/6）。1-2 为"扫过"，3-4 为"已跟踪"，5-6 为"深入"。
+> **4.Flow 列**：`✓` = 已写 Flow 节；`○` = 评估后该模块无需 Flow（无数据旅程或代码轨迹）；`-` = 未评估。读者据符号即可判断，无需追到 `modules/{module}.md` 确认。
 
-**Last Visit**：最后一次 revisist 的日期。超过 30 天且有最新 commit 变化则建议 revisit。
+**Last Visit**：最后一次 revisit 的日期。超过 30 天且有最新 commit 变化则建议 revisit。
 
 **子表**：大模块可展开为子表——主表该行标记 `→`，子表在同一文件下面另起一节。
 
