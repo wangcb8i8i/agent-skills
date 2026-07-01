@@ -9,23 +9,23 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 # ============================================
 
 CLEAN_PATTERNS=(
-    -type d -name "__pycache__" -o
-    -type d -name "node_modules" -o
-    -type d -name ".mypy_cache" -o
-    -type d -name ".ruff_cache" -o
-    -type d -name ".pytest_cache" -o
-    -type f -name ".DS_Store" -o
-    -type f -name "*.pyc"
+    -name "__pycache__" -o
+    -name "node_modules" -o
+    -name ".mypy_cache" -o
+    -name ".ruff_cache" -o
+    -name ".pytest_cache" -o
+    -name ".DS_Store" -o
+    -name "*.pyc"
 )
 
 # 根级别
 rm -rf "$REPO_ROOT/.playwright-mcp"
-find "$REPO_ROOT" -maxdepth 1 "${CLEAN_PATTERNS[@]}" -exec rm -rf {} + 2>/dev/null || true
+find "$REPO_ROOT" -maxdepth 1 \( "${CLEAN_PATTERNS[@]}" \) -exec rm -rf {} + 2>/dev/null || true
 
 # 所有 skill 目录
 for dir in "$REPO_ROOT"/*/; do
     [ ! -f "$dir/SKILL.md" ] && continue
-    find "$dir" "${CLEAN_PATTERNS[@]}" -exec rm -rf {} + 2>/dev/null || true
+    find "$dir" \( "${CLEAN_PATTERNS[@]}" \) -exec rm -rf {} + 2>/dev/null || true
 done
 
 # ============================================
