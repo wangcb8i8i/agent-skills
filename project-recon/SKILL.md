@@ -35,7 +35,7 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 
 | 时机 | 汇报什么 | 长度 |
 |------|---------|------|
-| 首次侦察完成时 | ①定位 ②问题域 ③模块地图 ④关键架构决策（→ architecture.md）⑤快速开始 ⑥推荐入口。同步落盘到 RECON.md Overview | 一段话，点序明确 |
+| 首次侦察完成时 | ①定位 ②问题域 ③模块地图 ④关键架构决策 ⑤快速开始 ⑥推荐入口。①②③⑤⑥落盘到 RECON.md Overview；④落盘到 architecture.md，汇报时提及但不在 RECON.md 展开 | 一段话，点序明确 |
 | 深入模块完成时 | 该模块设计思路 + 关键 tradeoff + 意外发现 | 3-5 句 |
 | 补漏完成时 | 补了哪些模块，每个一句核心职责 | 每个模块 1-2 句 |
 | 发现关键信息时 | 实际发现（如"README 与实际代码不符"） | 2-3 句 |
@@ -174,7 +174,7 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 
 ## Recon Map
 
-核心产出。术语见 [GLOSSARY.md](GLOSSARY.md)，格式见 [OUTPUT.md](OUTPUT.md)
+核心产出。术语见 [GLOSSARY.md](GLOSSARY.md)，格式见 [OUTPUT.md](OUTPUT.md)（技能文件，不写入项目 `.recon/`）
 
 ## 失败模式
 
