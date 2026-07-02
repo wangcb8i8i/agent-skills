@@ -35,7 +35,7 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 
 | 时机 | 汇报什么 | 长度 |
 |------|---------|------|
-| 首次侦察完成时 | ①定位 ②问题域 ③模块地图 ④关键架构决策 ⑤快速开始 ⑥推荐入口。同步落盘到 RECON.md Overview | 一段话，点序明确 |
+| 首次侦察完成时 | ①定位 ②问题域 ③模块地图 ④关键架构决策（→ architecture.md）⑤快速开始 ⑥推荐入口。同步落盘到 RECON.md Overview | 一段话，点序明确 |
 | 深入模块完成时 | 该模块设计思路 + 关键 tradeoff + 意外发现 | 3-5 句 |
 | 补漏完成时 | 补了哪些模块，每个一句核心职责 | 每个模块 1-2 句 |
 | 发现关键信息时 | 实际发现（如"README 与实际代码不符"） | 2-3 句 |
@@ -55,7 +55,7 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 | 读 | README, CONTRIBUTING, CHANGELOG, LICENSE |
 | 读 | 项目元数据 (package.json, Cargo.toml, pyproject.toml, go.mod 等) |
 | 扫 | 目录树 2 层深（`tree -L 2` 或等价操作） |
-| 录 | 项目专用术语，按主题分组写入 `.recon/glossary.md`——每组独立二级标题，同类概念放一起。其它文件出现术语时用 `→ glossary.md#{主题}` 回链 |
+| 录 | 项目专用术语（领域概念，如 MTOP、CookieCloud），按主题分组写入 `.recon/glossary.md`——每组独立二级标题，同类概念放一起。术语不含模块名称——模块属于 RECON.md 模块地图。其它文件出现术语时用 `→ glossary.md#{主题}` 回链 |
 
 **完成标准**：读者看完产出后能用一句话说清"这个项目做什么、用什么技术栈、顶层目录各负责什么"。关键术语已在 glossary.md 中解释，可随时查阅。
 
@@ -75,11 +75,12 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 
 | 动作 | 具体内容 |
 |------|---------|
-| 建 | 为每个模块创建 `.recon/modules/{module}.md` 骨架，写**职责**+**上下游**（格式见 OUTPUT.md） |
+| 建 | 为每个模块创建 `.recon/modules/{module}.md` 骨架，写**职责**+**上下游**（格式见 OUTPUT.md）。骨架不含文件罗列——文件层面信息属于局部旅程或 Deep |
 | 画 | 内部模块依赖方向 + 外部系统（数据库、第三方 API、消息队列等），写入 `.recon/architecture.md`（Mermaid 或 ASCII） |
-| 找 | 核心抽象——traits、interfaces、abstract base classes、核心数据结构 |
+| 找 | 核心抽象——traits、interfaces、abstract base classes、核心数据结构。描述概念本身（如"YAML 配置系统，三层合并优先级"），不标文件路径 |
 | 看 | 数据模型——ORM schema、migration 文件、DDL。列出核心实体和关系，写入 `architecture.md` |
 | 量 | 文件数、模块规模分布 |
+| 记 | 关键架构决策及理由，写入 `architecture.md`「设计决策」节 |
 
 **完成标准**：读者看完 architecture.md 后能看到模块依赖关系图（含外部系统）、核心抽象清单和数据模型概览——知道改一个模块会波及哪些地方。每个模块的职责和上下游在 `modules/{module}.md` 中（Step 3 创建）。
 
@@ -95,9 +96,8 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 |------|---------|
 | 找 | 用户画像——谁在用这个系统？有几类用户？ |
 | 找 | 证据来源：README 的使用示例/tutorial、CLI `--help` 输出、UI 截图/录制、集成测试文件（e2e test 是最可靠的用户旅程编码）、API 文档的 Endpoint 调用顺序 |
-| 列 | 从首次接触到用出价值的完整路径——"导入资产 → 编辑内容 → 发布上线"。**每个步骤是用户推进价值的一个进展节点** |
-| 标 | 每步标注**负责实体**（→ modules/{m}.md、architecture.md 的外部系统框、或 glossary.md 的概念），让读者知道"这一站由谁负责"。粒度不一定是代码目录——可以是模块、服务、层、外部 API、或子系统 |
-| 记 | 退出点——用户什么情况下算"完成"了？ |
+| 描 | 从首次接触到用出价值的完整路径——"导入资产 → 编辑内容 → 发布上线"。**每个步骤是用户推进价值的一个进展节点** |
+| 标 | 每步标注**负责实体**——只用名称（如 → messages，→ 闲管家），不加类型标签、不写文件路径 |
 
 **完成标准**：读者看完后理解用户的典型使用路径——每步做什么、由哪些负责实体承载。知道用户最关心的价值交付顺序，能从用户视角对系统功能和负责实体有个基本了解。**用户旅程中不应出现系统自动执行的内部步骤；每个旅程应覆盖一个连贯的端到端路径，而非多个独立入口的清单。**
 
@@ -108,6 +108,7 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 | 内部步骤混入 | 把系统自动执行的管线步骤写成用户旅程步骤。|
 | 多入口合一 | 把多个独立入口的零散操作塞进一个旅程。|
 | 表面推断 | 不要从 UI 界面文字推断用户实际上在做什么。|
+| 开发者操作混入 | 把 git clone、npm install、配置 .env 等开发搭建步骤写成用户旅程。安装部署属于 dev-loop，不是用户旅程。|
 
 **跳过规则**：单次调用的工具库可跳过——按需机制自然覆盖。不要为没有用户旅程的项目编造一个。
 
@@ -124,7 +125,7 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 | 动作 | 具体内容 |
 |------|---------|
 | 述 | 输入形态 → 处理过程 → 输出形态 |
-| 标 | 输出送入哪个模块（→ modules/{m}.md 如果存在，否则 → architecture.md） |
+| 标 | 输出送入哪个模块（用模块名） |
 
 ##### 代码轨迹（Code Trace）
 
@@ -143,7 +144,7 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 
 **如果写出来只有"用户发请求，然后数据被处理，然后保存到数据库"——不合格。** 代码轨迹必须精确到文件名和函数名。
 
-局部旅程超过 100 行时模块可能太粗——拆成子模块，写入 `.recon/modules/{子系统}/{子模块}.md`。
+局部旅程超过 100 行 → 拆成子模块，写入 `.recon/modules/{子系统}/{子模块}.md`。
 
 ### 5. Dev Loop — 开发回路侦察
 
@@ -173,9 +174,7 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 
 ## Recon Map
 
-技能的核心产出。既是 Agent 的**状态数据库**，也是你的**回忆索引**。
-
-> 完整格式规范 → 见 [OUTPUT.md](OUTPUT.md)
+核心产出。术语见 [GLOSSARY.md](GLOSSARY.md)，格式见 [OUTPUT.md](OUTPUT.md)
 
 ## 失败模式
 
