@@ -168,7 +168,8 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 | 找 | 隐藏抽象——继承链、trait bounds、依赖注入 |
 | 看 | 错误处理路径（不只 happy path） |
 | 问 | 为什么这么设计 |
-| 写 | Deep 节到 `.recon/modules/{module}.md`（含内部结构 + 设计决策） + 设计决策追加到 `.recon/design-decisions.md` |
+| 悟 | 读完核心文件后的本质理解——这个模块「说白了在干什么」。往往是因果性的（因为 X，所以做 Y）。不超过两条，写入模块文件「洞察」节。没有则跳过，不硬编 |
+| 写 | Deep 节到 `.recon/modules/{module}.md`（内部结构 + 设计决策） + 设计决策追加到 `.recon/design-decisions.md` |
 
 **完成标准**：读者读完 Deep 节能看到该模块的内部结构图（有什么组件、如何连接）和设计理由（关键 tradeoff 及其代码证据）——先清楚"有什么"，再理解"为什么"。模块中出现的项目术语已同步更新到 glossary.md。
 
