@@ -4,11 +4,11 @@
 
 ## 文件结构
 
-当前工作目录下 `.inspiration/inspirations.md`，所有灵感归拢在一个文件：
+当前工作目录下 `.docs/inspirations.md`，所有灵感归拢在一个文件：
 
 ```
 {workspace}/
-└── .inspiration/
+└── .docs/
     └── inspirations.md    ← 所有灵感
 ```
 
