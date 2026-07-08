@@ -1,5 +1,5 @@
 ---
-name: sql-decompile
+name: explain-sql
 description: 将 SQL 或 Oracle PL/SQL 反编译为业务叙事——不是代码里有什么，而是代码为什么存在。
 disable-model-invocation: true
 ---
