@@ -80,7 +80,7 @@ Agent 通过 `.recon/RECON.md` 的 Module Coverage 表管理状态。**汇报时
 
 | 动作 | 具体内容 |
 |------|---------|
-| 建 | 为每个模块创建 `.recon/modules/{module}.md` 骨架，写**职责**+**上下游**（格式见 OUTPUT.md）。骨架不含文件罗列——文件层面信息属于深入 |
+| 建 | 为每个模块创建 `.recon/modules/{module}.md` 骨架，写**背景**（如有）+ **职责** + **上下游**（格式见 OUTPUT.md）。骨架不含文件罗列——文件层面信息属于深入 |
 | 画 | 内部依赖方向 + 外部系统（数据库、第三方 API、消息队列等），写入 `.recon/architecture.md`（Mermaid 或 ASCII） |
 | 找 | 核心抽象——traits、interfaces、abstract base classes、核心数据结构。描述概念本身（如"YAML 配置系统，三层合并优先级"），不标文件路径 |
 | 看 | 数据模型——ORM schema、migration 文件、DDL。列出核心实体和关系，写入 `architecture.md` |
