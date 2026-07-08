@@ -133,52 +133,35 @@ WHERE EXISTS (
 
 # PL/SQL 模式
 
-## Process Flow（业务流程图）
+## Process Tree（业务流程树）
 
-展示 PL/SQL 执行体的业务步骤序列和流程控制。
+展示 PL/SQL 的业务决策层级。根 = 入口，内部节点 = 业务问题，叶子 = 最终副作用。
 
 ```
-[入口] process_refund(p_order_id)
-  │
-  │ ① 查询待处理退款订单
-  ▼
-[数据集] c_pending (curs)
-  │
-  ▼
- ╔══════════════════════════════════╗
- ║ ② FOR cur IN c_pending LOOP     ║
- ║    逐笔处理退款                   ║
- ╚══════════════════════════════════╝
-  │
-  │ ③ 余额 ≥ 退款金额？
-  ├────── 是 ────> ④ 执行退款（扣余额 + 插入退款记录）
-  │                   │
-  │                   ▼
-  │               [DML] orders: SET balance-
-  │               [DML] refunds: INSERT
-  │                   │
-  │                   ▼
-  │               ⑤ 更新订单状态为已退款
-  │
-  └────── 否 ────> ⑥ 记录错误日志
-                      │
-                      ▼
-                   RAISE e_insufficient_balance
-                           │
-                           ▼
-                  [EXCEPTION] 记录日志，不回滚
+process_refund(p_order_id)
+├── 查询待处理退款订单 → c_pending
+└── FOR 逐笔退款
+    └── 余额 ≥ 退款金额？
+        ├── 是
+        │   ├── [DML] orders: SET balance-
+        │   ├── [DML] refunds: INSERT
+        │   ├── 更新订单状态 → 已退款
+        │   └── COMMIT
+        └── 否
+            ├── 记录错误日志
+            └── RAISE e_insufficient_balance
+                └── [EXCEPTION] 记录日志，不回滚
 ```
 
 ### 何时用
-- 含多个业务步骤的 PL/SQL 块
-- 有 IF/CASE 分支
-- 有循环处理
-- 含异常处理
+- PL/SQL 块的默认选择
+- 含 IF/CASE 分支
+- 需展示业务决策如何分流到不同副作用
 
 ### 规则
-- 步骤标号 + 类型标签（数据集 / 决策 / DML / 异常）
-- 循环用边框做视觉标记
-- 分支线标注分支含义
+- 内部节点 = 业务问题或业务步骤（不是代码条件）
+- 叶子 = 副作用（DML / RAISE / COMMIT / 返回）
+- 深度 ≤5 级，超过则子树独立成新图
 
 ---
 
