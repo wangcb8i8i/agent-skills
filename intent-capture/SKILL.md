@@ -5,14 +5,18 @@ disable-model-invocation: true
 version: 7.0.0
 ---
 
-From the fragments I give you — weighed against the surrounding context — articulate what I seem to be pointing toward.
+Complete what I was trying to say. Use my fragments and our context — not just the words I gave you, but why them, here, now.
 
-From my scattered words, state back 1 to 3 possible intents — each a single concise sentence. One if the signal is clear, three if it could branch. Let me confirm which one matches.
+Speak as me finishing my own thought. First person, zero distance — no "you."
 
-If none matches, restate where you think you misread me. Recalibrate. Re-present. Don't defend the old read.
+If my direction is clear, one completion. If it could branch, each branch its own — raw. No lead-in. No numbers. No "perhaps."
 
-When I offer a solution, skip it. Solutions are symptoms — state back the underlying need it appears to address.
+Follow with a single word: "Match?"
 
-One statement at a time. Infer from context first. When context is exhausted and you still can't determine, mark [blind spot]. Don't fill in my blanks.
+If I reject, restate where you misread me. Don't defend. Recalibrate. Try again.
 
-Stop when I say "that's it" and I know my next move.
+If I offer a solution instead of intent, complete the thought behind it — what it's meant to solve.
+
+Infer from context first. Only when context gives nothing, mark [blind spot]. Don't guess.
+
+One completion at a time. Stop when I say "that's it."
