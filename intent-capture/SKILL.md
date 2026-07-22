@@ -1,75 +1,18 @@
 ---
 name: intent-capture
-description: 帮用户理清说不清的问题
+description: Divine real intent from fragments — a few words, half a thought, a vague direction.
 disable-model-invocation: true
-version: 6.0.0
+version: 7.0.0
 ---
 
-你的工作是建立用户问题空间的**模型**，然后验证并修正它。以下三个阶段（收→验→确认）是对这个模型的一次构造-测试循环。不是做笔记，不是填表格。
+Divine my intent from the fragments I give you.
 
-## 收 — 接收原始材料
+From my scattered words, surface 1 to 3 possible intents — each a single tight sentence. One if the signal is clear, three if it could branch. Then ask which one lands.
 
-用户没说够一件具体事前，不追问。拿到**对象 + 症状 + 期望变化** → 转验。没拿到就继续，只说"还有吗"或沉默等待。
+If none lands, ask where you misread. Recalibrate. Re-present. Don't defend the old read.
 
-用户主动给出的是时机或约束时，继续追问"是什么让你感觉需要改变？"来引出症状和期望变化，但不预设答案。
+When I offer a solution, skip it. Solutions are symptoms — ask what itch they're meant to scratch.
 
-用户持续给出抽象描述或不聚焦时（超过 2 轮未触及具体对象）：
-- **抽象用户：** "我理解这背后比较大。我们先聚焦到最具体的一件事上——最近有没有一个具体的例子让你想到这个？"
-- **离题用户：** "我打断一下——我先确认一下我们说的是不是同一件事。你说的这个，具体是关于什么的？"
+One ask at a time. What you can't divine, mark [blind spot]. Don't fill in my blanks.
 
-**用户给方案时：** 方案是症状线索，不是对象。"我想要一份 X 技能/系统"是方案，对象是它要处理的领域。不问方案本身，只问"这个方案要解决什么？"
-
-## 验 — 填补模型最明显的缺口
-
-先用 1-2 句重述你的理解，然后从[维度表](#维度表)中选一个缺失维度来问。按**核心→上下文→元**的顺序填，不在同一组内跨行跳问。
-
-- 用户说"对"/"是的" → 转确认
-- 用户说"不对"/"偏了" → **立即纠偏**
-
-### 纠偏
-
-"我偏了。模型的哪个维度偏了：对象、问题、还是目标？—— 或者你暂时说不清是哪个，先描述一下哪部分感觉不对？" 减少最小偏差，重述。不问"为什么不对"，不辩护之前版本。
-
-## 确认 — 验证模型合身
-
-"这个表述准确抓住了你想说的吗？"
-
-- 是 → 检查行动性："拿到这个澄清，你知道下一步该做什么吗？"
-  - 知道 → 完成。问用户要写入文档还是直接呈现。
-  - 不知道 → 追问"谁来做？第一步是什么？" → 回答后再问"知道下一步了吗" → 是则完成，否则回验。
-- 不是 → 回验。
-- 不做反事实推演、不多轮仪式。
-
-## 维度表
-
-按需查阅，不缺就不问。卡住时才列 2-3 个选项并推荐一个。
-
-| 维度 | 问什么 | 类型 |
-|------|--------|------|
-| 对象 | 讨论的事/领域是什么？ | 核心 |
-| 症状 | 什么感觉不对、痛苦或慢？ | 核心 |
-| 期望 | 什么应该变得更好？ | 核心 |
-| 影响 | 谁最先或最深感受到？ | 上下文 |
-| 时机 | 为什么是现在？ | 上下文 |
-| 受众 | 谁会受益或受影响？ | 上下文 |
-| 约束 | 限制条件是什么？ | 上下文 |
-| 成功 | 怎么知道足够好了？ | 元 |
-| 盲区 | 用户自己还模糊的部分？ | 元 |
-
-## 规则
-
-1. **一次只问一个缺口。** 不扫描问卷。
-2. **够用就停。** 对象+症状+期望变化都清晰了、用户想行动了，就停。
-
-## 输出
-
-完成时提供两种选择：
-
-1. **写入文档：** 保存到 `{workspace}/docs/{意图标识}.intention.md`
-2. **直接呈现：** 在对话中输出意图简报
-
-## 成功标志
-
-- 表层表述和真实意图被区分
-- 用户确认得到的表述就是他想说的
-- 盲区被标出，没有被默默假设
+Stop when I say "that's it" and I know my next move.
